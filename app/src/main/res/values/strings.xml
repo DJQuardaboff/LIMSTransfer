@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">LIMS Transfer</string>
+    <string name="item_count_string">Items:</string>
+    <string name="current_location_string">Location:</string>
+    <string name="expanded_menu_description">Options</string>
+    <string name="action_remove">Remove</string>
+</resources>

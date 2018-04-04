@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.constraint.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/preload_locations_layout"
@@ -9,7 +10,7 @@
     android:orientation="vertical"
     tools:context="com.porterlee.limstransfer.TransferActivity">
 
-    <TextView
+    <android.support.v7.widget.AppCompatTextView
         android:id="@+id/current_location_label"
         style="@style/Base.TextAppearance.AppCompat.Medium"
         android:layout_width="0dp"
@@ -27,7 +28,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/progress_bar" />
 
-    <TextView
+    <android.support.v7.widget.AppCompatTextView
         android:id="@+id/current_location_text_view"
         style="@style/Base.TextAppearance.AppCompat.Medium"
         android:layout_width="0dp"
@@ -42,7 +43,7 @@
         app:layout_constraintStart_toEndOf="@+id/current_location_label"
         app:layout_constraintTop_toTopOf="@+id/current_location_label" />
 
-    <TextView
+    <android.support.v7.widget.AppCompatTextView
         android:id="@+id/item_count_label"
         style="@style/Base.TextAppearance.AppCompat.Medium"
         android:layout_width="0dp"
@@ -60,7 +61,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/current_location_label" />
 
-    <TextView
+    <android.support.v7.widget.AppCompatTextView
         android:id="@+id/item_count_text_view"
         style="@style/Base.TextAppearance.AppCompat.Medium"
         android:layout_width="0dp"
@@ -116,7 +117,7 @@
         app:mpb_progressStyle="horizontal"
         app:mpb_useIntrinsicPadding="false" />
 
-    <Button
+    <android.support.v7.widget.AppCompatButton
         android:id="@+id/test_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

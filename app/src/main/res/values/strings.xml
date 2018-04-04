@@ -4,4 +4,6 @@
     <string name="current_location_string">Location:</string>
     <string name="expanded_menu_description">Options</string>
     <string name="action_remove">Remove</string>
+    <string name="action_continuous_mode">Continuous mode</string>
+    <string name="action_reset">Reset</string>
 </resources>

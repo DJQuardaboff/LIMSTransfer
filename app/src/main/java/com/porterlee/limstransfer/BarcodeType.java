@@ -5,9 +5,9 @@ public enum BarcodeType {
     Container("m1", "M", "A", "a"),
     Location("V", "L5"),
     Process("L3"),
-    Invalid("");
+    Invalid();
 
-    private String[] prefixes;
+    private final String[] prefixes;
 
     BarcodeType(String... prefixes) {
         this.prefixes = prefixes;
@@ -18,14 +18,8 @@ public enum BarcodeType {
     }
 
     public static BarcodeType getBarcodeType(String barcode) {
-        /*if (barcode.startsWith("e1") || barcode.startsWith("E") || barcode.startsWith("t") || barcode.startsWith("T"))
-            return Item;
-        if (barcode.startsWith("m1") || barcode.startsWith("M") || barcode.startsWith("A") || barcode.startsWith("a"))
-            return Container;
-        if (barcode.startsWith("V") || barcode.startsWith("L5"))
-            return Location;
-        if (barcode.startsWith("L3"))
-            return Process;*/
+        if (barcode == null)
+            return Invalid;
         for(BarcodeType barcodeType : BarcodeType.values())
             for (String prefix : barcodeType.getPrefixes())
                 if (barcode.startsWith(prefix))

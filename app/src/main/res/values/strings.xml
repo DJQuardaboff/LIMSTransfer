@@ -6,4 +6,9 @@
     <string name="action_remove">Remove</string>
     <string name="action_continuous_mode">Continuous mode</string>
     <string name="action_reset">Reset</string>
+    <string name="action_sign">Sign</string>
+    <string name="title_sign_here">Sign here</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
 </resources>

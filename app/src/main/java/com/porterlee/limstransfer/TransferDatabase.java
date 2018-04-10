@@ -5,7 +5,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 public final class TransferDatabase {
@@ -42,6 +41,10 @@ public final class TransferDatabase {
         return context.deleteDatabase(NAME);
     }
 
+    public boolean isOpen() {
+        return mDatabase != null && mDatabase.isOpen();
+    }
+
     public boolean exists(@NotNull Context context) {
         for (String name : context.databaseList())
             if (NAME.equals(name))
@@ -50,18 +53,18 @@ public final class TransferDatabase {
         return false;
     }
 
-    public String select_barcode_from_itemTable_where_id_equals(long id) {
+    public synchronized String select_barcode_from_itemTable_where_id_equals(long id) {
         mSelect_barcode_from_itemTable_where_id_equals.bindLong(1, id);
         return mSelect_barcode_from_itemTable_where_id_equals.simpleQueryForString();
     }
 
-    public long insert_locationId_barcode_into_itemTable(long locationId, String barcode) {
+    public synchronized long insert_locationId_barcode_into_itemTable(long locationId, String barcode) {
         mInsert_locationId_barcode_into_itemTable.bindLong(1, locationId);
         mInsert_locationId_barcode_into_itemTable.bindString(2, barcode);
         return mInsert_locationId_barcode_into_itemTable.executeInsert();
     }
 
-    public long delete_from_itemTable_where_id_equals(long id) {
+    public synchronized long delete_from_itemTable_where_id_equals(long id) {
         mDelete_from_itemTable_where_id_equals.bindLong(1, id);
         return mDelete_from_itemTable_where_id_equals.executeUpdateDelete();
     }
@@ -70,17 +73,17 @@ public final class TransferDatabase {
         return mDatabase.query(ItemTable.NAME, new String[] { Key.ID, Key.LOCATION_ID, Key.BARCODE }, null, null, null, null, Key.ID + " DESC");
     }
 
-    public String select_barcode_from_locationTable_where_id_equals(long id) {
+    public synchronized String select_barcode_from_locationTable_where_id_equals(long id) {
         mSelect_barcode_from_locationTable_where_id_equals.bindLong(1, id);
         return mSelect_barcode_from_locationTable_where_id_equals.simpleQueryForString();
     }
 
-    public long insert_barcode_into_locationTable(String barcode) {
+    public synchronized long insert_barcode_into_locationTable(String barcode) {
         mInsert_barcode_into_locationTable.bindString(1, barcode);
         return mInsert_barcode_into_locationTable.executeInsert();
     }
 
-    public long delete_from_locationTable_where_id_equals(long id) {
+    public synchronized long delete_from_locationTable_where_id_equals(long id) {
         mDelete_from_locationTable_where_id_equals.bindLong(1, id);
         return mDelete_from_locationTable_where_id_equals.executeUpdateDelete();
     }

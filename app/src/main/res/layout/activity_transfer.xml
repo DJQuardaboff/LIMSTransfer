@@ -94,11 +94,11 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/item_count_label" />
 
-    <com.porterlee.limstransfer.SelectableRecyclerView
+    <android.support.v7.widget.RecyclerView
         android:id="@+id/item_recycler_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        tools:listitem="@layout/transfer_item"
+        tools:listitem="@layout/item_transfer"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

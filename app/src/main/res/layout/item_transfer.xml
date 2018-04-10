@@ -23,7 +23,7 @@
         android:background="@null"
         android:contentDescription="@string/expanded_menu_description"
         android:src="@drawable/ic_more_options"
-        android:tint="#7fFFFFFF"
+        android:tint="#7FFFFFFF"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

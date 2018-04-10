@@ -8,6 +8,9 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteCantOpenDatabaseException;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -16,26 +19,40 @@ import android.os.ServiceManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.support.annotation.NonNull;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatDialogFragment;
 import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.AppCompatImageButton;
 import android.support.v7.widget.AppCompatTextView;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.github.gcacace.signaturepad.views.SignaturePad;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Objects;
 
 import device.scanner.DecodeResult;
 import device.scanner.IScannerService;
@@ -44,18 +61,32 @@ import device.scanner.ScannerService;
 
 public class TransferActivity extends AppCompatActivity {
     public static final String TAG = TransferActivity.class.getName();
-    public static final File EXTERNAL_PATH = new File("");//Environment.getExternalStorageDirectory(), "Transfer");
+    public static final File EXTERNAL_PATH = new File(Environment.getExternalStorageDirectory(), "Transfer");
     public static final File OUTPUT_FILE = new File(EXTERNAL_PATH, "data.txt");
     public static final File SIGNATURE_FILE = new File(EXTERNAL_PATH, "signature.png");
-    private CursorRecyclerViewAdapter<TransferItemViewHolder> mItemRecyclerAdapter;
+    private SelectableCursorRecyclerViewAdapter<TransferItemViewHolder> mItemRecyclerAdapter;
     private volatile TransferDatabase mTransferDatabase;
-    private long mSelectedLocationId = -1;
-    private String mSelectedLocationBarcode = "";
+    private Location mSelectedLocation;
     private String previousPrefix;
     private String previousPostfix;
     private IScannerService mScanner = null;
     private DecodeResult mDecodeResult = new DecodeResult();
-    private ScanResultReceiver mResultReciever = new ScanResultReceiver();
+    private BroadcastReceiver mResultReciever = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (mScanner != null) {
+                try {
+                    mScanner.aDecodeGetResult(mDecodeResult);
+                    String barcode = mDecodeResult.decodeValue;
+                    if (!"READ FAIL".equals(mDecodeResult.symName))
+                        onBarcodeScanned(barcode);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    };
+
     IntentFilter resultFilter = new IntentFilter();
     {
         resultFilter.setPriority(0);
@@ -105,17 +136,7 @@ public class TransferActivity extends AppCompatActivity {
         try {
             mTransferDatabase = new TransferDatabase(this);
         } catch (SQLiteCantOpenDatabaseException e) {
-            databaseLoadingError(new Runnable() {
-                @Override
-                public void run() {
-                    init();
-                }
-            }, new Runnable() {
-                @Override
-                public void run() {
-                    finish();
-                }
-            });
+            databaseLoadingError(this::init, this::finish);
         }
 
         init();
@@ -124,14 +145,20 @@ public class TransferActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu_transfer, menu);
+        inflater.inflate(R.menu.activity_transfer, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            //todo other menu options
+            case R.id.menu_sign:
+                //todo start sign activity
+                showSignatureDialog();
+                return true;
+            case R.id.menu_reset:
+                //todo reset transfer list
+                return true;
             case R.id.menu_continuous_mode:
                 try {
                     if (!item.isChecked()) {
@@ -193,7 +220,6 @@ public class TransferActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
-        super.onPause();
         unregisterReceiver(mResultReciever);
         unregisterReceiver(mScanKeyEventReceiver);
 
@@ -206,6 +232,27 @@ public class TransferActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (mTransferDatabase != null && mTransferDatabase.isOpen())
+            mTransferDatabase.close();
+
+        if (mItemRecyclerAdapter != null && mItemRecyclerAdapter.getCursor() != null)
+            mItemRecyclerAdapter.getCursor().close();
+
+        if (mScanner != null) {
+            try {
+                mScanner.aDecodeSetTriggerOn(0);
+                mScanner.aDecodeSetPrefix(previousPrefix);
+                mScanner.aDecodeSetPostfix(previousPostfix);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+        super.onDestroy();
     }
 
     private void initScanner() throws RemoteException {
@@ -225,20 +272,14 @@ public class TransferActivity extends AppCompatActivity {
                 "\n" +
                 "Answering no will close the app."
         );
-        builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) { finish(); }
-        });
-        builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                if (!mTransferDatabase.delete(TransferActivity.this) && mTransferDatabase.exists(TransferActivity.this)) {
-                    Toast.makeText(TransferActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
-                    onFail.run();
-                } else {
-                    Toast.makeText(TransferActivity.this, "The file was deleted", Toast.LENGTH_SHORT).show();
-                    onDelete.run();
-                }
+        builder.setNegativeButton("no", (dialog, which) -> finish());
+        builder.setPositiveButton("yes", (dialog, which) -> {
+            if (!mTransferDatabase.delete(TransferActivity.this) && mTransferDatabase.exists(TransferActivity.this)) {
+                Toast.makeText(TransferActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
+                onFail.run();
+            } else {
+                Toast.makeText(TransferActivity.this, "The file was deleted", Toast.LENGTH_SHORT).show();
+                onDelete.run();
             }
         });
         builder.create().show();
@@ -257,17 +298,108 @@ public class TransferActivity extends AppCompatActivity {
 
         //todo the rest of the setup
 
+        final RecyclerView itemRecyclerView = findViewById(R.id.item_recycler_view);
+        itemRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        mItemRecyclerAdapter = new SelectableCursorRecyclerViewAdapter<TransferItemViewHolder>(mTransferDatabase.getItemListCursor(), TransferDatabase.ItemTable.Key.ID) {
+            @Override
+            public void onBindViewHolder(TransferItemViewHolder viewHolder, Cursor cursor) {
+                viewHolder.bindViews(cursor);
+            }
+
+            @NonNull
+            @Override
+            public TransferItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+                return new TransferItemViewHolder(parent);
+            }
+        };
+        itemRecyclerView.setAdapter(mItemRecyclerAdapter);
+        itemRecyclerView.setHasFixedSize(true);
+        final RecyclerView.ItemAnimator itemAnimator = new DefaultItemAnimator();
+        itemAnimator.setAddDuration(100);
+        itemAnimator.setChangeDuration(0);
+        itemAnimator.setMoveDuration(100);
+        itemAnimator.setRemoveDuration(100);
+        itemRecyclerView.setItemAnimator(itemAnimator);
+        final DividerItemDecoration itemDecoration = new DividerItemDecoration(this, DividerItemDecoration.HORIZONTAL);
+        itemDecoration.setDrawable(Objects.requireNonNull(ContextCompat.getDrawable(this, R.drawable.divider_item_transfer)));
+        itemRecyclerView.addItemDecoration(itemDecoration);
+
         this.<TextView>findViewById(R.id.current_location_text_view).setText("-");
         this.<TextView>findViewById(R.id.item_count_text_view).setText("-");
 
-        /*this.<AppCompatButton>findViewById(R.id.test_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-            }
-        });*/
+        this.<AppCompatButton>findViewById(R.id.test_button).setOnClickListener(v -> {
+
+        });
     }
 
-    private static String cursorToString(Cursor cursor) {
+    private void showSignatureDialog() {
+        //FragmentManager fm = getSupportFragmentManager();
+        //AppCompatDialogFragment editNameDialogFragment = AppCompatDialogFragment.newInstance("Some Title");
+        //editNameDialogFragment.show(fm, "fragment_edit_name");
+
+        //final View signatureLayout = View.inflate(this, R.layout.fragment_sign, null);
+        //final SignaturePad signaturepad = signatureLayout.findViewById(R.id.signature_pad);
+        /*try {
+            saveSignature(signaturepad.getSignatureBitmap());
+            Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(TransferActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+        (dialog, which) -> signaturepad.clear()
+        (dialog, which) -> dialog.dismiss()
+        */
+
+        //signatureDialogBuilder.setView(signatureLayout);
+        //final AlertDialog signatureDialog = signatureDialogBuilder.create();
+
+        /*signaturepad.setOnSignedListener(new SignaturePad.OnSignedListener() {
+            @Override
+            public void onStartSigning() { }
+
+            @Override
+            public void onSigned() {
+                signatureDialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(true);
+                signatureDialog.getButton(DialogInterface.BUTTON_NEUTRAL).setEnabled(true);
+
+                Log.e(TAG, "dialog height: " + signatureDialog.getWindow().getAttributes().height);
+                //WindowManager.LayoutParams.
+            }
+
+            @Override
+            public void onClear() {
+                signatureDialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(false);
+                signatureDialog.getButton(DialogInterface.BUTTON_NEUTRAL).setEnabled(false);
+            }
+        });*/
+
+        //signatureDialog.show();
+    }
+
+    public void saveSignature(Bitmap signatureBitmap) throws IOException {
+        if (!SIGNATURE_FILE.getParentFile().mkdirs() && !SIGNATURE_FILE.getParentFile().exists())
+            throw new IOException("Could not create signatures directory");
+
+        try {
+            saveBitmapToPNG(signatureBitmap, SIGNATURE_FILE);
+            refreshExternalPath(this, SIGNATURE_FILE);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new IOException("Unable to save", e);
+        }
+    }
+
+    public static void saveBitmapToPNG(Bitmap bitmap, File file) throws IOException {
+        Bitmap newBitmap = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(newBitmap);
+        canvas.drawColor(Color.WHITE);
+        canvas.drawBitmap(bitmap, 0, 0, null);
+        OutputStream stream = new FileOutputStream(file);
+        newBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        stream.close();
+    }
+
+    /*private static String cursorToString(Cursor cursor) {
         if (cursor.moveToFirst()) {
             StringBuilder result = new StringBuilder("Columns:");
             final String[] columnNames = cursor.getColumnNames();
@@ -296,11 +428,11 @@ public class TransferActivity extends AppCompatActivity {
             return result.toString();
         }
         return null;
-    }
+    }*/
 
     public static boolean csvContainsInt(String csv, int i) {
         final String regex = "(^" + i + ",.*)|(.*," + i + ",.*)|(.*," + i + "$)";
-        return csv.matches(regex);
+        return csv.replace(" ", "").matches(regex);
     }
 
     private void updateInfo(String location, int itemCount) {
@@ -324,29 +456,50 @@ public class TransferActivity extends AppCompatActivity {
         return false;
     }
 
-    private static void refreshExternalPath(Context context) {
+    private static void refreshExternalPath(Context context, File file) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-            Uri contentUri = Uri.fromFile(EXTERNAL_PATH);
+            Uri contentUri = Uri.fromFile(file);
             mediaScanIntent.setData(contentUri);
             context.sendBroadcast(mediaScanIntent);
         } else {
-            context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.fromFile(EXTERNAL_PATH)));
+            context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.fromFile(file)));
         }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (permissions.length != 0 && grantResults.length != 0) {
+            if (requestCode == 1) {
+                for (int i = 0; i < permissions.length; i++) {
+                    if (permissions[i].equals(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                        init();
+                        return;
+                    }
+                }
+                finish();
+            }
+        }
+
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    private void onBarcodeScanned(String barcode) {
+        //todo finish
     }
 
     private class TransferItemViewHolder extends RecyclerView.ViewHolder {
         private long id;
         private String barcode;
 
-        public TransferItemViewHolder(View itemView) {
-            super(itemView);
+        public TransferItemViewHolder(ViewGroup parent) {
+            super(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_transfer, parent, false));
             final AppCompatImageButton expandedMenuButton = itemView.findViewById(R.id.expanded_menu);
             expandedMenuButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     final PopupMenu popup = new PopupMenu(TransferActivity.this, expandedMenuButton);
-                    popup.inflate(R.menu.menu_transfer_item);
+                    popup.inflate(R.menu.item_transfer);
                     popup.getMenu().findItem(R.id.menu_remove).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                         @Override
                         public boolean onMenuItemClick(MenuItem menuItem) {
@@ -369,40 +522,14 @@ public class TransferActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (permissions.length != 0 && grantResults.length != 0) {
-            if (requestCode == 1) {
-                for (int i = 0; i < permissions.length; i++) {
-                    if (permissions[i].equals(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
-                        init();
-                        return;
-                    }
-                }
-                finish();
-            }
-        }
-
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    private class Location {
+        public long id;
+        public String barcode;
     }
 
-    public class ScanResultReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (mScanner != null) {
-                try {
-                    mScanner.aDecodeGetResult(mDecodeResult);
-                    String barcode = mDecodeResult.decodeValue;
-                    if (!"READ FAIL".equals(mDecodeResult.symName))
-                        onBarcodeScanned(barcode);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    private void onBarcodeScanned(String barcode) {
-        //todo finish
+    private class Item {
+        public long id;
+        public long locationId;
+        public String barcode;
     }
 }

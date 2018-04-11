@@ -2,29 +2,23 @@ package com.porterlee.limstransfer;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteCantOpenDatabaseException;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.net.Uri;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Environment;
 import android.os.RemoteException;
 import android.os.ServiceManager;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
 import android.support.annotation.NonNull;
-import android.support.v4.app.FragmentManager;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatDialogFragment;
+import android.support.v7.app.AppCompatDialog;
 import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.AppCompatImageButton;
 import android.support.v7.widget.AppCompatTextView;
@@ -46,12 +40,10 @@ import android.widget.Toast;
 
 import com.github.gcacace.signaturepad.views.SignaturePad;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.lang.reflect.Modifier;
+import java.util.Locale;
 import java.util.Objects;
 
 import device.scanner.DecodeResult;
@@ -59,19 +51,21 @@ import device.scanner.IScannerService;
 import device.scanner.ScanConst;
 import device.scanner.ScannerService;
 
+import static com.porterlee.limstransfer.DataManager.BarcodeType.Location;
+import static com.porterlee.limstransfer.DataManager.BarcodeType.getBarcodeType;
+import static com.porterlee.limstransfer.DataManager.BarcodeType;
+
 public class TransferActivity extends AppCompatActivity {
     public static final String TAG = TransferActivity.class.getName();
     public static final File EXTERNAL_PATH = new File(Environment.getExternalStorageDirectory(), "Transfer");
+    public static final File SIGNATURES_PATH = new File(EXTERNAL_PATH, "Signatures");
     public static final File OUTPUT_FILE = new File(EXTERNAL_PATH, "data.txt");
-    public static final File SIGNATURE_FILE = new File(EXTERNAL_PATH, "signature.png");
+    public static final String SIGNATURE_FILE_NAME = "signature_%d.png";
     private SelectableCursorRecyclerViewAdapter<TransferItemViewHolder> mItemRecyclerAdapter;
-    private volatile TransferDatabase mTransferDatabase;
-    private Location mSelectedLocation;
-    private String previousPrefix;
-    private String previousPostfix;
+    private DataManager mDataManager;
     private IScannerService mScanner = null;
-    private DecodeResult mDecodeResult = new DecodeResult();
-    private BroadcastReceiver mResultReciever = new BroadcastReceiver() {
+    private final DecodeResult mDecodeResult = new DecodeResult();
+    private final BroadcastReceiver mResultReciever = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (mScanner != null) {
@@ -87,7 +81,7 @@ public class TransferActivity extends AppCompatActivity {
         }
     };
 
-    IntentFilter resultFilter = new IntentFilter();
+    private final IntentFilter resultFilter = new IntentFilter();
     {
         resultFilter.setPriority(0);
         resultFilter.addAction("device.scanner.USERMSG");
@@ -134,7 +128,7 @@ public class TransferActivity extends AppCompatActivity {
             Log.w(TAG, "External directory does not exist and could not be created, this may cause a problem");
 
         try {
-            mTransferDatabase = new TransferDatabase(this);
+            mDataManager = new DataManager(this);
         } catch (SQLiteCantOpenDatabaseException e) {
             databaseLoadingError(this::init, this::finish);
         }
@@ -208,8 +202,8 @@ public class TransferActivity extends AppCompatActivity {
         if (mScanner != null) {
             try {
                 mScanner.aDecodeSetTriggerOn(0);
-                previousPrefix = mScanner.aDecodeGetPrefix();
-                previousPostfix = mScanner.aDecodeGetPostfix();
+                mDataManager.setPreviousPrefix(mScanner.aDecodeGetPrefix());
+                mDataManager.setPreviousPostfix(mScanner.aDecodeGetPostfix());
                 mScanner.aDecodeSetPrefix("");
                 mScanner.aDecodeSetPostfix("");
             } catch (RemoteException e) {
@@ -226,8 +220,8 @@ public class TransferActivity extends AppCompatActivity {
         if (mScanner != null) {
             try {
                 mScanner.aDecodeSetTriggerOn(0);
-                mScanner.aDecodeSetPrefix(previousPrefix);
-                mScanner.aDecodeSetPostfix(previousPostfix);
+                mScanner.aDecodeSetPrefix(mDataManager.getPreviousPrefix());
+                mScanner.aDecodeSetPostfix(mDataManager.getPreviousPostfix());
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -237,8 +231,8 @@ public class TransferActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        if (mTransferDatabase != null && mTransferDatabase.isOpen())
-            mTransferDatabase.close();
+        if (mDataManager.getDatabase() != null && mDataManager.getDatabase().isOpen())
+            mDataManager.getDatabase().close();
 
         if (mItemRecyclerAdapter != null && mItemRecyclerAdapter.getCursor() != null)
             mItemRecyclerAdapter.getCursor().close();
@@ -246,8 +240,8 @@ public class TransferActivity extends AppCompatActivity {
         if (mScanner != null) {
             try {
                 mScanner.aDecodeSetTriggerOn(0);
-                mScanner.aDecodeSetPrefix(previousPrefix);
-                mScanner.aDecodeSetPostfix(previousPostfix);
+                mScanner.aDecodeSetPrefix(mDataManager.getPreviousPrefix());
+                mScanner.aDecodeSetPostfix(mDataManager.getPreviousPostfix());
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -274,7 +268,7 @@ public class TransferActivity extends AppCompatActivity {
         );
         builder.setNegativeButton("no", (dialog, which) -> finish());
         builder.setPositiveButton("yes", (dialog, which) -> {
-            if (!mTransferDatabase.delete(TransferActivity.this) && mTransferDatabase.exists(TransferActivity.this)) {
+            if (!mDataManager.getDatabase().delete(TransferActivity.this) && mDataManager.getDatabase().exists(TransferActivity.this)) {
                 Toast.makeText(TransferActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
                 onFail.run();
             } else {
@@ -300,7 +294,7 @@ public class TransferActivity extends AppCompatActivity {
 
         final RecyclerView itemRecyclerView = findViewById(R.id.item_recycler_view);
         itemRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mItemRecyclerAdapter = new SelectableCursorRecyclerViewAdapter<TransferItemViewHolder>(mTransferDatabase.getItemListCursor(), TransferDatabase.ItemTable.Key.ID) {
+        mItemRecyclerAdapter = new SelectableCursorRecyclerViewAdapter<TransferItemViewHolder>(mDataManager.getDatabase().getItemListCursor(), TransferDatabase.ItemTable.Key.ID) {
             @Override
             public void onBindViewHolder(TransferItemViewHolder viewHolder, Cursor cursor) {
                 viewHolder.bindViews(cursor);
@@ -324,8 +318,8 @@ public class TransferActivity extends AppCompatActivity {
         itemDecoration.setDrawable(Objects.requireNonNull(ContextCompat.getDrawable(this, R.drawable.divider_item_transfer)));
         itemRecyclerView.addItemDecoration(itemDecoration);
 
-        this.<TextView>findViewById(R.id.current_location_text_view).setText("-");
-        this.<TextView>findViewById(R.id.item_count_text_view).setText("-");
+        this.<TextView>findViewById(R.id.text_current_location).setText("-");
+        this.<TextView>findViewById(R.id.text_item_count).setText("-");
 
         this.<AppCompatButton>findViewById(R.id.test_button).setOnClickListener(v -> {
 
@@ -333,73 +327,91 @@ public class TransferActivity extends AppCompatActivity {
     }
 
     private void showSignatureDialog() {
-        //FragmentManager fm = getSupportFragmentManager();
-        //AppCompatDialogFragment editNameDialogFragment = AppCompatDialogFragment.newInstance("Some Title");
-        //editNameDialogFragment.show(fm, "fragment_edit_name");
+        final AppCompatDialog compatDialog = new AppCompatDialog(this, R.style.CustomDialogTheme);
+        Objects.requireNonNull(compatDialog.getWindow()).setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        compatDialog.setCancelable(false);
+        compatDialog.setContentView(R.layout.fragment_sign);
 
-        //final View signatureLayout = View.inflate(this, R.layout.fragment_sign, null);
-        //final SignaturePad signaturepad = signatureLayout.findViewById(R.id.signature_pad);
-        /*try {
-            saveSignature(signaturepad.getSignatureBitmap());
-            Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(TransferActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-        (dialog, which) -> signaturepad.clear()
-        (dialog, which) -> dialog.dismiss()
-        */
+        View v = compatDialog.getWindow().getDecorView();
+        final SignaturePad signaturePad = v.findViewById(R.id.signature_pad);
+        final AppCompatButton buttonClear = v.findViewById(R.id.button_clear);
+        final AppCompatButton buttonCancel = v.findViewById(R.id.button_cancel);
+        final AppCompatButton buttonSave = v.findViewById(R.id.button_save);
 
-        //signatureDialogBuilder.setView(signatureLayout);
-        //final AlertDialog signatureDialog = signatureDialogBuilder.create();
-
-        /*signaturepad.setOnSignedListener(new SignaturePad.OnSignedListener() {
+        signaturePad.setOnSignedListener(new SignaturePad.OnSignedListener() {
             @Override
             public void onStartSigning() { }
 
             @Override
             public void onSigned() {
-                signatureDialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(true);
-                signatureDialog.getButton(DialogInterface.BUTTON_NEUTRAL).setEnabled(true);
-
-                Log.e(TAG, "dialog height: " + signatureDialog.getWindow().getAttributes().height);
-                //WindowManager.LayoutParams.
+                buttonClear.setEnabled(true);
+                buttonSave.setEnabled(true);
             }
 
             @Override
             public void onClear() {
-                signatureDialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(false);
-                signatureDialog.getButton(DialogInterface.BUTTON_NEUTRAL).setEnabled(false);
+                buttonClear.setEnabled(false);
+                buttonSave.setEnabled(false);
             }
-        });*/
+        });
 
-        //signatureDialog.show();
+        buttonClear.setOnClickListener(v1 -> signaturePad.clear());
+        buttonCancel.setOnClickListener(v1 -> compatDialog.dismiss());
+        buttonSave.setOnClickListener(v1 -> {
+            mDataManager.setSignature(signaturePad.getSignatureBitmap());
+            save();
+            compatDialog.dismiss();
+        });
+
+        compatDialog.show();
     }
 
-    public void saveSignature(Bitmap signatureBitmap) throws IOException {
-        if (!SIGNATURE_FILE.getParentFile().mkdirs() && !SIGNATURE_FILE.getParentFile().exists())
-            throw new IOException("Could not create signatures directory");
+    private void save() {
+        Toast.makeText(this, "Saving...", Toast.LENGTH_SHORT).show();
+
+        File tempSignature;
 
         try {
-            saveBitmapToPNG(signatureBitmap, SIGNATURE_FILE);
-            refreshExternalPath(this, SIGNATURE_FILE);
+            tempSignature = File.createTempFile("signature", ".png", EXTERNAL_PATH);
         } catch (IOException e) {
             e.printStackTrace();
-            throw new IOException("Unable to save", e);
+            Toast.makeText(this, "Unable to save", Toast.LENGTH_SHORT).show();
+            return;
         }
+
+        try {
+            Utils.saveSignature(this, mDataManager.getSignature(), tempSignature);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        //todo finish
+        saveTransferToFile();
+
+        Log.e(TAG, String.valueOf(mDataManager.getTransferId()));
+
+        mDataManager.setCurrentLocation(mDataManager.newLocation("VAN  MIKE    "));
+
+        Log.e(TAG, String.valueOf(mDataManager.getTransferId()));
+
+        if (!tempSignature.renameTo(new File(SIGNATURES_PATH, String.format(Locale.US, SIGNATURE_FILE_NAME, mDataManager.getTransferId())))) {
+            Toast.makeText(this, "Could not rename file", Toast.LENGTH_SHORT).show();
+        }
+
+        Utils.refreshExternalPath(this, EXTERNAL_PATH);
+
+        Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
     }
 
-    public static void saveBitmapToPNG(Bitmap bitmap, File file) throws IOException {
-        Bitmap newBitmap = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(newBitmap);
-        canvas.drawColor(Color.WHITE);
-        canvas.drawBitmap(bitmap, 0, 0, null);
-        OutputStream stream = new FileOutputStream(file);
-        newBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-        stream.close();
+    public static void saveTransferToFile() {
+        Class<?> c = new Object() { }.getClass();
+        Log.e(TAG, String.valueOf(Modifier.isStatic(c.getModifiers())));
+        //todo finish
     }
-
-    /*private static String cursorToString(Cursor cursor) {
+    /*
+    private static String cursorToString(Cursor cursor) {
         if (cursor.moveToFirst()) {
             StringBuilder result = new StringBuilder("Columns:");
             final String[] columnNames = cursor.getColumnNames();
@@ -428,43 +440,11 @@ public class TransferActivity extends AppCompatActivity {
             return result.toString();
         }
         return null;
-    }*/
-
-    public static boolean csvContainsInt(String csv, int i) {
-        final String regex = "(^" + i + ",.*)|(.*," + i + ",.*)|(.*," + i + "$)";
-        return csv.replace(" ", "").matches(regex);
     }
-
+    */
     private void updateInfo(String location, int itemCount) {
-        this.<TextView>findViewById(R.id.current_location_text_view).setText(BarcodeType.getBarcodeType(location).equals(BarcodeType.Location) ? location : "-");
-        this.<TextView>findViewById(R.id.item_count_text_view).setText(itemCount >= 0 ? String.valueOf(itemCount) : "-");
-    }
-
-    private static boolean vibrate(@NotNull Context context) {
-        final Vibrator vibrator = (Vibrator) context.getSystemService(VIBRATOR_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (vibrator != null) {
-                vibrator.vibrate(VibrationEffect.createOneShot(300L, VibrationEffect.DEFAULT_AMPLITUDE));
-                return true;
-            }
-        } else {
-            if (vibrator != null) {
-                vibrator.vibrate(300L);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static void refreshExternalPath(Context context, File file) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-            Uri contentUri = Uri.fromFile(file);
-            mediaScanIntent.setData(contentUri);
-            context.sendBroadcast(mediaScanIntent);
-        } else {
-            context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.fromFile(file)));
-        }
+        this.<TextView>findViewById(R.id.text_current_location).setText(getBarcodeType(location).equals(DataManager.BarcodeType.Location) ? location : "-");
+        this.<TextView>findViewById(R.id.text_item_count).setText(itemCount >= 0 ? String.valueOf(itemCount) : "-");
     }
 
     @Override
@@ -485,7 +465,13 @@ public class TransferActivity extends AppCompatActivity {
     }
 
     private void onBarcodeScanned(String barcode) {
+        if (BarcodeType.Location.isOfType(barcode))
+            startNewTransfer(barcode);
         //todo finish
+    }
+
+    private void startNewTransfer(String locationBarcode) {
+
     }
 
     private class TransferItemViewHolder extends RecyclerView.ViewHolder {
@@ -495,23 +481,17 @@ public class TransferActivity extends AppCompatActivity {
         public TransferItemViewHolder(ViewGroup parent) {
             super(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_transfer, parent, false));
             final AppCompatImageButton expandedMenuButton = itemView.findViewById(R.id.expanded_menu);
-            expandedMenuButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    final PopupMenu popup = new PopupMenu(TransferActivity.this, expandedMenuButton);
-                    popup.inflate(R.menu.item_transfer);
-                    popup.getMenu().findItem(R.id.menu_remove).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-                        @Override
-                        public boolean onMenuItemClick(MenuItem menuItem) {
-                            if (mTransferDatabase.delete_from_itemTable_where_id_equals(id) <= 0) {
-                                Log.w(TAG, String.format("Error deleting item with an id of %d from database", id));
-                                Toast.makeText(TransferActivity.this, "Error removing item", Toast.LENGTH_SHORT).show();
-                            }
-                            return true;
-                        }
-                    });
-                    popup.show();
-                }
+            expandedMenuButton.setOnClickListener(v -> {
+                final PopupMenu popup = new PopupMenu(TransferActivity.this, expandedMenuButton);
+                popup.inflate(R.menu.item_transfer);
+                popup.getMenu().findItem(R.id.menu_remove).setOnMenuItemClickListener(menuItem -> {
+                    if (mDataManager.getDatabase().delete_from_itemTable_where_id_equals(id) <= 0) {
+                        Log.w(TAG, String.format("Error deleting item with an id of %d from database", id));
+                        Toast.makeText(TransferActivity.this, "Error removing item", Toast.LENGTH_SHORT).show();
+                    }
+                    return true;
+                });
+                popup.show();
             });
         }
 
@@ -520,16 +500,5 @@ public class TransferActivity extends AppCompatActivity {
             barcode = cursor.getString(cursor.getColumnIndexOrThrow("barcode"));
             itemView.<AppCompatTextView>findViewById(R.id.barcode_text_view).setText(barcode);
         }
-    }
-
-    private class Location {
-        public long id;
-        public String barcode;
-    }
-
-    private class Item {
-        public long id;
-        public long locationId;
-        public String barcode;
     }
 }

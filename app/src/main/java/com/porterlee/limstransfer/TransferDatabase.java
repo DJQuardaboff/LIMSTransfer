@@ -3,6 +3,7 @@ package com.porterlee.limstransfer;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteDoneException;
 import android.database.sqlite.SQLiteStatement;
 
 import org.jetbrains.annotations.NotNull;
@@ -16,6 +17,7 @@ public final class TransferDatabase {
     private SQLiteStatement mSelect_barcode_from_locationTable_where_id_equals;
     private SQLiteStatement mInsert_barcode_into_locationTable;
     private SQLiteStatement mDelete_from_locationTable_where_id_equals;
+    private SQLiteStatement mSelect_seq_from_sqlite_sequence_where_name_equals;
 
     public TransferDatabase(Context context) {
         reinit(context);
@@ -31,6 +33,7 @@ public final class TransferDatabase {
         mSelect_barcode_from_locationTable_where_id_equals = mDatabase.compileStatement("SELECT " + Key.BARCODE + " FROM " + LocationTable.NAME + " WHERE " + Key.ID + " = ?");
         mInsert_barcode_into_locationTable = mDatabase.compileStatement("INSERT INTO " + LocationTable.NAME + " ( " + Key.BARCODE + " ) VALUES ( ? )");
         mDelete_from_locationTable_where_id_equals = mDatabase.compileStatement("DELETE FROM " + LocationTable.NAME + " WHERE " + Key.ID + " = ?");
+        mSelect_seq_from_sqlite_sequence_where_name_equals = mDatabase.compileStatement("SELECT seq FROM sqlite_sequence WHERE name = ?");
     }
 
     public SQLiteDatabase getDatabase() {
@@ -90,6 +93,16 @@ public final class TransferDatabase {
 
     public Cursor getLocationListCursor() {
         return mDatabase.query(LocationTable.NAME, new String[] { "MAX(" + Key.ID + ") AS _id", "MIN(" + Key.ID + ") AS min_id", "GROUP_CONCAT(" + Key.ID + ") AS all_ids", Key.BARCODE }, null, null, Key.BARCODE, null, "min_id DESC");
+    }
+
+    public synchronized long select_seq_from_sqlite_sequence_where_name_equals(String name) {
+        try {
+            mSelect_seq_from_sqlite_sequence_where_name_equals.bindString(1, name);
+            return mSelect_seq_from_sqlite_sequence_where_name_equals.simpleQueryForLong();
+        } catch (SQLiteDoneException e) {
+            e.printStackTrace();
+            return -1;
+        }
     }
 
     public void close() {

@@ -10,6 +10,17 @@
         app:showAsAction="ifRoom"/>
 
     <item
+        android:id="@+id/menu_finalize"
+        android:title="@string/action_finalize"
+        android:icon="@drawable/ic_finalize"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/menu_cancel"
+        android:title="@string/action_cancel"
+        app:showAsAction="ifRoom"/>
+
+    <item
         android:id="@+id/menu_reset"
         android:title="@string/action_reset"
         app:showAsAction="never"/>

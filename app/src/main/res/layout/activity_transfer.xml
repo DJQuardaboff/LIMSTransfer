@@ -54,7 +54,7 @@
         android:paddingStart="0dp"
         android:text="@string/text_item_count_label"
         android:textColor="#FFFFFF"
-        app:layout_constraintBottom_toTopOf="@+id/column_title"
+        app:layout_constraintBottom_toTopOf="@+id/view_divider"
         app:layout_constraintEnd_toStartOf="@+id/text_item_count"
         app:layout_constraintHorizontal_chainStyle="spread"
         app:layout_constraintHorizontal_weight="1"
@@ -99,7 +99,7 @@
         app:layout_constraintStart_toEndOf="@+id/text_transfer_id_label"/>
 
     <View
-        android:id="@+id/column_title"
+        android:id="@+id/view_divider"
         style="@style/Base.TextAppearance.AppCompat.Small"
         android:layout_width="match_parent"
         android:layout_height="4dp"
@@ -123,7 +123,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/column_title"/>
+        app:layout_constraintTop_toBottomOf="@+id/view_divider"/>
 
     <me.zhanghai.android.materialprogressbar.MaterialProgressBar
         android:id="@+id/progress_bar"
@@ -138,7 +138,7 @@
         app:mpb_progressStyle="horizontal"
         app:mpb_useIntrinsicPadding="false"/>
 
-    <android.support.v7.widget.AppCompatButton
+    <!--android.support.v7.widget.AppCompatButton
         android:id="@+id/test_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -146,6 +146,6 @@
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent"/-->
 
 </android.support.constraint.ConstraintLayout>

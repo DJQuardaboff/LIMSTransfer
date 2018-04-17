@@ -12,4 +12,6 @@
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
     <string name="title_transfer_id">ID:</string>
+    <string name="action_finalize">Finalize</string>
+    <string name="action_delete">Delete</string>
 </resources>

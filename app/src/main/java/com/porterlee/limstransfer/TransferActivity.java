@@ -1,20 +1,14 @@
 package com.porterlee.limstransfer;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteCantOpenDatabaseException;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
+import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Environment;
-import android.os.RemoteException;
-import android.os.ServiceManager;
 import android.support.annotation.NonNull;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -23,281 +17,297 @@ import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.AppCompatImageButton;
 import android.support.v7.widget.AppCompatTextView;
 import android.support.v7.widget.DefaultItemAnimator;
-import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.KeyEvent;
+import android.util.TimingLogger;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.gcacace.signaturepad.views.SignaturePad;
+import com.porterlee.limstransfer.Scanner.JanamScanner;
+import com.porterlee.limstransfer.Scanner.Scanner;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Modifier;
-import java.util.Locale;
 import java.util.Objects;
 
-import device.scanner.DecodeResult;
-import device.scanner.IScannerService;
-import device.scanner.ScanConst;
-import device.scanner.ScannerService;
+import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
-import static com.porterlee.limstransfer.DataManager.BarcodeType.Location;
 import static com.porterlee.limstransfer.DataManager.BarcodeType.getBarcodeType;
 import static com.porterlee.limstransfer.DataManager.BarcodeType;
 
 public class TransferActivity extends AppCompatActivity {
-    public static final String TAG = TransferActivity.class.getName();
-    public static final File EXTERNAL_PATH = new File(Environment.getExternalStorageDirectory(), "Transfer");
-    public static final File SIGNATURES_PATH = new File(EXTERNAL_PATH, "Signatures");
-    public static final File OUTPUT_FILE = new File(EXTERNAL_PATH, "data.txt");
-    public static final String SIGNATURE_FILE_NAME = "signature_%d.png";
+    public static final String TAG = TransferActivity.class.getSimpleName();
+    //public final TimingLogger logger = new TimingLogger(TAG, "");
     private SelectableCursorRecyclerViewAdapter<TransferItemViewHolder> mItemRecyclerAdapter;
     private DataManager mDataManager;
-    private IScannerService mScanner = null;
-    private final DecodeResult mDecodeResult = new DecodeResult();
-    private final BroadcastReceiver mResultReciever = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (mScanner != null) {
-                try {
-                    mScanner.aDecodeGetResult(mDecodeResult);
-                    String barcode = mDecodeResult.decodeValue;
-                    if (!"READ FAIL".equals(mDecodeResult.symName))
-                        onBarcodeScanned(barcode);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    };
-
-    private final IntentFilter resultFilter = new IntentFilter();
-    {
-        resultFilter.setPriority(0);
-        resultFilter.addAction("device.scanner.USERMSG");
-    }
-
-    private final BroadcastReceiver mScanKeyEventReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (ScanConst.INTENT_SCANKEY_EVENT.equals(intent.getAction())) {
-                final KeyEvent event = intent.getParcelableExtra(ScanConst.EXTRA_SCANKEY_EVENT);
-                switch (event.getKeyCode()) {
-                    case ScanConst.KEYCODE_SCAN_FRONT: case ScanConst.KEYCODE_SCAN_LEFT: case ScanConst.KEYCODE_SCAN_RIGHT: case ScanConst.KEYCODE_SCAN_REAR:
-                        onScanKeyEvent(mScanner, event.getAction());
-                }
-            }
-        }
-    };
-
-    private static void onScanKeyEvent(IScannerService scanner, int action) {
-        if (scanner != null) {
-            try {
-                if (action == KeyEvent.ACTION_DOWN) {
-                    scanner.aDecodeSetTriggerOn(1);
-                } else if (action == KeyEvent.ACTION_UP) {
-                    scanner.aDecodeSetTriggerOn(0);
-                }
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        //logger.reset(TAG, "onCreate");
         super.onCreate(savedInstanceState);
 
-        try {
-            initScanner();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        mDataManager = new DataManager();
 
-        if (!EXTERNAL_PATH.mkdirs() && !EXTERNAL_PATH.exists())
-            Log.w(TAG, "External directory does not exist and could not be created, this may cause a problem");
-
-        try {
-            mDataManager = new DataManager(this);
-        } catch (SQLiteCantOpenDatabaseException e) {
-            databaseLoadingError(this::init, this::finish);
-        }
-
-        init();
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.activity_transfer, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menu_sign:
-                //todo start sign activity
-                showSignatureDialog();
-                return true;
-            case R.id.menu_reset:
-                //todo reset transfer list
-                return true;
-            case R.id.menu_continuous_mode:
-                try {
-                    if (!item.isChecked()) {
-                        mScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
-                        item.setChecked(true);
-                    } else {
-                        mScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_ONESHOT);
-                        item.setChecked(false);
-                    }
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                    item.setChecked(false);
-                    Toast.makeText(this, "An error occured while changing scanning mode", Toast.LENGTH_SHORT).show();
-                }
-                return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        final MenuItem item = menu.findItem(R.id.menu_continuous_mode);
-        if (mScanner != null) {
-            try {
-                if (mScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_AUTO) {
-                    mScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
-                    item.setChecked(true);
+        if (!mDataManager.initScanner(barcode -> {
+            if (mDataManager == null)
+                return;
+            if (BarcodeType.Location.isOfType(barcode)) {
+                if (mDataManager.getItemCount() <= 0) {
+                    if (mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().finalized)
+                        mDataManager.cancelCurrentTransfer();
+                    mDataManager.newTransfer(barcode);
                 } else {
-                    item.setChecked(mScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
+                    Toast.makeText(this, "Finalize or cancel this transfer first", Toast.LENGTH_SHORT).show();
                 }
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        } else {
-            item.setVisible(false);
-        }
-        return super.onPrepareOptionsMenu(menu);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        registerReceiver(mResultReciever, resultFilter, Manifest.permission.SCANNER_RESULT_RECEIVER, null);
-        registerReceiver(mScanKeyEventReceiver, new IntentFilter(ScanConst.INTENT_SCANKEY_EVENT));
-
-        if (mScanner != null) {
-            try {
-                mScanner.aDecodeSetTriggerOn(0);
-                mDataManager.setPreviousPrefix(mScanner.aDecodeGetPrefix());
-                mDataManager.setPreviousPostfix(mScanner.aDecodeGetPostfix());
-                mScanner.aDecodeSetPrefix("");
-                mScanner.aDecodeSetPostfix("");
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        unregisterReceiver(mResultReciever);
-        unregisterReceiver(mScanKeyEventReceiver);
-
-        if (mScanner != null) {
-            try {
-                mScanner.aDecodeSetTriggerOn(0);
-                mScanner.aDecodeSetPrefix(mDataManager.getPreviousPrefix());
-                mScanner.aDecodeSetPostfix(mDataManager.getPreviousPostfix());
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
-        super.onPause();
-    }
-
-    @Override
-    protected void onDestroy() {
-        if (mDataManager.getDatabase() != null && mDataManager.getDatabase().isOpen())
-            mDataManager.getDatabase().close();
-
-        if (mItemRecyclerAdapter != null && mItemRecyclerAdapter.getCursor() != null)
-            mItemRecyclerAdapter.getCursor().close();
-
-        if (mScanner != null) {
-            try {
-                mScanner.aDecodeSetTriggerOn(0);
-                mScanner.aDecodeSetPrefix(mDataManager.getPreviousPrefix());
-                mScanner.aDecodeSetPostfix(mDataManager.getPreviousPostfix());
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
-        super.onDestroy();
-    }
-
-    private void initScanner() throws RemoteException {
-        if ((mScanner = IScannerService.Stub.asInterface(ServiceManager.getService("ScannerService"))) != null) {
-            mScanner.aDecodeAPIInit();
-            mScanner.aDecodeSetDecodeEnable(1);
-            mScanner.aDecodeSetResultType(ScannerService.ResultType.DCD_RESULT_USERMSG);
-        }
-    }
-
-    private void databaseLoadingError(final Runnable onDelete, final Runnable onFail) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(TransferActivity.this);
-        builder.setCancelable(false);
-        builder.setTitle("Database Load Error");
-        builder.setMessage(
-                "There was an error loading the last transfer file, Would you like to delete the it?\n" +
-                "\n" +
-                "Answering no will close the app."
-        );
-        builder.setNegativeButton("no", (dialog, which) -> finish());
-        builder.setPositiveButton("yes", (dialog, which) -> {
-            if (!mDataManager.getDatabase().delete(TransferActivity.this) && mDataManager.getDatabase().exists(TransferActivity.this)) {
-                Toast.makeText(TransferActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
-                onFail.run();
+            } else if (BarcodeType.Item.isOfType(barcode) || BarcodeType.Container.isOfType(barcode)) {
+                if (mDataManager.getCurrentTransfer() == null) {
+                    Toast.makeText(this, "Scan a location first", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (mDataManager.getCurrentTransfer().finalized) {
+                    Toast.makeText(this, "Start a new transfer by scanning a location first", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (mDataManager.isDuplicate(barcode)) {
+                    Utils.vibrate(this);
+                    Toast.makeText(this, String.format("Duplicate barcode: \"%s\"", barcode), Toast.LENGTH_SHORT).show();
+                } else {
+                    mDataManager.insertItem(barcode);
+                }
+                AsyncTask.execute(() -> {
+                    final int position = mItemRecyclerAdapter.getRowIndexByColumnData(TransferDatabase.Key.BARCODE, barcode);
+                    runOnUiThread(() -> {
+                        mItemRecyclerAdapter.setSelectedItem(position);
+                        this.<RecyclerView>findViewById(R.id.item_recycler_view).scrollToPosition(position);
+                    });
+                });
             } else {
-                Toast.makeText(TransferActivity.this, "The file was deleted", Toast.LENGTH_SHORT).show();
-                onDelete.run();
+                Utils.vibrate(this);
+                Toast.makeText(this, String.format("Unrecognised barcode: \"%s\"", barcode), Toast.LENGTH_SHORT).show();
+                return;
             }
-        });
-        builder.create().show();
-    }
 
-    private void init() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+            refreshItemRecyclerAdapter();
+        })) {
+            finish();
             return;
         }
 
         setContentView(R.layout.activity_transfer);
 
+        mDataManager.setOnCurrentTransferChangedListener(() -> {
+            runOnUiThread(() -> updateInfo(mDataManager.getCurrentTransfer() != null ? mDataManager.getCurrentTransfer().locationBarcode : null, mDataManager.getItemCount(), mDataManager.getTransferId()));
+            refreshItemRecyclerAdapter();
+            invalidateOptionsMenu();
+        });
+
+        try {
+            mDataManager.init(this);
+        } catch (SQLiteCantOpenDatabaseException e) {
+            databaseLoadingError(this::init, this::finish);
+        }
+
+        init();
+        //logger.dumpToLog();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        //logger.reset(TAG, "onCreateOptionsMenu");
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.activity_transfer, menu);
+        //logger.dumpToLog();
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        //logger.reset(TAG, "onOptionsItemSelected");
+        switch (item.getItemId()) {
+            case R.id.menu_sign:
+                if (mDataManager.getCurrentTransfer() == null) {
+                    Toast.makeText(this, "Start a transfer first", Toast.LENGTH_SHORT).show();
+                } else if (mDataManager.getCurrentTransfer().finalized) {
+                    Toast.makeText(this, "Already finalized", Toast.LENGTH_SHORT).show();
+                } else if (mDataManager.getCurrentTransfer().canceled) {
+                    Toast.makeText(this, "Already canceled", Toast.LENGTH_SHORT).show();
+                } else {
+                    showSignatureDialog();
+                }
+                return true;
+            case R.id.menu_finalize:
+                if (mDataManager.getCurrentTransfer() == null) {
+                    Toast.makeText(this, "Start a transfer first", Toast.LENGTH_SHORT).show();
+                } else if (mDataManager.getCurrentTransfer().finalized) {
+                    Toast.makeText(this, "Already finalized", Toast.LENGTH_SHORT).show();
+                } else if (mDataManager.getCurrentTransfer().canceled) {
+                    Toast.makeText(this, "Already canceled", Toast.LENGTH_SHORT).show();
+                } else {
+                    showFinalizeDialog();
+                }
+                return true;
+            case R.id.menu_cancel:
+                if (mDataManager.getCurrentTransfer() == null) {
+                    Toast.makeText(this, "Start a transfer first", Toast.LENGTH_SHORT).show();
+                } else if (mDataManager.getCurrentTransfer().finalized) {
+                    Toast.makeText(this, "Already finalized", Toast.LENGTH_SHORT).show();
+                } else if (mDataManager.getCurrentTransfer().canceled) {
+                    Toast.makeText(this, "Already canceled", Toast.LENGTH_SHORT).show();
+                } else {
+                    if (mDataManager.isShowingDialog()) {
+                        break;
+                    } else {
+                        mDataManager.setIsShowingDialog(true);
+                    }
+
+                    new AlertDialog.Builder(this)
+                            .setTitle("Cancel transfer")
+                            .setMessage("Would you like to cancel this transfer?")
+                            .setNegativeButton("no", (dialog, which) -> dialog.dismiss())
+                            .setPositiveButton("yes", (dialog, which) -> mDataManager.cancelCurrentTransfer())
+                            .setOnDismissListener(dialog -> mDataManager.setIsShowingDialog(false))
+                            .create().show();
+                }
+                return true;
+            case R.id.menu_reset:
+                if (mDataManager.isShowingDialog()) {
+                    break;
+                } else {
+                    mDataManager.setIsShowingDialog(true);
+                }
+
+                new AlertDialog.Builder(this)
+                        .setTitle("Reset transfers")
+                        .setMessage("Would you like to clear all transfer history?")
+                        .setNegativeButton("no", (dialog, which) -> dialog.dismiss())
+                        .setPositiveButton("yes", (dialog, which) -> mDataManager.resetDatabase())
+                        .setOnDismissListener(dialog -> mDataManager.setIsShowingDialog(false))
+                        .create().show();
+                return true;
+            case R.id.menu_continuous_mode:
+                if (mDataManager.getScanner() != null && mDataManager.getScanner().setScanMode(item.isChecked() ? Scanner.ONE_SHOT_MODE : Scanner.CONTINUOUS_MODE)) {
+                    item.setChecked(!item.isChecked());
+                } else {
+                    Toast.makeText(this, "An error occurred while changing scanning mode", Toast.LENGTH_SHORT).show();
+                }
+                return true;
+        }
+        //logger.dumpToLog();
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        //logger.reset(TAG, "onPrepareOptionsMenu");
+        final MenuItem itemSign = menu.findItem(R.id.menu_sign);
+        final MenuItem itemFinalize = menu.findItem(R.id.menu_finalize);
+        final MenuItem itemCancel = menu.findItem(R.id.menu_cancel);
+        final MenuItem itemReset = menu.findItem(R.id.menu_reset);
+        final MenuItem itemContinuous = menu.findItem(R.id.menu_continuous_mode);
+        if (mDataManager != null) {
+            final boolean editable = mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().finalized && !mDataManager.getCurrentTransfer().canceled;
+            itemSign.setEnabled(editable);
+            itemSign.getIcon().setAlpha(editable ? 255 : 127);
+            itemFinalize.setEnabled(editable);
+            itemFinalize.getIcon().setAlpha(editable ? 255 : 127);
+            itemCancel.setEnabled(editable);
+            itemReset.setEnabled(editable);
+            if (mDataManager.getScanner() != null && mDataManager.getScanner().getScanMode() != Scanner.UNKNOWN_MODE) {
+                itemContinuous.setChecked(mDataManager.getScanner().getScanMode() == Scanner.CONTINUOUS_MODE);
+            } else {
+                itemContinuous.setVisible(false);
+            }
+        } else {
+            itemSign.setVisible(false);
+            itemFinalize.setVisible(false);
+            itemCancel.setVisible(false);
+            itemReset.setVisible(false);
+            itemContinuous.setVisible(false);
+        }
+        //logger.dumpToLog();
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    protected void onStart() {
+        //logger.reset(TAG, "onStart");
+        super.onStart();
+        mDataManager.getScanner().onStart(this);
+        //logger.dumpToLog();
+    }
+
+    @Override
+    protected void onResume() {
+        //logger.reset(TAG, "onResume");
+        super.onResume();
+        mDataManager.getScanner().onResume(this);
+        //logger.dumpToLog();
+    }
+
+    @Override
+    protected void onPause() {
+        //logger.reset(TAG, "onPause");
+        mDataManager.getScanner().onPause(this);
+        super.onPause();
+        //logger.dumpToLog();
+    }
+
+    @Override
+    protected void onDestroy() {
+        //logger.reset(TAG, "onDestroy");
+        if (mDataManager.isDatabaseOpen())
+            mDataManager.closeDatabase();
+
+        if (mItemRecyclerAdapter != null && mItemRecyclerAdapter.getCursor() != null)
+            mItemRecyclerAdapter.getCursor().close();
+
+        mDataManager.getScanner().onDestroy(this);
+        super.onDestroy();
+        //logger.dumpToLog();
+    }
+
+    private void databaseLoadingError(final Runnable onDelete, final Runnable onFail) {
+        new AlertDialog.Builder(TransferActivity.this)
+                .setCancelable(false)
+                .setTitle("Database Load Error")
+                .setMessage(
+                        "There was an error loading the last transfer file, Would you like to delete the it?\n" +
+                        "\n" +
+                        "Answering no will close the app."
+                ).setNegativeButton("no", (dialog, which) -> finish())
+                .setPositiveButton("yes", (dialog, which) -> {
+                    if (!mDataManager.deleteDatabase(TransferActivity.this) && mDataManager.databaseExists(TransferActivity.this)) {
+                        Toast.makeText(TransferActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
+                        onFail.run();
+                    } else {
+                        Toast.makeText(TransferActivity.this, "The file was deleted", Toast.LENGTH_SHORT).show();
+                        onDelete.run();
+                    }
+                }).setOnDismissListener(dialog -> finish())
+                .create().show();
+    }
+
+    private void init() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] { android.Manifest.permission.WRITE_EXTERNAL_STORAGE }, 1);
+            return;
+        }
+
         if (getSupportActionBar() != null)
             getSupportActionBar().setTitle(String.format("%1s v%2s", getString(R.string.app_name), BuildConfig.VERSION_NAME));
 
-        //todo the rest of the setup
-
         final RecyclerView itemRecyclerView = findViewById(R.id.item_recycler_view);
         itemRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mItemRecyclerAdapter = new SelectableCursorRecyclerViewAdapter<TransferItemViewHolder>(mDataManager.getDatabase().getItemListCursor(), TransferDatabase.ItemTable.Key.ID) {
+        mItemRecyclerAdapter = new SelectableCursorRecyclerViewAdapter<TransferItemViewHolder>(mDataManager.getItemListCursor(), TransferDatabase.Key.ID) {
             @Override
             public void onBindViewHolder(TransferItemViewHolder viewHolder, Cursor cursor) {
-                viewHolder.bindViews(cursor);
+                viewHolder.bindViews(cursor, getSelectedItem() == viewHolder.getAdapterPosition());
             }
 
             @NonNull
@@ -314,23 +324,26 @@ public class TransferActivity extends AppCompatActivity {
         itemAnimator.setMoveDuration(100);
         itemAnimator.setRemoveDuration(100);
         itemRecyclerView.setItemAnimator(itemAnimator);
-        final DividerItemDecoration itemDecoration = new DividerItemDecoration(this, DividerItemDecoration.HORIZONTAL);
-        itemDecoration.setDrawable(Objects.requireNonNull(ContextCompat.getDrawable(this, R.drawable.divider_item_transfer)));
+        final DividerItemDecoration itemDecoration = new DividerItemDecoration(this, R.drawable.divider_item_transfer, DividerItemDecoration.VERTICAL_LIST);
         itemRecyclerView.addItemDecoration(itemDecoration);
 
-        this.<TextView>findViewById(R.id.text_current_location).setText("-");
-        this.<TextView>findViewById(R.id.text_item_count).setText("-");
+        /*this.<AppCompatButton>findViewById(R.id.test_button).setOnClickListener(v -> {
 
-        this.<AppCompatButton>findViewById(R.id.test_button).setOnClickListener(v -> {
-
-        });
+        });*/
     }
 
     private void showSignatureDialog() {
+        if (mDataManager.isShowingDialog() || mDataManager.getTransferId() < 0) {
+            return;
+        } else {
+            mDataManager.setIsShowingDialog(true);
+        }
+
         final AppCompatDialog compatDialog = new AppCompatDialog(this, R.style.CustomDialogTheme);
         Objects.requireNonNull(compatDialog.getWindow()).setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         compatDialog.setCancelable(false);
         compatDialog.setContentView(R.layout.fragment_sign);
+        compatDialog.setOnDismissListener(dialog -> mDataManager.setIsShowingDialog(false));
 
         View v = compatDialog.getWindow().getDecorView();
         final SignaturePad signaturePad = v.findViewById(R.id.signature_pad);
@@ -358,93 +371,16 @@ public class TransferActivity extends AppCompatActivity {
         buttonClear.setOnClickListener(v1 -> signaturePad.clear());
         buttonCancel.setOnClickListener(v1 -> compatDialog.dismiss());
         buttonSave.setOnClickListener(v1 -> {
-            mDataManager.setSignature(signaturePad.getSignatureBitmap());
-            save();
+            mDataManager.saveSignature(this, signaturePad.getSignatureBitmap());
             compatDialog.dismiss();
         });
 
         compatDialog.show();
     }
-
-    private void save() {
-        Toast.makeText(this, "Saving...", Toast.LENGTH_SHORT).show();
-
-        File tempSignature;
-
-        try {
-            tempSignature = File.createTempFile("signature", ".png", EXTERNAL_PATH);
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Unable to save", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        try {
-            Utils.saveSignature(this, mDataManager.getSignature(), tempSignature);
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        //todo finish
-        saveTransferToFile();
-
-        Log.e(TAG, String.valueOf(mDataManager.getTransferId()));
-
-        mDataManager.setCurrentLocation(mDataManager.newLocation("VAN  MIKE    "));
-
-        Log.e(TAG, String.valueOf(mDataManager.getTransferId()));
-
-        if (!tempSignature.renameTo(new File(SIGNATURES_PATH, String.format(Locale.US, SIGNATURE_FILE_NAME, mDataManager.getTransferId())))) {
-            Toast.makeText(this, "Could not rename file", Toast.LENGTH_SHORT).show();
-        }
-
-        Utils.refreshExternalPath(this, EXTERNAL_PATH);
-
-        Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
-    }
-
-    public static void saveTransferToFile() {
-        Class<?> c = new Object() { }.getClass();
-        Log.e(TAG, String.valueOf(Modifier.isStatic(c.getModifiers())));
-        //todo finish
-    }
-    /*
-    private static String cursorToString(Cursor cursor) {
-        if (cursor.moveToFirst()) {
-            StringBuilder result = new StringBuilder("Columns:");
-            final String[] columnNames = cursor.getColumnNames();
-            final int[] columnIndicies = new int[columnNames.length];
-            for (int i = 0; i < columnNames.length; i++) {
-                columnIndicies[i] = cursor.getColumnIndex(columnNames[i]);
-                result.append('\"');
-                result.append(columnNames[i]);
-                result.append('\"');
-                if (i < columnNames.length - 1)
-                    result.append(',');
-            }
-            result.append("\r\n");
-
-            while (!cursor.isAfterLast()) {
-                for (int i = 0; i < columnIndicies.length; i++) {
-                    result.append('\"');
-                    result.append(cursor.getString(columnIndicies[i]));
-                    result.append('\"');
-                    if (i < columnIndicies.length - 1)
-                        result.append(',');
-                }
-                result.append("\r\n");
-                cursor.moveToNext();
-            }
-            return result.toString();
-        }
-        return null;
-    }
-    */
-    private void updateInfo(String location, int itemCount) {
-        this.<TextView>findViewById(R.id.text_current_location).setText(getBarcodeType(location).equals(DataManager.BarcodeType.Location) ? location : "-");
-        this.<TextView>findViewById(R.id.text_item_count).setText(itemCount >= 0 ? String.valueOf(itemCount) : "-");
+    private void updateInfo(String location, int itemCount, long transferId) {
+        this.<AppCompatTextView>findViewById(R.id.text_current_location).setText(getBarcodeType(location).equals(DataManager.BarcodeType.Location) ? location : "-");
+        this.<AppCompatTextView>findViewById(R.id.text_item_count).setText(itemCount >= 0 ? String.valueOf(itemCount) : "-");
+        this.<AppCompatTextView>findViewById(R.id.text_transfer_id).setText(transferId >= 0 ? String.valueOf(transferId) : "-");
     }
 
     @Override
@@ -463,15 +399,42 @@ public class TransferActivity extends AppCompatActivity {
 
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
-
-    private void onBarcodeScanned(String barcode) {
-        if (BarcodeType.Location.isOfType(barcode))
-            startNewTransfer(barcode);
-        //todo finish
+    
+    private void refreshItemRecyclerAdapter() {
+        AsyncTask.execute(() ->  {
+            final Cursor itemListCursor = mDataManager.getItemListCursor();
+            runOnUiThread(() -> mItemRecyclerAdapter.changeCursor(itemListCursor));
+        });
     }
 
-    private void startNewTransfer(String locationBarcode) {
+    private void showFinalizeDialog() {
+        if (mDataManager.isShowingDialog()) {
+            return;
+        } else {
+            mDataManager.setIsShowingDialog(true);
+        }
 
+        new AlertDialog.Builder(this)
+                .setTitle("Finalize transfer")
+                .setMessage(
+                        "Would you like to finalize this transfer?" +
+                        (mDataManager.getCurrentTransfer().signed ?
+                                "" :
+                                "\n" +
+                                "\n" +
+                                "Note: the current transfer has not been signed"
+                        )
+                ).setNegativeButton(R.string.action_cancel, (dialog, which) -> dialog.dismiss())
+                .setPositiveButton(R.string.action_finalize, (dialog, which) -> mDataManager.saveTransferToFile(this, () -> {
+                    this.<MaterialProgressBar>findViewById(R.id.progress_bar).setProgress(0);
+                    if (mDataManager.finalizeCurrentTransfer())
+                        Toast.makeText(this, "Finalized", Toast.LENGTH_SHORT).show();
+                }, progress -> {
+                    final MaterialProgressBar progressBar = findViewById(R.id.progress_bar);
+                    progressBar.setProgress((int) (progress * progressBar.getMax()));
+                }, () -> this.<MaterialProgressBar>findViewById(R.id.progress_bar).setProgress(0)))
+                .setOnDismissListener(dialog -> mDataManager.setIsShowingDialog(false))
+                .create().show();
     }
 
     private class TransferItemViewHolder extends RecyclerView.ViewHolder {
@@ -480,14 +443,16 @@ public class TransferActivity extends AppCompatActivity {
 
         public TransferItemViewHolder(ViewGroup parent) {
             super(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_transfer, parent, false));
-            final AppCompatImageButton expandedMenuButton = itemView.findViewById(R.id.expanded_menu);
+            final AppCompatImageButton expandedMenuButton = itemView.findViewById(R.id.button_menu);
             expandedMenuButton.setOnClickListener(v -> {
                 final PopupMenu popup = new PopupMenu(TransferActivity.this, expandedMenuButton);
                 popup.inflate(R.menu.item_transfer);
                 popup.getMenu().findItem(R.id.menu_remove).setOnMenuItemClickListener(menuItem -> {
-                    if (mDataManager.getDatabase().delete_from_itemTable_where_id_equals(id) <= 0) {
+                    if (mDataManager.deleteItem(id) <= 0) {
                         Log.w(TAG, String.format("Error deleting item with an id of %d from database", id));
                         Toast.makeText(TransferActivity.this, "Error removing item", Toast.LENGTH_SHORT).show();
+                    } else {
+                        refreshItemRecyclerAdapter();
                     }
                     return true;
                 });
@@ -495,10 +460,12 @@ public class TransferActivity extends AppCompatActivity {
             });
         }
 
-        public void bindViews(Cursor cursor) {
+        public void bindViews(final Cursor cursor, final boolean isSelected) {
             id = cursor.getLong(cursor.getColumnIndexOrThrow("_id"));
             barcode = cursor.getString(cursor.getColumnIndexOrThrow("barcode"));
-            itemView.<AppCompatTextView>findViewById(R.id.barcode_text_view).setText(barcode);
+            final AppCompatTextView textBarcode = itemView.findViewById(R.id.text_barcode);
+            textBarcode.setTypeface(null, isSelected ? Typeface.BOLD : Typeface.NORMAL);
+            textBarcode.setText(barcode);
         }
     }
 }

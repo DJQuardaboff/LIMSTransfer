@@ -13,7 +13,7 @@ public abstract class SelectableCursorRecyclerViewAdapter<VH extends RecyclerVie
     private boolean mDataValid;
     private int mRowIdColumn;
     private DataSetObserver mDataSetObserver;
-    private int mSelectedItem;
+    private int mSelectedItem = -1;
 
     public SelectableCursorRecyclerViewAdapter(Cursor cursor, @NotNull String idColumnName) {
         mCursor = cursor;
@@ -113,6 +113,26 @@ public abstract class SelectableCursorRecyclerViewAdapter<VH extends RecyclerVie
         mSelectedItem = index;
         notifyItemChanged(mSelectedItem);
         return true;
+    }
+
+    public int getSelectedItem() {
+        return mSelectedItem;
+    }
+
+    public int getRowIndexByColumnData(String columnName, String columnData) {
+        int position = -1;
+        mCursor.moveToFirst();
+        int columnIndex = mCursor.getColumnIndex(columnName);
+
+        while (!mCursor.isAfterLast()) {
+            if (mCursor.getString(columnIndex).equals(columnData)) {
+                position = mCursor.getPosition();
+                break;
+            }
+            mCursor.moveToNext();
+        }
+
+        return position;
     }
 
     private class NotifyingDataSetObserver extends DataSetObserver {

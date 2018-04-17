@@ -33,11 +33,11 @@ public class GeneralTest {
 
     @Test
     public void csvContainsInt_test() {
-        assertEquals(TransferActivity.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 1), true);
-        assertEquals(TransferActivity.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 5), true);
-        assertEquals(TransferActivity.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 17), true);
-        assertEquals(TransferActivity.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 20), true);
-        assertEquals(TransferActivity.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 100), false);
-        assertEquals(TransferActivity.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 56874), false);
+        assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 1), true);
+        assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 5), true);
+        assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 17), true);
+        assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 20), true);
+        assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 100), false);
+        assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 56874), false);
     }
 }

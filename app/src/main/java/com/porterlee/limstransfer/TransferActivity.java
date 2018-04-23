@@ -21,18 +21,15 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.util.TimingLogger;
 import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.github.gcacace.signaturepad.views.SignaturePad;
-import com.porterlee.limstransfer.Scanner.JanamScanner;
-import com.porterlee.limstransfer.Scanner.Scanner;
+import com.porterlee.limstransfer.Scanner.AbstractScanner;
 
 import java.util.Objects;
 
@@ -43,24 +40,35 @@ import static com.porterlee.limstransfer.DataManager.BarcodeType;
 
 public class TransferActivity extends AppCompatActivity {
     public static final String TAG = TransferActivity.class.getSimpleName();
-    //public final TimingLogger logger = new TimingLogger(TAG, "");
     private SelectableCursorRecyclerViewAdapter<TransferItemViewHolder> mItemRecyclerAdapter;
     private DataManager mDataManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        //logger.reset(TAG, "onCreate");
         super.onCreate(savedInstanceState);
+
+        if (!AbstractScanner.isCompatible()) {
+            Log.i(TAG, "Cannot guarantee app will work");
+        }
 
         mDataManager = new DataManager();
 
-        if (!mDataManager.initScanner(barcode -> {
+        if (!mDataManager.initScanner(this)) {
+            finish();
+            Toast.makeText(this, "Scanner failed to initialize", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        setContentView(R.layout.activity_transfer);
+
+        mDataManager.getScanner().setOnBarcodeScannedListener(barcode -> {
             if (mDataManager == null)
                 return;
             if (BarcodeType.Location.isOfType(barcode)) {
                 if (mDataManager.getItemCount() <= 0) {
-                    if (mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().finalized)
+                    if (mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().finalized) {
                         mDataManager.cancelCurrentTransfer();
+                    }
                     mDataManager.newTransfer(barcode);
                 } else {
                     Toast.makeText(this, "Finalize or cancel this transfer first", Toast.LENGTH_SHORT).show();
@@ -78,7 +86,12 @@ public class TransferActivity extends AppCompatActivity {
                     Utils.vibrate(this);
                     Toast.makeText(this, String.format("Duplicate barcode: \"%s\"", barcode), Toast.LENGTH_SHORT).show();
                 } else {
-                    mDataManager.insertItem(barcode);
+                    if (mDataManager.insertItem(barcode) > 0) {
+                        this.<AppCompatTextView>findViewById(R.id.text_item_count).setText(String.valueOf(mDataManager.getItemCount()));
+                    } else {
+                        Log.w(TAG, String.format("Error adding item with barcode of %s to database", barcode));
+                        Toast.makeText(TransferActivity.this, "Error adding item", Toast.LENGTH_SHORT).show();
+                    }
                 }
                 AsyncTask.execute(() -> {
                     final int position = mItemRecyclerAdapter.getRowIndexByColumnData(TransferDatabase.Key.BARCODE, barcode);
@@ -94,12 +107,7 @@ public class TransferActivity extends AppCompatActivity {
             }
 
             refreshItemRecyclerAdapter();
-        })) {
-            finish();
-            return;
-        }
-
-        setContentView(R.layout.activity_transfer);
+        });
 
         mDataManager.setOnCurrentTransferChangedListener(() -> {
             runOnUiThread(() -> updateInfo(mDataManager.getCurrentTransfer() != null ? mDataManager.getCurrentTransfer().locationBarcode : null, mDataManager.getItemCount(), mDataManager.getTransferId()));
@@ -114,14 +122,12 @@ public class TransferActivity extends AppCompatActivity {
         }
 
         init();
-        //logger.dumpToLog();
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         //logger.reset(TAG, "onCreateOptionsMenu");
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.activity_transfer, menu);
+        getMenuInflater().inflate(R.menu.activity_transfer, menu);
         //logger.dumpToLog();
         return true;
     }
@@ -191,7 +197,7 @@ public class TransferActivity extends AppCompatActivity {
                         .create().show();
                 return true;
             case R.id.menu_continuous_mode:
-                if (mDataManager.getScanner() != null && mDataManager.getScanner().setScanMode(item.isChecked() ? Scanner.ONE_SHOT_MODE : Scanner.CONTINUOUS_MODE)) {
+                if (mDataManager.getScanner() != null && mDataManager.getScanner().setScanMode(item.isChecked() ? AbstractScanner.ONE_SHOT_MODE : AbstractScanner.CONTINUOUS_MODE)) {
                     item.setChecked(!item.isChecked());
                 } else {
                     Toast.makeText(this, "An error occurred while changing scanning mode", Toast.LENGTH_SHORT).show();
@@ -210,7 +216,7 @@ public class TransferActivity extends AppCompatActivity {
         final MenuItem itemCancel = menu.findItem(R.id.menu_cancel);
         final MenuItem itemReset = menu.findItem(R.id.menu_reset);
         final MenuItem itemContinuous = menu.findItem(R.id.menu_continuous_mode);
-        if (mDataManager != null) {
+        if (mDataManager != null && mDataManager.getScanner() != null) {
             final boolean editable = mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().finalized && !mDataManager.getCurrentTransfer().canceled;
             itemSign.setEnabled(editable);
             itemSign.getIcon().setAlpha(editable ? 255 : 127);
@@ -218,8 +224,8 @@ public class TransferActivity extends AppCompatActivity {
             itemFinalize.getIcon().setAlpha(editable ? 255 : 127);
             itemCancel.setEnabled(editable);
             itemReset.setEnabled(editable);
-            if (mDataManager.getScanner() != null && mDataManager.getScanner().getScanMode() != Scanner.UNKNOWN_MODE) {
-                itemContinuous.setChecked(mDataManager.getScanner().getScanMode() == Scanner.CONTINUOUS_MODE);
+            if (BuildConfig.SUPPORTS_CONTINUOUS && mDataManager.getScanner().getScanMode() != AbstractScanner.UNKNOWN_MODE) {
+                itemContinuous.setChecked(mDataManager.getScanner().getScanMode() == AbstractScanner.CONTINUOUS_MODE);
             } else {
                 itemContinuous.setVisible(false);
             }
@@ -238,7 +244,8 @@ public class TransferActivity extends AppCompatActivity {
     protected void onStart() {
         //logger.reset(TAG, "onStart");
         super.onStart();
-        mDataManager.getScanner().onStart(this);
+        if (mDataManager.getScanner() != null)
+            mDataManager.getScanner().onStart(this);
         //logger.dumpToLog();
     }
 
@@ -246,15 +253,26 @@ public class TransferActivity extends AppCompatActivity {
     protected void onResume() {
         //logger.reset(TAG, "onResume");
         super.onResume();
-        mDataManager.getScanner().onResume(this);
+        if (mDataManager.getScanner() != null)
+            mDataManager.getScanner().onResume(this);
         //logger.dumpToLog();
     }
 
     @Override
     protected void onPause() {
         //logger.reset(TAG, "onPause");
-        mDataManager.getScanner().onPause(this);
+        if (mDataManager.getScanner() != null)
+            mDataManager.getScanner().onPause(this);
         super.onPause();
+        //logger.dumpToLog();
+    }
+
+    @Override
+    protected void onStop() {
+        //logger.reset(TAG, "onStop");
+        if (mDataManager.getScanner() != null)
+            mDataManager.getScanner().onStop(this);
+        super.onStop();
         //logger.dumpToLog();
     }
 
@@ -267,7 +285,9 @@ public class TransferActivity extends AppCompatActivity {
         if (mItemRecyclerAdapter != null && mItemRecyclerAdapter.getCursor() != null)
             mItemRecyclerAdapter.getCursor().close();
 
-        mDataManager.getScanner().onDestroy(this);
+        if (mDataManager.getScanner() != null)
+            mDataManager.getScanner().onDestroy(this);
+
         super.onDestroy();
         //logger.dumpToLog();
     }
@@ -377,6 +397,7 @@ public class TransferActivity extends AppCompatActivity {
 
         compatDialog.show();
     }
+
     private void updateInfo(String location, int itemCount, long transferId) {
         this.<AppCompatTextView>findViewById(R.id.text_current_location).setText(getBarcodeType(location).equals(DataManager.BarcodeType.Location) ? location : "-");
         this.<AppCompatTextView>findViewById(R.id.text_item_count).setText(itemCount >= 0 ? String.valueOf(itemCount) : "-");
@@ -401,16 +422,22 @@ public class TransferActivity extends AppCompatActivity {
     }
     
     private void refreshItemRecyclerAdapter() {
-        AsyncTask.execute(() ->  {
-            final Cursor itemListCursor = mDataManager.getItemListCursor();
-            runOnUiThread(() -> mItemRecyclerAdapter.changeCursor(itemListCursor));
-        });
+        if (mItemRecyclerAdapter != null) {
+            AsyncTask.execute(() -> {
+                final Cursor itemListCursor = mDataManager.getItemListCursor();
+                runOnUiThread(() -> mItemRecyclerAdapter.changeCursor(itemListCursor));
+            });
+        }
     }
 
     private void showFinalizeDialog() {
         if (mDataManager.isShowingDialog()) {
             return;
         } else {
+            if (mDataManager.getItemCount() <= 0) {
+                Toast.makeText(this, "Scan items first", Toast.LENGTH_SHORT).show();
+                return;
+            }
             mDataManager.setIsShowingDialog(true);
         }
 
@@ -428,7 +455,7 @@ public class TransferActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.action_finalize, (dialog, which) -> mDataManager.saveTransferToFile(this, () -> {
                     this.<MaterialProgressBar>findViewById(R.id.progress_bar).setProgress(0);
                     if (mDataManager.finalizeCurrentTransfer())
-                        Toast.makeText(this, "Finalized", Toast.LENGTH_SHORT).show();
+                        runOnUiThread(() -> Toast.makeText(this, "Finalized", Toast.LENGTH_SHORT).show());
                 }, progress -> {
                     final MaterialProgressBar progressBar = findViewById(R.id.progress_bar);
                     progressBar.setProgress((int) (progress * progressBar.getMax()));
@@ -448,11 +475,12 @@ public class TransferActivity extends AppCompatActivity {
                 final PopupMenu popup = new PopupMenu(TransferActivity.this, expandedMenuButton);
                 popup.inflate(R.menu.item_transfer);
                 popup.getMenu().findItem(R.id.menu_remove).setOnMenuItemClickListener(menuItem -> {
-                    if (mDataManager.deleteItem(id) <= 0) {
+                    if (mDataManager.deleteItem(id) > 0) {
+                        TransferActivity.this.<AppCompatTextView>findViewById(R.id.text_item_count).setText(String.valueOf(mDataManager.getItemCount()));
+                        refreshItemRecyclerAdapter();
+                    } else {
                         Log.w(TAG, String.format("Error deleting item with an id of %d from database", id));
                         Toast.makeText(TransferActivity.this, "Error removing item", Toast.LENGTH_SHORT).show();
-                    } else {
-                        refreshItemRecyclerAdapter();
                     }
                     return true;
                 });

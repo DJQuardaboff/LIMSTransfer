@@ -7,8 +7,9 @@
         android:name="com.porterlee.limstransfer.permission.SCANNER_RESULT_RECEIVER"
         android:protectionLevel="normal"/>
 
-    <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="com.porterlee.limstransfer.permission.SCANNER_RESULT_RECEIVER"/>
+    <uses-permission android:name="com.symbol.emdk.permission.EMDK"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.BROADCAST_STICKY"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
@@ -20,6 +21,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+
+        <uses-library
+            android:name="com.symbol.emdk"
+            android:required="false"/>
 
         <activity
             android:name=".TransferActivity"

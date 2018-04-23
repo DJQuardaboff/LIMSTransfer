@@ -2,19 +2,29 @@ package com.porterlee.limstransfer.Scanner;
 
 import android.content.Context;
 import android.os.Build;
-import android.util.Log;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.porterlee.limstransfer.BuildConfig;
 
-public abstract class Scanner {
+import org.jetbrains.annotations.NotNull;
+
+public abstract class AbstractScanner {
     public static final int UNKNOWN_MODE = -1;
     public static final int CONTINUOUS_MODE = 1;
     public static final int ONE_SHOT_MODE = 2;
+    protected static AbstractScanner mInstance;
     private OnBarcodeScannedListener mOnBarcodeScannedListener;
     private int mScanMode;
 
-    public abstract boolean init();
+    @NotNull
+    public static AbstractScanner getInstance() {
+        return mInstance != null ? mInstance : new Scanner();
+    }
+
+    public static boolean isCompatible() {
+        return BuildConfig.COMPATIBLE_MANUFACTURERS.contains(Build.MANUFACTURER) && BuildConfig.COMPATIBLE_MODELS.contains(Build.MODEL);
+    }
+
+    public abstract boolean init(Context context);
     protected abstract boolean onScanModeChanged(int scanMode);
 
     public void setOnBarcodeScannedListener(OnBarcodeScannedListener onBarcodeScannedListener) {
@@ -41,6 +51,7 @@ public abstract class Scanner {
     public void onStart(Context context) { }
     public void onResume(Context context) { }
     public void onPause(Context context) { }
+    public void onStop(Context context) { }
     public void onDestroy(Context context) { }
 
     public interface OnBarcodeScannedListener {

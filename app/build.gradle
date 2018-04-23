@@ -12,15 +12,38 @@ android {
     }
     buildTypes {
         release {
-            buildConfigField "boolean", "LOG", "false"
+            buildConfigField "boolean", "RELEASE", "true"
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
         debug {
-            buildConfigField "boolean", "LOG", "true"
+            buildConfigField "boolean", "RELEASE", "false"
             applicationIdSuffix ".debug"
             debuggable true
         }
+    }
+    flavorDimensions "deviceManufacturer"
+    productFlavors {
+        janam_xm5 {
+            applicationIdSuffix ".janamxm5"
+            buildConfigField "java.util.List<String>", "COMPATIBLE_MANUFACTURERS", "java.util.Arrays.asList(\"Janam Technologies\")"
+            buildConfigField "java.util.List<String>", "COMPATIBLE_MODELS", "java.util.Arrays.asList(\"XM5\")"
+            buildConfigField "boolean", "SUPPORTS_CONTINUOUS", "true"
+        }
+        zebra_emdk26 {
+            applicationIdSuffix ".zebraemdk25"
+            buildConfigField "java.util.List<String>", "COMPATIBLE_MANUFACTURERS", "java.util.Arrays.asList( \"Zebra Technologies\" )"
+            buildConfigField "java.util.List<String>", "COMPATIBLE_MODELS", "java.util.Arrays.asList( \"TC20\" )"
+            buildConfigField "boolean", "SUPPORTS_CONTINUOUS", "false"
+        }
+        /*applicationVariants.all {
+            variant ->
+                android.productFlavors.all {
+                    flavor ->
+                        println(flavor.name)
+                        variant.buildConfigField 'boolean', 'is_' + flavor.getName(), String.valueOf(variant.getName().startsWith(flavor.name))
+                }
+        }*/
     }
     compileOptions {
         targetCompatibility 1.8
@@ -35,13 +58,14 @@ dependencies {
         //exclude group: 'com.android.support'
         exclude module: 'support-v4'
     }
+    janam_xm5Implementation project(':device.scanner')
+    zebra_emdk26Implementation project(':com.symbol.emdk')
     implementation 'android.arch.persistence.room:runtime:1.1.0-beta2'
     annotationProcessor 'android.arch.persistence.room:compiler:1.1.0-beta2'
-    implementation 'com.android.support.constraint:constraint-layout:1.0.2'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.0'
     implementation 'com.android.support:recyclerview-v7:27.1.1'
     implementation 'me.zhanghai.android.materialprogressbar:library:1.4.2'
     testImplementation 'junit:junit:4.12'
-    implementation project(':device.scanner')
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     implementation 'org.jetbrains:annotations-java5:15.0'

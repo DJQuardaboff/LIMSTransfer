@@ -8,9 +8,8 @@ import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.Log;
 
-import com.porterlee.limstransfer.Scanner.JanamScanner;
+import com.porterlee.limstransfer.Scanner.AbstractScanner;
 import com.porterlee.limstransfer.Scanner.Scanner;
-import com.porterlee.limstransfer.Scanner.ZebraScanner;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -20,43 +19,29 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.ref.WeakReference;
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 public class DataManager {
     public static final String TAG = TransferActivity.class.getName();
+    public static final String APP_TAG;
+    static {
+        String[] appIdParts = BuildConfig.APPLICATION_ID.split("\\.");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 2; i < appIdParts.length; i++)
+            sb.append(appIdParts[i]);
+        APP_TAG = sb.toString();
+    }
     public static final File EXTERNAL_PATH = new File(Environment.getExternalStorageDirectory(), "Transfer");
     public static final File SIGNATURES_PATH = new File(EXTERNAL_PATH, "Signatures");
     public static final File OUTPUT_FILE = new File(EXTERNAL_PATH, "transfer.txt");
     public static final String SIGNATURE_FILE_NAME = "signature_%d.png";
     private volatile TransferDatabase mTransferDatabase;
-    private Scanner mScanner;
+    private AbstractScanner mScanner;
     private Transfer mCurrentTransfer;
     private Runnable mOnCurrentTransferChangedListener;
     private boolean mIsShowingDialog;
 
-    public DataManager() { }
-
-    public boolean initScanner(Scanner.OnBarcodeScannedListener onBarcodeScannedListener) {
-
-        if (JanamScanner.isCompatible() && (mScanner = new JanamScanner()).init()) {
-            mScanner.setOnBarcodeScannedListener(onBarcodeScannedListener);
-            return true;
-        }/* else if (ZebraScanner.isCompatible() && (mScanner = new ZebraScanner()).init()) {
-            mScanner.setOnBarcodeScannedListener(onBarcodeScannedListener);
-            return true;
-        }*/
-
-        Log.w(TAG, "Auto-detecting scanner SDK");
-
-        if ((mScanner = new JanamScanner()).init()) {
-            mScanner.setOnBarcodeScannedListener(onBarcodeScannedListener);
-            return true;
-        }/* else if ((mScanner = new ZebraScanner()).init()) {
-            mScanner.setOnBarcodeScannedListener(onBarcodeScannedListener);
-            return true;
-        }*/
-
-        return false;
+    public boolean initScanner(Context context) {
+        return (mScanner = AbstractScanner.getInstance()).init(context);
     }
 
     public void init(Context context) {
@@ -73,7 +58,7 @@ public class DataManager {
             Log.w(TAG, "Signature directory does not exist and could not be created, this may cause a problem");
     }
 
-    public Scanner getScanner() {
+    public AbstractScanner getScanner() {
         return mScanner;
     }
 
@@ -138,21 +123,6 @@ public class DataManager {
     public long getTransferId() {
         return mCurrentTransfer != null ? mCurrentTransfer.id : -1;
     }
-
-    /*public String getPreviousPrefix() {
-        return mPreviousPrefix;
-    }
-
-    public void setPreviousPrefix(@NotNull String previousPrefix) {
-        this.mPreviousPrefix = previousPrefix;
-    }
-
-    public String getPreviousPostfix() {
-        return mPreviousPostfix;
-    }
-    public void setPreviousPostfix(@NotNull String previousPostfix) {
-        this.mPreviousPostfix = previousPostfix;
-    }*/
 
     public boolean isShowingDialog() {
         return mIsShowingDialog;
@@ -292,7 +262,7 @@ public class DataManager {
                 int totalItemCount = itemCursor.getCount();
 
                 if (!fileExists) {
-                    printStream.print(BuildConfig.APPLICATION_ID.split(Pattern.quote("."))[2] + "|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n");
+                    printStream.print(APP_TAG + "|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n");
                     printStream.flush();
                 }
 

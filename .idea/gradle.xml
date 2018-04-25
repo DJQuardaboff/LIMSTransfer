@@ -8,9 +8,9 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/com.symbol.emdk" />
             <option value="$PROJECT_DIR$/device.scanner" />
+            <option value="$PROJECT_DIR$/lims_transfer" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

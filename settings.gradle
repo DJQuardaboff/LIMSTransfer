@@ -1,1 +1,1 @@
-include ':app', ':device.scanner', ':com.symbol.emdk'
+include ':lims_transfer', ':device.scanner', ':com.symbol.emdk'

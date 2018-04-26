@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/menu_sign"
+        android:title="@string/action_sign"
+        android:icon="@drawable/ic_sign"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/menu_finalize"
+        android:title="@string/action_finalize"
+        android:icon="@drawable/ic_finalize"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/menu_cancel"
+        android:title="@string/action_cancel"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/menu_reset"
+        android:title="@string/action_reset"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/menu_continuous_mode"
+        android:title="@string/action_continuous_mode"
+        android:checkable="true"
+        app:showAsAction="never"/>
+
+</menu>

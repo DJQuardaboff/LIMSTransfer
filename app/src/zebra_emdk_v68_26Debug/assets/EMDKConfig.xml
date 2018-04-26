@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wap-provisioningdoc>
+    <characteristic type="ProfileInfo">
+        <parm name="created_wizard_version" value="6.8.1"/>
+    </characteristic>
+    <characteristic type="Profile">
+        <parm name="ProfileName" value="PLCTransfer"/>
+        <parm name="ModifiedDate" value="2018-04-25 16:53:01"/>
+        <parm name="TargetSystemVersion" value="7.1"/>
+        <characteristic type="ActivitySelection" version="0.1">
+            <parm name="emdk_name" value="PLCTransferActivitySelection"/>
+            <characteristic type="Application">
+                <parm name="PrefixAppName" value="false"/>
+                <parm name="package" value="com.porterlee.limstransfer.debug"/>
+                <characteristic type="Activities">
+                    <parm name="activity" value="com.porterlee.limstransfer.TransferActivity"/>
+                </characteristic>
+            </characteristic>
+        </characteristic>
+        <characteristic type="Barcode" version="6.8">
+            <parm name="emdk_name" value="PLCTransferDataInput"/>
+            <parm name="scanner_input_enabled" value="true"/>
+            <parm name="ScannerSelection" value="AUTO"/>
+        </characteristic>
+        <characteristic type="Intent" version="6.3">
+            <parm name="emdk_name" value="PLCTransferDataDelivery"/>
+            <parm name="intent_output_enabled" value="true"/>
+            <parm name="intent_action" value="com.symbol.emdk.BARCODE_SCAN"/>
+            <parm name="intent_category" value=""/>
+            <parm name="intent_delivery" value="2"/>
+            <parm name="intent_flag_receiver_foreground" value="true"/>
+            <characteristic type="BasicDataFormatting">
+                <parm name="bdf_enabled" value="true"/>
+                <parm name="bdf_prefix" value=""/>
+                <parm name="bdf_suffix" value=""/>
+                <parm name="bdf_send_data" value="true"/>
+                <parm name="bdf_send_hex" value="false"/>
+                <parm name="bdf_send_tab" value="false"/>
+                <parm name="bdf_send_enter" value="false"/>
+            </characteristic>
+        </characteristic>
+    </characteristic>
+</wap-provisioningdoc>

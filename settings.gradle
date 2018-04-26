@@ -1,1 +1,1 @@
-include ':lims_transfer', ':device.scanner', ':com.symbol.emdk'
+include ':app', ':janam_xm5'

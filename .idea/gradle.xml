@@ -8,9 +8,8 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/com.symbol.emdk" />
-            <option value="$PROJECT_DIR$/device.scanner" />
-            <option value="$PROJECT_DIR$/lims_transfer" />
+            <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/janam_xm5" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

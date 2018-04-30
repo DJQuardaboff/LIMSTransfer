@@ -14,4 +14,6 @@
     <string name="title_transfer_id">ID:</string>
     <string name="action_finalize">Finalize</string>
     <string name="action_delete">Delete</string>
+    <string name="action_yes">Yes</string>
+    <string name="action_no">No</string>
 </resources>

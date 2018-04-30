@@ -456,6 +456,34 @@ public class TransferActivity extends AppCompatActivity {
                 .create().show();
     }
 
+    private void showRemoveItemDialog(final long id, final String barcode) {
+        if (mDataManager.isShowingDialog()) {
+            return;
+        } else {
+            if (mDataManager.getItemCount() <= 0) {
+                Toast.makeText(this, "Scan items first", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            mDataManager.setIsShowingDialog(true);
+        }
+
+        new AlertDialog.Builder(this)
+                .setCancelable(false)
+                .setTitle("Remove " + (BarcodeType.Item.isOfType(barcode) ? "Item" : "Container"))
+                .setMessage("Are you sure you want to remove " + (BarcodeType.Item.isOfType(barcode) ? "item" : "container") + " \"" + barcode + "\"")
+                .setNegativeButton(R.string.action_cancel, (dialog, which) -> dialog.dismiss())
+                .setPositiveButton(R.string.action_yes, (dialog, which) -> {
+                    if (mDataManager.deleteItem(id) > 0) {
+                        TransferActivity.this.<AppCompatTextView>findViewById(R.id.text_item_count).setText(String.valueOf(mDataManager.getItemCount()));
+                        refreshItemRecyclerAdapter();
+                    } else {
+                        Log.w(TAG, String.format("Error deleting item with an id of %d from database", id));
+                        Toast.makeText(TransferActivity.this, "Error removing item", Toast.LENGTH_SHORT).show();
+                    }
+                }).setOnDismissListener(dialog -> mDataManager.setIsShowingDialog(false))
+                .create().show();
+    }
+
     private class TransferItemViewHolder extends RecyclerView.ViewHolder {
         private long id;
         private String barcode;
@@ -467,13 +495,7 @@ public class TransferActivity extends AppCompatActivity {
                 final PopupMenu popup = new PopupMenu(TransferActivity.this, expandedMenuButton);
                 popup.inflate(R.menu.item_transfer);
                 popup.getMenu().findItem(R.id.menu_remove).setOnMenuItemClickListener(menuItem -> {
-                    if (mDataManager.deleteItem(id) > 0) {
-                        TransferActivity.this.<AppCompatTextView>findViewById(R.id.text_item_count).setText(String.valueOf(mDataManager.getItemCount()));
-                        refreshItemRecyclerAdapter();
-                    } else {
-                        Log.w(TAG, String.format("Error deleting item with an id of %d from database", id));
-                        Toast.makeText(TransferActivity.this, "Error removing item", Toast.LENGTH_SHORT).show();
-                    }
+                    showRemoveItemDialog(id, barcode);
                     return true;
                 });
                 popup.show();

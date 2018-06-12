@@ -8,8 +8,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
 import android.widget.Toast;
 
 import org.jetbrains.annotations.NotNull;
@@ -20,25 +18,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 
-import static android.content.Context.VIBRATOR_SERVICE;
-
 public class Utils {
-
-    public static boolean vibrate(@NotNull Context context) {
-        final Vibrator vibrator = (Vibrator) context.getSystemService(VIBRATOR_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (vibrator != null) {
-                vibrator.vibrate(VibrationEffect.createOneShot(300L, VibrationEffect.DEFAULT_AMPLITUDE));
-                return true;
-            }
-        } else {
-            if (vibrator != null) {
-                vibrator.vibrate(300L);
-                return true;
-            }
-        }
-        return false;
-    }
 
     public static void saveSignature(Context context, Bitmap signatureBitmap, File file) throws IOException {
         if (!file.getParentFile().mkdirs() && !file.getParentFile().exists())
@@ -123,9 +103,14 @@ public class Utils {
 
         Toaster(Activity activity) { activityWeakReference = new WeakReference<>(activity); }
 
-        public boolean toast(String s) {
+        public boolean toast(final String s) {
             if (activityWeakReference.get() != null) {
-                activityWeakReference.get().runOnUiThread(() -> Toast.makeText(activityWeakReference.get(), s, Toast.LENGTH_SHORT).show());
+                activityWeakReference.get().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(activityWeakReference.get(), s, Toast.LENGTH_SHORT).show();
+                    }
+                });
                 return true;
             }
             return false;
@@ -146,6 +131,10 @@ public class Utils {
     
     public interface OnProgressUpdateListener {
         void onProgressUpdate(float progress);
+    }
+
+    public interface OnFinishListener {
+        void onFinish(boolean success);
     }
     
     public static class QueryHolder {

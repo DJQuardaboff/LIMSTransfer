@@ -1,83 +1,90 @@
 apply plugin: 'com.android.application'
 
 android {
+    compileSdkVersion 27
     defaultConfig {
         applicationId "com.porterlee.limstransfer"
+        minSdkVersion 17
         targetSdkVersion 27
-        versionCode 2
-        versionName "1.1"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        versionCode 5
+        versionName "1.4"
+        //testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         release {
-            buildConfigField "boolean", "RELEASE", "true"
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            //minifyEnabled false
+            //proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
         debug {
-            buildConfigField "boolean", "RELEASE", "false"
             applicationIdSuffix ".debug"
             debuggable true
         }
     }
-    flavorDimensions "scannerSdk"
+    flavorDimensions "system", "scanner_sdk"
     productFlavors {
-        janam_xm5 {
-            buildConfigField "java.util.List<String>", "COMPATIBLE_MANUFACTURERS", "java.util.Arrays.asList(\"Janam Technologies\")"
-            buildConfigField "java.util.List<String>", "COMPATIBLE_MODELS", "java.util.Arrays.asList(\"XM5\")"
-            buildConfigField "boolean", "SUPPORTS_CONTINUOUS", "true"
-            compileSdkVersion 26
-            minSdkVersion 17
+        Default {
+            dimension "system"
+            resValue "string", "app_name", "LIMS Transfer"
         }
-        janam_xm75 {
-            buildConfigField "java.util.List<String>", "COMPATIBLE_MANUFACTURERS", "java.util.Arrays.asList( \"Janam\" )"
-            buildConfigField "java.util.List<String>", "COMPATIBLE_MODELS", "java.util.Arrays.asList( \"XM75\" )"
-            buildConfigField "boolean", "SUPPORTS_CONTINUOUS", "false"
-            compileSdkVersion 26
-            minSdkVersion 17
+        LAM {
+            dimension "system"
+            resValue "string", "app_name", "LAM Transfer"
+            applicationIdSuffix ".lam"
         }
-        zebra_emdk_v68_26 {
-            buildConfigField "java.util.List<String>", "COMPATIBLE_MANUFACTURERS", "java.util.Arrays.asList( \"Zebra Technologies\" )"
-            buildConfigField "java.util.List<String>", "COMPATIBLE_MODELS", "java.util.Arrays.asList( \"TC20\" )"
-            buildConfigField "boolean", "SUPPORTS_CONTINUOUS", "false"
-            compileSdkVersion 'Zebra Technologies Corp:EMDK APIs:26'
-            minSdkVersion 17
-        }/*
+        janam_XM5 {
+            dimension "scanner_sdk"
+        }
+        janam_XT2_XT2__XM75_XT100_XG200 {
+            dimension "scanner_sdk"
+        }
+        zebra_emdk_symbol_26 {
+            dimension "scanner_sdk"
+        }
         applicationVariants.all {
             variant ->
                 android.productFlavors.all {
                     flavor ->
-                        println(flavor.name)
-                        variant.buildConfigField 'boolean', 'is_' + flavor.getName(), String.valueOf(variant.getName().startsWith(flavor.name))
+                        for (int i = 0; i < flavorDimensionList.size(); i++) {
+                            if (flavor.dimension == flavorDimensionList[i]) {
+                                variant.buildConfigField 'boolean', 'is_' + flavor.getName() + "_" + flavor.dimension, String.valueOf(flavor.name == variant.productFlavors[i].getName())
+                            }
+                        }
                 }
-        }*/
-    }
-    android.applicationVariants.all { variant ->
-        variant.outputs.all {
-            outputFileName = "lims_transfer-${variant.name}-${variant.versionName}.apk"
         }
     }
-    compileOptions {
-        targetCompatibility JavaVersion.VERSION_1_8
-        sourceCompatibility JavaVersion.VERSION_1_8
+    android.applicationVariants.all {
+        variant ->
+            variant.outputs.all {
+                output ->
+                    if (output.baseName.startsWith("LAM")) {
+                        outputFileName = "v${variant.versionName}/LAMTransfer.apk"
+                    } else {
+                        outputFileName = "v${variant.versionName}/LIMSTransfer.apk"
+                    }
+            }
+    }
+    configurations.all {
+        resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
     }
 }
-
 dependencies {
-    janam_xm5Implementation project(':janam_xm5')
+    janam_XM5Implementation project(':plc_scanners-janam_XM5Release')
+    janam_XT2_XT2__XM75_XT100_XG200Implementation project(':plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release')
+    zebra_emdk_symbol_26Implementation project(':plc_scanners-zebra_emdk_symbol_26Release')
+
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support:recyclerview-v7:27.1.1'
-    implementation 'com.android.support.constraint:constraint-layout:1.1.0'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.1'
     implementation 'commons-io:commons-io:2.4'
     implementation('com.github.gcacace:signature-pad:1.2.1') {
-        //exclude group: 'com.android.support'
-        exclude module: 'support-v4'
+        exclude group: 'com.android.support'
     }
-    //implementation 'android.arch.persistence.room:runtime:1.1.0-beta2'
-    //annotationProcessor 'android.arch.persistence.room:compiler:1.1.0-beta2'
-    implementation 'me.zhanghai.android.materialprogressbar:library:1.4.2'
+    implementation('me.zhanghai.android.materialprogressbar:library:1.4.2')  {
+        exclude group: 'com.android.support'
+        //exclude module: 'appcompat-v7'
+    }
+    implementation 'org.jetbrains:annotations-java5:15.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
-    implementation 'org.jetbrains:annotations-java5:15.0'
 }

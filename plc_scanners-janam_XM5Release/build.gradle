@@ -1,0 +1,2 @@
+configurations.maybeCreate("default")
+artifacts.add("default", file('plc_scanners-janam_XM5Release-1.3.aar'))

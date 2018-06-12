@@ -1,0 +1,2 @@
+configurations.maybeCreate("default")
+artifacts.add("default", file('plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release-1.3.aar'))

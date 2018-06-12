@@ -6,4 +6,7 @@
     <color name="colorAccent">#FF5252</color>
     <color name="white">#FFFFFFFF</color>
     <color name="transparent">#00000000</color>
+
+    <color name="item_color_white">#FFFFFFFF</color>
+    <color name="item_color_yellow">#5ff9c702</color>
 </resources>

@@ -9,7 +9,9 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
-            <option value="$PROJECT_DIR$/janam_xm5" />
+            <option value="$PROJECT_DIR$/plc_scanners-janam_XM5Release" />
+            <option value="$PROJECT_DIR$/plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release" />
+            <option value="$PROJECT_DIR$/plc_scanners-zebra_emdk_symbol_26Release" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

@@ -1,5 +1,4 @@
 <resources>
-    <string name="app_name">LIMS Transfer</string>
     <string name="text_item_count_label">Items:</string>
     <string name="text_current_location_label">Location:</string>
     <string name="expanded_menu_description">Options</string>

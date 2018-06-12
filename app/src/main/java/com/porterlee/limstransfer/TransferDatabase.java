@@ -19,6 +19,7 @@ public final class TransferDatabase {
     private SQLiteStatement mUpdate_transferTable_set_signed_equalTo_where_id_equals;
     private SQLiteStatement mUpdate_transferTable_set_finalized_equalTo_where_id_equals;
     private SQLiteStatement mUpdate_transferTable_set_canceled_equalTo_where_id_equals;
+    private SQLiteStatement mUpdate_transferTable_set_canceled_equalTo_where_finalized_equals;
     private SQLiteStatement mDelete_from_transferTable_where_id_equals;
 
     public TransferDatabase(Context context) {
@@ -41,6 +42,7 @@ public final class TransferDatabase {
         mUpdate_transferTable_set_signed_equalTo_where_id_equals = mDatabase.compileStatement("UPDATE " + TransferTable.NAME + " SET " + Key.SIGNED + " = ?, " + Key.SIGN_DATE_TIME + " = datetime('now', 'localtime') WHERE " + Key.ID + " = ?");
         mUpdate_transferTable_set_finalized_equalTo_where_id_equals = mDatabase.compileStatement("UPDATE " + TransferTable.NAME + " SET " + Key.FINALIZED + " = ?, " + Key.FINALIZE_DATE_TIME + " = datetime('now', 'localtime') WHERE " + Key.ID + " = ?");
         mUpdate_transferTable_set_canceled_equalTo_where_id_equals = mDatabase.compileStatement("UPDATE " + TransferTable.NAME + " SET " + Key.CANCELED + " = ? WHERE " + Key.ID + " = ?");
+        mUpdate_transferTable_set_canceled_equalTo_where_finalized_equals = mDatabase.compileStatement("UPDATE " + TransferTable.NAME + " SET " + Key.CANCELED + " = ? WHERE " + Key.FINALIZED + " = ?");
         mDelete_from_transferTable_where_id_equals = mDatabase.compileStatement("DELETE FROM " + TransferTable.NAME + " WHERE " + Key.ID + " = ?");
     }
 
@@ -116,6 +118,12 @@ public final class TransferDatabase {
         mUpdate_transferTable_set_canceled_equalTo_where_id_equals.bindLong(1, canceled ? 1 : 0);
         mUpdate_transferTable_set_canceled_equalTo_where_id_equals.bindLong(2, id);
         return mUpdate_transferTable_set_canceled_equalTo_where_id_equals.executeUpdateDelete();
+    }
+
+    public synchronized long update_transferTable_set_canceled_equalTo_where_finalized_equals(boolean canceled, boolean finalized) {
+        mUpdate_transferTable_set_canceled_equalTo_where_finalized_equals.bindLong(1, canceled ? 1 : 0);
+        mUpdate_transferTable_set_canceled_equalTo_where_finalized_equals.bindLong(2, finalized ? 1 : 0);
+        return mUpdate_transferTable_set_canceled_equalTo_where_finalized_equals.executeUpdateDelete();
     }
 
     public synchronized long delete_from_transferTable_where_id_equals(long id) {

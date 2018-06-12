@@ -7,12 +7,17 @@ import android.support.v7.widget.RecyclerView;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 public abstract class SelectableCursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
     private volatile Cursor mCursor;
     private String mIdColumnName;
     private boolean mDataValid;
     private int mRowIdColumn;
     private DataSetObserver mDataSetObserver;
+    private HashMap<String, Integer> mBarcodeToIndexMap = new HashMap<>();
+    private ArrayList<String> mDuplicateBarcodes = new ArrayList<>();
     private int mSelectedItem = -1;
 
     public SelectableCursorRecyclerViewAdapter(Cursor cursor, @NotNull String idColumnName) {
@@ -95,6 +100,21 @@ public abstract class SelectableCursorRecyclerViewAdapter<VH extends RecyclerVie
             }
             mRowIdColumn = newCursor.getColumnIndexOrThrow(mIdColumnName);
             mDataValid = true;
+            //
+            mBarcodeToIndexMap.clear();
+            mDuplicateBarcodes.clear();
+            final int barcodeColumnIndex = mCursor.getColumnIndex(TransferDatabase.Key.BARCODE);
+            if (barcodeColumnIndex != -1) {
+                mCursor.moveToPosition(-1);
+                while (mCursor.moveToNext()) {
+                    String barcode = mCursor.getString(barcodeColumnIndex);
+                    if (mBarcodeToIndexMap.containsKey(barcode)) {
+                        mDuplicateBarcodes.add(barcode);
+                    }
+                    mBarcodeToIndexMap.put(barcode, mCursor.getPosition());
+                }
+            }
+            //
             notifyDataSetChanged();
         } else {
             mRowIdColumn = -1;
@@ -103,6 +123,15 @@ public abstract class SelectableCursorRecyclerViewAdapter<VH extends RecyclerVie
             //There is no notifyDataSetInvalidated() method in RecyclerView.Adapter
         }
         return oldCursor;
+    }
+
+    public boolean getIsDuplicate(String barcode) {
+        return mDuplicateBarcodes.contains(barcode);
+    }
+
+    public int getIndexOfBarcode(String barcode) {
+        Integer index = mBarcodeToIndexMap.get(barcode);
+        return index != null ? index : -1;
     }
 
     public boolean setSelectedItem(int index) {

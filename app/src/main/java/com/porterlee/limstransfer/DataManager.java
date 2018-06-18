@@ -171,13 +171,13 @@ public class DataManager {
 
         while (fileIterator.hasNext()) {
             try {
-                FileUtils.forceDelete(fileIterator.next());
+                final File file = fileIterator.next();
+                FileUtils.forceDelete(file);
+                Utils.refreshExternalFile(context, file);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-
-        Utils.refreshExternalPath(context, EXTERNAL_PATH);
     }
 
     public long getTransferId() {
@@ -329,7 +329,7 @@ public class DataManager {
                 }
 
                 if (contextWeakReference.get() != null)
-                    Utils.refreshExternalPath(contextWeakReference.get(), file);
+                    Utils.refreshExternalFile(contextWeakReference.get(), file);
 
                 if (weakOnFinishListener.get() != null)
                     weakOnFinishListener.get().onFinish(true, "Saved signature");
@@ -430,7 +430,7 @@ public class DataManager {
                 }
 
                 if (contextWeakReference.get() != null)
-                    Utils.refreshExternalPath(contextWeakReference.get(), OUTPUT_FILE);
+                    Utils.refreshExternalFile(contextWeakReference.get(), OUTPUT_FILE);
 
                 if (weakOnFinishListener.get() != null)
                     weakOnFinishListener.get().onFinish(true, "Saved");

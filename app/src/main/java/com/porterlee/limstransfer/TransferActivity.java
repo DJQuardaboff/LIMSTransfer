@@ -410,11 +410,14 @@ public class TransferActivity extends AppCompatActivity {
         super.onResume();
         getScanner().onResume();
         AbstractScanner.setOnBarcodeScannedListener(onBarcodeScannedListener);
+        AbstractScanner.setActivity(this);
         refreshItemRecyclerAdapter();
     }
 
     @Override
     protected void onPause() {
+        AbstractScanner.setActivity(null);
+        AbstractScanner.setOnBarcodeScannedListener(null);
         getScanner().onPause();
         if (mItemRecyclerAdapter != null && mItemRecyclerAdapter.getCursor() != null)
             mItemRecyclerAdapter.swapCursor(null).close();

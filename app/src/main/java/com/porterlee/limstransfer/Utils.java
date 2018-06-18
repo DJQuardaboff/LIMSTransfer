@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.widget.Toast;
@@ -26,7 +27,7 @@ public class Utils {
 
         try {
             saveBitmapToPNG(signatureBitmap, file);
-            refreshExternalPath(context, file);
+            refreshExternalFile(context, file);
         } catch (IOException e) {
             e.printStackTrace();
             throw new IOException("Unable to save", e);
@@ -51,12 +52,13 @@ public class Utils {
         }
     }
 
-    public static void refreshExternalPath(Context context, File file) {
+    public static void refreshExternalFile(Context context, File file) {
+        if (file.isDirectory()) {
+            throw new IllegalArgumentException("Directories will be converted to files if refreshed");
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-            Uri contentUri = Uri.fromFile(file);
-            mediaScanIntent.setData(contentUri);
-            context.sendBroadcast(mediaScanIntent);
+            MediaScannerConnection.scanFile(context, new String[] { file.getAbsolutePath() }, null, null);
         } else {
             context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.fromFile(file)));
         }

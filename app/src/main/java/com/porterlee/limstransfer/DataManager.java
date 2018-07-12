@@ -411,7 +411,7 @@ public class DataManager {
                             updateNum++;
                         }
 
-                        printStream.printf("\"%s\"|\"%s\"\r\n", itemCursor.getString(itemBarcodeIndex).replace("\"", "\"\""), itemCursor.getString(itemDateTimeIndex).replace("-", "/"));
+                        printStream.printf("\"%s\"|\"%d\"|\"%s\"\r\n", itemCursor.getString(itemBarcodeIndex).replace("\"", "\"\""), transferCursor.getLong(transferIdIndex), itemCursor.getString(itemDateTimeIndex).replace("-", "/"));
                         printStream.flush();
 
                         itemCursor.moveToNext();

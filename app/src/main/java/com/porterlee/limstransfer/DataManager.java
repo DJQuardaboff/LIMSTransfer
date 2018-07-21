@@ -40,6 +40,7 @@ public class DataManager {
     private boolean mIsShowingDialog;
     private boolean mIsSaving;
     private int mScannerDisableCount;
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private ArrayList<Object> listenerReferences = new ArrayList<>();
 
     public DataManager (Activity activity) {
@@ -141,6 +142,10 @@ public class DataManager {
         mCurrentTransfer = transfer;
         if (mOnCurrentTransferChangedListener != null)
             mOnCurrentTransferChangedListener.run();
+    }
+
+    public boolean hasOngoingTransfer() {
+        return mCurrentTransfer != null && !mCurrentTransfer.finalized;
     }
 
     public void reset(Context context) {

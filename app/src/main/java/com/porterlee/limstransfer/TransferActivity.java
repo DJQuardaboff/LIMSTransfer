@@ -34,6 +34,10 @@ import com.porterlee.plcscanners.AbstractScanner;
 
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
+import static com.porterlee.limstransfer.BarcodeType.Item;
+import static com.porterlee.limstransfer.BarcodeType.Container;
+import static com.porterlee.limstransfer.BarcodeType.Location;
+import static com.porterlee.limstransfer.BarcodeType.Invalid;
 import static com.porterlee.limstransfer.BarcodeType.getBarcodeType;
 
 public class TransferActivity extends AppCompatActivity {
@@ -50,76 +54,68 @@ public class TransferActivity extends AppCompatActivity {
             if (mDataManager.isSaving()) {
                 AbstractScanner.onScanComplete(false);
                 toastShort("Cannot scan while saving");
-            } else if (BarcodeType.Location.isOfType(barcode)) {
-                if (mDataManager.getItemCount() <= 0) {
-                    if (mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().finalized) {
-                        if (!mDataManager.cancelCurrentTransfer()) {
-                            toastLong("There was an error canceling");
+            } else if (getBarcodeType(barcode).equals(Invalid)) {
+                AbstractScanner.onScanComplete(false);
+                toastLong(String.format("Unrecognised barcode: \"%s\"", barcode));
+            } else if (mDataManager.hasOngoingTransfer()) {
+                final boolean isItem;
+                if (Location.isOfType(barcode)) {
+                    AbstractScanner.onScanComplete(false);
+                    toastShort("Finalize or cancel this transfer first");
+                } else if ((isItem = Item.isOfType(barcode)) || Container.isOfType(barcode)) {
+                    if (mDataManager.isDuplicate(barcode)) {
+                        AbstractScanner.onScanComplete(false);
+                        mDataManager.showDialog(new AlertDialog.Builder(TransferActivity.this)
+                                .setCancelable(false)
+                                .setTitle("Duplicate item")
+                                .setMessage("An item with the same barcode was already scanned, would you still like to add it to the list?")
+                                .setNegativeButton(R.string.action_no, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                        highlightItemWithBarcode(barcode);
+                                    }
+                                }).setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        if (mDataManager.insertItem(barcode) > 0) {
+                                            refreshItemCount();
+                                            refreshItemRecyclerAdapter();
+                                        } else {
+                                            Log.w(TAG, String.format("Error adding %s \"%s\" to database", isItem ? "item" : "container", barcode));
+                                            toastLong("Error adding " + (isItem ? "item" : "container"));
+                                        }
+                                        highlightItemWithBarcode(barcode);
+                                    }
+                                }).create(), null);
+                    } else {
+                        if (mDataManager.insertItem(barcode) > 0) {
+                            AbstractScanner.onScanComplete(true);
+                            refreshItemCount();
+                            refreshItemRecyclerAdapter();
+                        } else {
+                            AbstractScanner.onScanComplete(false);
+                            Log.w(TAG, String.format("Error adding %s \"%s\" to database", isItem ? "item" : "container", barcode));
+                            toastLong("Error adding " + (isItem ? "item" : "container"));
                         }
+                        highlightItemWithBarcode(barcode);
                     }
+                }
+            } else {
+                final boolean isLocation;
+                if (Item.isOfType(barcode)) {
+                    AbstractScanner.onScanComplete(false);
+                    toastShort("Start a new transfer by scanning a location or container");
+                } else if ((isLocation = Location.isOfType(barcode)) || Container.isOfType(barcode)) {
                     if (mDataManager.newTransfer(barcode) > 0) {
                         AbstractScanner.onScanComplete(true);
                         refreshItemRecyclerAdapter();
                     } else {
                         AbstractScanner.onScanComplete(false);
-                        Log.w(TAG, String.format("Error adding location with barcode of %s to database", barcode));
-                        toastLong("Error saving location");
+                        Log.w(TAG, String.format("Error adding %s \"%s\" to database", (isLocation ? "location" : "container"), barcode));
+                        toastLong("Error starting transfer");
                     }
-                } else {
-                    AbstractScanner.onScanComplete(false);
-                    toastShort("Finalize or cancel this transfer first");
                 }
-            } else if (BarcodeType.Item.isOfType(barcode) || BarcodeType.Container.isOfType(barcode)) {
-                if (mDataManager.getCurrentTransfer() == null) {
-                    AbstractScanner.onScanComplete(false);
-                    toastShort("Scan a location first");
-                    return;
-                }
-                if (mDataManager.getCurrentTransfer().finalized) {
-                    AbstractScanner.onScanComplete(false);
-                    toastShort("Start a new transfer by scanning a location first");
-                    return;
-                }
-                if (mDataManager.isDuplicate(barcode)) {
-                    AbstractScanner.onScanComplete(false);
-                    mDataManager.showDialog(new AlertDialog.Builder(TransferActivity.this)
-                            .setCancelable(false)
-                            .setTitle("Duplicate item")
-                            .setMessage("An item with the same barcode was already scanned, would you still like to add it to the list?")
-                            .setNegativeButton(R.string.action_no, new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                    highlightItemWithBarcode(barcode);
-                                }
-                            }).setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    if (mDataManager.insertItem(barcode) > 0) {
-                                        refreshItemCount();
-                                        refreshItemRecyclerAdapter();
-                                    } else {
-                                        Log.w(TAG, String.format("Error adding item with barcode of %s to database", barcode));
-                                        toastLong("Error adding item");
-                                    }
-                                    highlightItemWithBarcode(barcode);
-                                }
-                            }).create(), null);
-                } else {
-                    if (mDataManager.insertItem(barcode) > 0) {
-                        AbstractScanner.onScanComplete(true);
-                        refreshItemCount();
-                        refreshItemRecyclerAdapter();
-                    } else {
-                        AbstractScanner.onScanComplete(false);
-                        Log.w(TAG, String.format("Error adding item with barcode of %s to database", barcode));
-                        toastLong("Error adding item");
-                    }
-                    highlightItemWithBarcode(barcode);
-                }
-            } else {
-                AbstractScanner.onScanComplete(false);
-                toastLong(String.format("Unrecognised barcode: \"%s\"", barcode));
             }
         }
     };
@@ -528,7 +524,11 @@ public class TransferActivity extends AppCompatActivity {
     }
 
     private void updateInfo(String location, int itemCount, long transferId) {
-        this.<AppCompatTextView>findViewById(R.id.text_current_location).setText(getBarcodeType(location).equals(BarcodeType.Location) ? location : "-");
+        final boolean isLocation = getBarcodeType(location).equals(BarcodeType.Location);
+        final boolean isContainer = getBarcodeType(location).equals(BarcodeType.Container);
+        final boolean isNull = !isLocation && !isContainer;
+        this.<AppCompatTextView>findViewById(R.id.text_current_location_label).setText(getResources().getString(R.string.text_current_location_label, isNull ? "-" : (isLocation ? "Location" : "Container")));
+        this.<AppCompatTextView>findViewById(R.id.text_current_location).setText(isNull ? "-" : location);
         this.<AppCompatTextView>findViewById(R.id.text_item_count).setText(itemCount >= 0 ? String.valueOf(itemCount) : "-");
         this.<AppCompatTextView>findViewById(R.id.text_transfer_id).setText(transferId >= 0 ? String.valueOf(transferId) : "-");
     }

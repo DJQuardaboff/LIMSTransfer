@@ -19,7 +19,6 @@
         android:gravity="end"
         android:paddingEnd="8dp"
         android:paddingStart="0dp"
-        android:text="@string/text_current_location_label"
         android:textColor="#FFFFFF"
         app:layout_constraintBottom_toTopOf="@+id/text_item_count_label"
         app:layout_constraintEnd_toStartOf="@+id/text_current_location"

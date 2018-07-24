@@ -1,5 +1,6 @@
 package com.porterlee.limstransfer;
 
+import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -15,12 +16,15 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatDialog;
 import android.support.v7.widget.AppCompatButton;
+import android.support.v7.widget.AppCompatEditText;
 import android.support.v7.widget.AppCompatImageButton;
 import android.support.v7.widget.AppCompatTextView;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -124,6 +128,169 @@ public class TransferActivity extends AppCompatActivity {
         return AbstractScanner.getInstance();
     }
 
+    private void refreshItemCount() {
+        this.<AppCompatTextView>findViewById(R.id.text_item_count).setText(String.valueOf(mDataManager.getItemCount()));
+    }
+
+    private void highlightItemWithBarcode(final String barcode) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                final int position = mItemRecyclerAdapter.getIndexOfBarcode(barcode);
+                mItemRecyclerAdapter.setSelectedItem(position);
+                TransferActivity.this.<RecyclerView>findViewById(R.id.item_recycler_view).scrollToPosition(position);
+            }
+        });
+    }
+
+    public void openFinalizeDialog(final Utils.OnFinishListener onFinishListener) {
+        mDataManager.showDialog(new AlertDialog.Builder(this)
+                .setTitle("Finalize transfer")
+                .setMessage(
+                        "Would you like to finalize this transfer?" +
+                        (mDataManager.getCurrentTransfer().isSigned() ?
+                                "" :
+                                "\n" +
+                                "\n" +
+                                "Note: the current transfer has not been signed"
+                        )
+                ).setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(R.string.action_finalize, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        mDataManager.saveTransferToFile(TransferActivity.this, new Utils.OnProgressUpdateListener() {
+                            @Override
+                            public void onProgressUpdate(float progress) {
+                                final MaterialProgressBar progressBar = findViewById(R.id.progress_bar);
+                                progressBar.setProgress((int) (progress * progressBar.getMax()));
+                            }
+                        }, new Utils.OnFinishListener() {
+                            @Override
+                            public void onFinish(boolean success) {
+                                TransferActivity.this.<MaterialProgressBar>findViewById(R.id.progress_bar).setProgress(0);
+                                success &= mDataManager.finalizeCurrentTransfer();
+                                onFinishListener.onFinish(success);
+                            }
+                        });
+                    }
+                }).setCancelable(false).create(), null);
+    }
+
+    private void openSignDialog(final DataManager.InternalOnFinishListener onFinishListener) {
+        final AppCompatDialog compatDialog = new AppCompatDialog(this, R.style.CustomDialogTheme);
+
+        if (compatDialog.getWindow() != null) {
+            compatDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            compatDialog.setCancelable(false);
+            compatDialog.setContentView(R.layout.fragment_sign);
+
+            View v = compatDialog.getWindow().getDecorView();
+            final SignaturePad signaturePad = v.findViewById(R.id.signature_pad);
+            final AppCompatButton buttonClear = v.findViewById(R.id.button_clear);
+            final AppCompatButton buttonCancel = v.findViewById(R.id.button_cancel);
+            final AppCompatButton buttonSave = v.findViewById(R.id.button_save);
+
+            signaturePad.setOnSignedListener(new SignaturePad.OnSignedListener() {
+                @Override
+                public void onStartSigning() {
+                }
+
+                @Override
+                public void onSigned() {
+                    buttonClear.setEnabled(true);
+                    buttonSave.setEnabled(true);
+                }
+
+                @Override
+                public void onClear() {
+                    buttonClear.setEnabled(false);
+                    buttonSave.setEnabled(false);
+                }
+            });
+
+            buttonClear.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    signaturePad.clear();
+                }
+            });
+            buttonCancel.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    onFinishListener.onFinish(false, "Signing canceled");
+                    compatDialog.dismiss();
+                }
+            });
+            buttonSave.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mDataManager.saveSignature(TransferActivity.this, signaturePad.getSignatureBitmap(), mDataManager.getCurrentTransfer(), onFinishListener);
+                    compatDialog.dismiss();
+                }
+            });
+
+            mDataManager.showDialog(compatDialog, null);
+        }
+    }
+
+    private void openAnalystLoginDialog(final DataManager.InternalOnFinishListener onFinishListener) {
+        final AppCompatDialog compatDialog = new AppCompatDialog(this, R.style.CustomDialogTheme);
+
+        if (compatDialog.getWindow() != null) {
+            compatDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            compatDialog.setCancelable(false);
+            compatDialog.setContentView(R.layout.fragment_login);
+
+            View v = compatDialog.getWindow().getDecorView();
+            final AppCompatEditText editAnalystId = v.findViewById(R.id.edit_analyst_id);
+            final AppCompatEditText editAnalystPassword = v.findViewById(R.id.edit_analyst_password);
+            final AppCompatButton buttonCancel = v.findViewById(R.id.button_cancel);
+            final AppCompatButton buttonLogin = v.findViewById(R.id.button_login);
+
+            editAnalystId.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) { }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    buttonLogin.setEnabled(!s.toString().equals("") && !editAnalystPassword.getText().toString().equals(""));
+                }
+            });
+            editAnalystPassword.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) { }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    buttonLogin.setEnabled(!s.toString().equals("") && !editAnalystId.getText().toString().equals(""));
+                }
+            });
+            buttonCancel.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    onFinishListener.onFinish(false, "Login canceled");
+                    compatDialog.dismiss();
+                }
+            });
+            buttonLogin.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    DataManager.Analyst analyst = mDataManager.getAnalyst(editAnalystId.getText().toString());
+                    analyst.verifyAnalystLogin(editAnalystPassword.getText().toString());
+                    compatDialog.dismiss();
+                }
+            });
+
+            mDataManager.showDialog(compatDialog, null);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -148,7 +315,7 @@ public class TransferActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        updateInfo(mDataManager.getCurrentTransfer() != null ? mDataManager.getCurrentTransfer().locationBarcode : null, mDataManager.getItemCount(), mDataManager.getTransferId());
+                        updateInfo(mDataManager.getCurrentTransfer() != null ? mDataManager.getCurrentTransfer().getLocationBarcode() : null, mDataManager.getItemCount(), mDataManager.getCurrentTransferId());
                     }
                 });
                 refreshItemRecyclerAdapter();
@@ -175,151 +342,112 @@ public class TransferActivity extends AppCompatActivity {
         init();
     }
 
-    private void refreshItemCount() {
-        this.<AppCompatTextView>findViewById(R.id.text_item_count).setText(String.valueOf(mDataManager.getItemCount()));
-    }
-
-    private void highlightItemWithBarcode(final String barcode) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                final int position = mItemRecyclerAdapter.getIndexOfBarcode(barcode);
-                mItemRecyclerAdapter.setSelectedItem(position);
-                TransferActivity.this.<RecyclerView>findViewById(R.id.item_recycler_view).scrollToPosition(position);
-            }
-        });
-    }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        //logger.reset(TAG, "onCreateOptionsMenu");
         getMenuInflater().inflate(R.menu.activity_transfer, menu);
-        //logger.dumpToLog();
         return super.onCreateOptionsMenu(menu) | getScanner().onCreateOptionsMenu(menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.menu_sign:
-                if (mDataManager.getCurrentTransfer() == null) {
-                    toastShort("Start a transfer first");
-                } else if (mDataManager.getCurrentTransfer().finalized) {
-                    toastShort("Already finalized");
-                } else if (mDataManager.getCurrentTransfer().canceled) {
-                    toastShort("Already canceled");
-                } else {
-                    final AppCompatDialog compatDialog = new AppCompatDialog(this, R.style.CustomDialogTheme);
-
-                    if (compatDialog.getWindow() != null) {
-                        compatDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-                        compatDialog.setCancelable(false);
-                        compatDialog.setContentView(R.layout.fragment_sign);
-
-                        View v = compatDialog.getWindow().getDecorView();
-                        final SignaturePad signaturePad = v.findViewById(R.id.signature_pad);
-                        final AppCompatButton buttonClear = v.findViewById(R.id.button_clear);
-                        final AppCompatButton buttonCancel = v.findViewById(R.id.button_cancel);
-                        final AppCompatButton buttonSave = v.findViewById(R.id.button_save);
-
-                        signaturePad.setOnSignedListener(new SignaturePad.OnSignedListener() {
-                            @Override
-                            public void onStartSigning() {
-                            }
-
-                            @Override
-                            public void onSigned() {
-                                buttonClear.setEnabled(true);
-                                buttonSave.setEnabled(true);
-                            }
-
-                            @Override
-                            public void onClear() {
-                                buttonClear.setEnabled(false);
-                                buttonSave.setEnabled(false);
-                            }
-                        });
-
-                        buttonClear.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                signaturePad.clear();
-                            }
-                        });
-                        buttonCancel.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                compatDialog.dismiss();
-                            }
-                        });
-                        buttonSave.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                mDataManager.saveSignature(TransferActivity.this, signaturePad.getSignatureBitmap());
-                                mDataManager.getCurrentTransfer().signed = true;
-                                compatDialog.dismiss();
-                            }
-                        });
-
-                        mDataManager.showDialog(compatDialog, null);
-                    }
-                }
-                return true;
             case R.id.menu_finalize:
                 if (mDataManager.getCurrentTransfer() == null) {
                     toastShort("Start a transfer first");
-                } else if (mDataManager.getCurrentTransfer().finalized) {
+                } else if (mDataManager.getCurrentTransfer().isFinalized()) {
                     toastShort("Already finalized");
-                } else if (mDataManager.getCurrentTransfer().canceled) {
+                } else if (mDataManager.getCurrentTransfer().isCanceled()) {
                     toastShort("Already canceled");
+                } else if (mDataManager.getItemCount() <= 0) {
+                    toastShort("Scan items first");
                 } else {
-                    if (mDataManager.getItemCount() <= 0) {
-                        toastShort("Scan items first");
-                    } else {
-                        mDataManager.showDialog(new AlertDialog.Builder(this)
-                                .setTitle("Finalize transfer")
-                                .setMessage(
-                                        "Would you like to finalize this transfer?" +
-                                        (mDataManager.getCurrentTransfer().signed ?
-                                                "" :
-                                                "\n" +
-                                                "\n" +
-                                                "Note: the current transfer has not been signed"
-                                        )
-                                ).setNegativeButton(R.string.action_cancel, null)
-                                .setPositiveButton(R.string.action_finalize, new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        mDataManager.saveTransferToFile(TransferActivity.this, new Utils.OnProgressUpdateListener() {
+                    if (mDataManager.requiresAnalystLogin()) {
+                        openAnalystLoginDialog(new DataManager.InternalOnFinishListener() {
+                            @Override
+                            public void onFinish(boolean success, String message) {
+                                if (success) {
+                                    toastShort(message);
+                                    if (mDataManager.requiresSignature()) {
+                                        openSignDialog(new DataManager.InternalOnFinishListener() {
                                             @Override
-                                            public void onProgressUpdate(float progress) {
-                                                final MaterialProgressBar progressBar = findViewById(R.id.progress_bar);
-                                                progressBar.setProgress((int) (progress * progressBar.getMax()));
+                                            public void onFinish(boolean success, String message) {
+                                                if (success) {
+                                                    toastShort(message);
+                                                    openFinalizeDialog(new Utils.OnFinishListener() {
+                                                        @Override
+                                                        public void onFinish(boolean success) {
+                                                            if (success) {
+                                                                toastShort("Finalized");
+                                                            } else {
+                                                                toastLong("There was an error finalizing");
+                                                            }
+                                                        }
+                                                    });
+                                                } else {
+                                                    toastLong(message);
+                                                }
                                             }
-                                        }, new Utils.OnFinishListener() {
+                                        });
+                                    } else {
+                                        openFinalizeDialog(new Utils.OnFinishListener() {
                                             @Override
                                             public void onFinish(boolean success) {
-                                                TransferActivity.this.<MaterialProgressBar>findViewById(R.id.progress_bar).setProgress(0);
                                                 if (success) {
-                                                    if (mDataManager.finalizeCurrentTransfer()) {
-                                                        toastShort("Finalized");
-                                                    } else {
-                                                        toastLong("There was an error finalizing");
-                                                    }
+                                                    toastShort("Finalized");
+                                                } else {
+                                                    toastLong("There was an error finalizing");
                                                 }
                                             }
                                         });
                                     }
-                                }).setCancelable(false).create(), null);
+                                } else {
+                                    toastLong(message);
+                                }
+                            }
+                        });
+                    } else {
+                        if (mDataManager.requiresSignature()) {
+                            openSignDialog(new DataManager.InternalOnFinishListener() {
+                                @Override
+                                public void onFinish(boolean success, String message) {
+                                    if (success) {
+                                        toastShort(message);
+                                        openFinalizeDialog(new Utils.OnFinishListener() {
+                                            @Override
+                                            public void onFinish(boolean success) {
+                                                if (success) {
+                                                    toastShort("Finalized");
+                                                } else {
+                                                    toastLong("There was an error finalizing");
+                                                }
+                                            }
+                                        });
+} else {
+                                        toastLong(message);
+                                    }
+                                }
+                            });
+                        } else {
+                            openFinalizeDialog(new Utils.OnFinishListener() {
+                                @Override
+                                public void onFinish(boolean success) {
+                                    if (success) {
+                                        toastShort("Finalized");
+                                    } else {
+                                        toastLong("There was an error finalizing");
+                                    }
+                                }
+                            });
+                        }
                     }
                 }
                 return true;
             case R.id.menu_cancel:
                 if (mDataManager.getCurrentTransfer() == null) {
                     toastShort("Start a transfer first");
-                } else if (mDataManager.getCurrentTransfer().finalized) {
+                } else if (mDataManager.getCurrentTransfer().isFinalized()) {
                     toastShort("Already finalized");
-                } else if (mDataManager.getCurrentTransfer().canceled) {
+                } else if (mDataManager.getCurrentTransfer().isCanceled()) {
                     toastShort("Already canceled");
                 } else {
                     mDataManager.showDialog(new AlertDialog.Builder(this)
@@ -363,16 +491,12 @@ public class TransferActivity extends AppCompatActivity {
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        final MenuItem itemSign = menu.findItem(R.id.menu_sign);
         final MenuItem itemFinalize = menu.findItem(R.id.menu_finalize);
         final MenuItem itemCancel = menu.findItem(R.id.menu_cancel);
         final MenuItem itemReset = menu.findItem(R.id.menu_reset);
         //final MenuItem itemContinuous = menu.findItem(R.id.menu_continuous_mode);
         if (mDataManager != null) {
-            final boolean editable = mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().finalized && !mDataManager.getCurrentTransfer().canceled;
-            itemSign.setVisible(true);
-            itemSign.setEnabled(editable);
-            itemSign.getIcon().setAlpha(editable ? 255 : 127);
+            final boolean editable = mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().isFinalized() && !mDataManager.getCurrentTransfer().isCanceled();
             itemFinalize.setVisible(true);
             itemFinalize.setEnabled(editable);
             itemFinalize.getIcon().setAlpha(editable ? 255 : 127);
@@ -386,7 +510,6 @@ public class TransferActivity extends AppCompatActivity {
                 itemContinuous.setVisible(false);
             }*/
         } else {
-            itemSign.setVisible(false);
             itemFinalize.setVisible(false);
             itemCancel.setVisible(false);
             itemReset.setVisible(false);

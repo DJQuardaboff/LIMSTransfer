@@ -4,20 +4,31 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.AsyncTask;
 import android.os.Environment;
+import android.support.annotation.NonNull;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatDialog;
+import android.support.v7.widget.AppCompatButton;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
+import com.github.gcacace.signaturepad.views.SignaturePad;
 import com.porterlee.plcscanners.AbstractScanner;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Locale;
@@ -27,6 +38,8 @@ import org.apache.commons.io.filefilter.IOFileFilter;
 
 import org.jetbrains.annotations.NotNull;
 
+import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
+
 public class DataManager {
     public static final String TAG = TransferActivity.class.getCanonicalName();
     public static final File EXTERNAL_PATH = new File(Environment.getExternalStorageDirectory(), "Transfer");
@@ -34,7 +47,11 @@ public class DataManager {
     public static final File OUTPUT_FILE = new File(EXTERNAL_PATH, "transfer.txt");
     public static final String SIGNATURE_FILE_NAME = "signature_%d.png";
     private static final String OUTPUT_FILE_HEADER = String.format(Locale.US, "%s|%s|%s|v%s|%d", BuildConfig.APPLICATION_ID.split("\\.")[2], BuildConfig.FLAVOR, BuildConfig.BUILD_TYPE, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE);
+    private static final String REQUIRES_STARTUP_LOGIN = "requires_startup_login";
+    private static final String REQUIRES_ANALYST_LOGIN = "requires_analyst_login";
+    private static final String REQUIRES_SIGNATURE = "requires_signature";
     private volatile TransferDatabase mTransferDatabase;
+    private SharedPreferences mSharedPreferences;
     private Transfer mCurrentTransfer;
     private Runnable mOnCurrentTransferChangedListener;
     private boolean mIsShowingDialog;
@@ -44,6 +61,7 @@ public class DataManager {
     private ArrayList<Object> listenerReferences = new ArrayList<>();
 
     public DataManager (Activity activity) {
+        mSharedPreferences = activity.getPreferences(Context.MODE_PRIVATE);
         AbstractScanner.setActivity(activity);
     }
 
@@ -62,6 +80,21 @@ public class DataManager {
             }
         });
         dialog.show();
+    }
+
+    public boolean requiresStartupLogin() {
+        //todo change to false
+        return mSharedPreferences.getBoolean(REQUIRES_STARTUP_LOGIN, true);
+    }
+
+    public boolean requiresAnalystLogin() {
+        //todo change to false
+        return mSharedPreferences.getBoolean(REQUIRES_STARTUP_LOGIN, true);
+    }
+
+    public boolean requiresSignature() {
+        //todo change to false
+        return mSharedPreferences.getBoolean(REQUIRES_SIGNATURE, true);
     }
 
     public boolean isSaving() {
@@ -96,11 +129,11 @@ public class DataManager {
     }
 
     private Utils.QueryHolder getCurrentTransferRowQuery() {
-        return new Utils.QueryHolder(mTransferDatabase.getDatabase(), "SELECT " + TransferDatabase.Key.ID + ", " + TransferDatabase.Key.LOCATION_BARCODE + ", " + TransferDatabase.Key.START_DATE_TIME + " FROM " + TransferDatabase.TransferTable.NAME + " WHERE " + TransferDatabase.Key.ID + " = ?", String.valueOf(getTransferId()));
+        return new Utils.QueryHolder(mTransferDatabase.getDatabase(), "SELECT " + TransferDatabase.Key.ID + ", " + TransferDatabase.Key.LOCATION_BARCODE + ", " + TransferDatabase.Key.START_DATE_TIME + " FROM " + TransferDatabase.TransferTable.NAME + " WHERE " + TransferDatabase.Key.ID + " = ?", String.valueOf(getCurrentTransferId()));
     }
 
     private Utils.QueryHolder getCurrentTransferRowItemQuery() {
-        return new Utils.QueryHolder(mTransferDatabase.getDatabase(), "SELECT " + TransferDatabase.Key.BARCODE + ", " + TransferDatabase.Key.DATE_TIME + " FROM " + TransferDatabase.ItemTable.NAME + " WHERE " + TransferDatabase.Key.TRANSFER_ID + " = ? ORDER BY " + TransferDatabase.Key.ID, String.valueOf(getTransferId()));
+        return new Utils.QueryHolder(mTransferDatabase.getDatabase(), "SELECT " + TransferDatabase.Key.BARCODE + ", " + TransferDatabase.Key.DATE_TIME + " FROM " + TransferDatabase.ItemTable.NAME + " WHERE " + TransferDatabase.Key.TRANSFER_ID + " = ? ORDER BY " + TransferDatabase.Key.ID, String.valueOf(getCurrentTransferId()));
     }
 
     private Transfer getLastUnfinishedTransfer() {
@@ -118,14 +151,14 @@ public class DataManager {
     }
 
     public boolean finalizeCurrentTransfer() {
-        final boolean success = mTransferDatabase.update_transferTable_set_finalized_equalTo_where_id_equals(true, getTransferId()) > 0;
+        boolean success = mTransferDatabase.update_transferTable_set_finalized_equalTo_where_id_equals(true, getCurrentTransferId()) > 0;
         if (success)
             updateCurrentTransfer(getLastUnfinishedTransfer());
         return success;
     }
 
     public boolean cancelCurrentTransfer() {
-        final boolean success = mTransferDatabase.update_transferTable_set_canceled_equalTo_where_id_equals(true, getTransferId()) > 0;
+        final boolean success = mTransferDatabase.update_transferTable_set_canceled_equalTo_where_id_equals(true, getCurrentTransferId()) > 0;
         if (success)
             updateCurrentTransfer(getLastUnfinishedTransfer());
         return success;
@@ -185,7 +218,7 @@ public class DataManager {
         }
     }
 
-    public long getTransferId() {
+    public long getCurrentTransferId() {
         return mCurrentTransfer != null ? mCurrentTransfer.id : -1;
     }
 
@@ -235,17 +268,16 @@ public class DataManager {
     }
 
     public boolean isDuplicate(String itemBarcode) {
-        return mTransferDatabase != null && mTransferDatabase.select_count_from_itemTable_where_transferId_equals_and_barcode_equals(getTransferId(), itemBarcode) > 0;
+        return mTransferDatabase != null && mTransferDatabase.select_count_from_itemTable_where_transferId_equals_and_barcode_equals(getCurrentTransferId(), itemBarcode) > 0;
     }
 
     public int getItemCount() {
-        if (getTransferId() < 0)
-            return -1;
-        return (int) mTransferDatabase.select_count_from_itemTable_where_transferId_equals(getTransferId());
+        long id = getCurrentTransferId();
+        return id < 0 ? -1 : (int) mTransferDatabase.select_count_from_itemTable_where_transferId_equals(id);
     }
 
     public long insertItem(String itemBarcode) {
-        return mTransferDatabase.insert_transferId_barcode_into_itemTable(getTransferId(), itemBarcode);
+        return mTransferDatabase.insert_transferId_barcode_into_itemTable(getCurrentTransferId(), itemBarcode);
     }
 
     public long deleteItem(long itemId) {
@@ -253,7 +285,7 @@ public class DataManager {
     }
 
     public Cursor getItemListCursor() {
-        return mTransferDatabase.getDatabase().query(TransferDatabase.ItemTable.NAME, new String[] { TransferDatabase.Key.ID, TransferDatabase.Key.TRANSFER_ID, TransferDatabase.Key.BARCODE }, TransferDatabase.Key.TRANSFER_ID + " = ?", new String[] { String.valueOf(getTransferId()) }, null, null, TransferDatabase.Key.ID + " DESC");
+        return mTransferDatabase.getDatabase().query(TransferDatabase.ItemTable.NAME, new String[] { TransferDatabase.Key.ID, TransferDatabase.Key.TRANSFER_ID, TransferDatabase.Key.BARCODE }, TransferDatabase.Key.TRANSFER_ID + " = ?", new String[] { String.valueOf(getCurrentTransferId()) }, null, null, TransferDatabase.Key.ID + " DESC");
     }
     /*
     public long deleteCurrentTransfer() {
@@ -278,24 +310,22 @@ public class DataManager {
         return mCurrentTransfer.id;
     }
 
-    public void saveSignature(final Activity activity, Bitmap bitmap) {
+    public void saveSignature(final Activity activity, Bitmap bitmap, final Transfer transfer, final InternalOnFinishListener onFinishListener) {
         final InternalOnFinishListener temp = new InternalOnFinishListener() {
             @Override
             public void onFinish(boolean success, final String message) {
-                activity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(activity, message, Toast.LENGTH_SHORT).show();
-                    }
-                });
-                if (success)
-                    mTransferDatabase.update_transferTable_set_signed_equalTo_where_id_equals(true, getTransferId());
+                if (success) {
+                    mTransferDatabase.update_transferTable_set_signed_equalTo_where_id_equals(true, transfer.id);
+                    transfer.signed = true;
+                }
+
+                onFinishListener.onFinish(success, message);
                 listenerReferences.remove(this);
             }
         };
         listenerReferences.add(temp);
 
-        asyncSaveSignature(activity, bitmap, getTransferId(), temp);
+        asyncSaveSignature(activity, bitmap, transfer.id, temp);
     }
 
     private static void asyncSaveSignature(Activity activity, final Bitmap bitmap, long transferId, InternalOnFinishListener onFinishListener) {
@@ -443,14 +473,24 @@ public class DataManager {
         });
     }
 
-    private interface InternalOnFinishListener {
+    public Analyst getAnalyst(String analystId) {
+        final Cursor cursor = mTransferDatabase.getDatabase().query(TransferDatabase.AnalystTable.NAME, new String[] { TransferDatabase.Key.ID, TransferDatabase.Key.ANALYST_ID, TransferDatabase.Key.ANALYST_PASSWORD_SHA_1, TransferDatabase.Key.ANALYST_DESCRIPTION }, TransferDatabase.Key.ANALYST_ID + " = ?", new String[] { analystId }, null, null, null, "1");
+        if (cursor.getCount() <= 0)
+            return null;
+        cursor.moveToFirst();
+        Analyst temp = new Analyst(cursor.getLong(cursor.getColumnIndex(TransferDatabase.Key.ID)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_ID)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_PASSWORD_SHA_1)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_DESCRIPTION)));
+        cursor.close();
+        return temp;
+    }
+
+    public interface InternalOnFinishListener {
         void onFinish(boolean success, String message);
     }
 
     public static class Item {
-        public final long id;
-        public final long transferId;
-        public final String barcode;
+        private final long id;
+        private final long transferId;
+        private final String barcode;
 
         private Item(long id, long transferId, String barcode) {
             this.id = id;
@@ -460,11 +500,11 @@ public class DataManager {
     }
 
     public static class Transfer {
-        public final long id;
-        public boolean signed;
-        public boolean finalized;
-        public boolean canceled;
-        public final String locationBarcode;
+        private final long id;
+        private boolean signed;
+        private boolean finalized;
+        private boolean canceled;
+        private final String locationBarcode;
 
         private Transfer(long id, boolean signed, boolean finalized, boolean canceled, String locationBarcode) {
             this.id = id;
@@ -472,6 +512,58 @@ public class DataManager {
             this.finalized = finalized;
             this.canceled = canceled;
             this.locationBarcode = locationBarcode;
+        }
+
+        public boolean isSigned() {
+            return signed;
+        }
+
+        public boolean isFinalized() {
+            return finalized;
+        }
+
+        public boolean isCanceled() {
+            return canceled;
+        }
+
+        public String getLocationBarcode() {
+            return locationBarcode;
+        }
+    }
+
+    public static class Analyst {
+        public final long id;
+        public final String analystId;
+        public final String password;
+        public final String analystDescription;
+
+        private Analyst(long id, @NonNull String analystId, @NonNull String password, @NonNull String analystDescription) {
+            this.id = id;
+            this.analystId = analystId;
+            this.password = password;
+            this.analystDescription = analystDescription;
+        }
+
+        public boolean verifyAnalystLogin(String password) {
+            try {
+                return password.equals(Utils.SHA1(analystId + password))  ;
+            } catch (NoSuchAlgorithmException e) {
+                Log.e(TAG, "\"SHA-1\" algorithm not found");
+                e.printStackTrace();
+            } catch (UnsupportedEncodingException e) {
+                Log.e(TAG, "\"US-ASCII\" charset not found");
+                e.printStackTrace();
+            }
+
+            return false;
+        }
+
+        public String getAnalystId() {
+            return analystId;
+        }
+
+        public String getDescription() {
+            return analystDescription;
         }
     }
 }

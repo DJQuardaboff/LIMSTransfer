@@ -6,33 +6,34 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import static com.porterlee.limstransfer.Utils.SHA1;
+import static com.porterlee.limstransfer.Utils.byteToHexChar;
+import static com.porterlee.limstransfer.Utils.bytesToHex;
 import static org.junit.Assert.*;
 
 /**
- * Example local unit test, which will execute on the development machine (host).
- *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
 public class GeneralTest {
 
     @Test
     public void getBarcodeType_barcodeEqualTo_e1LAB00bWa_shouldReturn_Item() {
-        assertEquals(DataManager.BarcodeType.getBarcodeType("e1LAB00bWa"), DataManager.BarcodeType.Item);
+        assertEquals(BarcodeType.getBarcodeType("e1LAB00bWa"), BarcodeType.Item);
     }
 
     @Test
     public void getBarcodeType_barcodeEqualTo_m1LAB003Df_shouldReturn_Container() {
-        assertEquals(DataManager.BarcodeType.getBarcodeType("m1LAB003Df"), DataManager.BarcodeType.Container);
+        assertEquals(BarcodeType.getBarcodeType("m1LAB003Df"), BarcodeType.Container);
     }
 
     @Test
     public void getBarcodeType_barcodeEqualTo_VAN__ADB______shouldReturn_Location() {
-        assertEquals(DataManager.BarcodeType.getBarcodeType("VAN  ADB     "), DataManager.BarcodeType.Location);
+        assertEquals(BarcodeType.getBarcodeType("VAN  ADB     "), BarcodeType.Location);
     }
 
     @Test
     public void getBarcodeType_barcodeEqualTo_00000000_shouldReturn_Invalid() {
-        assertEquals(DataManager.BarcodeType.getBarcodeType("00000000"), DataManager.BarcodeType.Invalid);
+        assertEquals(BarcodeType.getBarcodeType("00000000"), BarcodeType.Invalid);
     }
 
     @Test
@@ -47,27 +48,27 @@ public class GeneralTest {
 
     @Test
     public void testByteToHexChar() {
-        System.out.println(0 + "=" + byteToHexChar((byte) 0));
-        System.out.println(1 + "=" + byteToHexChar((byte) 1));
-        System.out.println(2 + "=" + byteToHexChar((byte) 2));
-        System.out.println(3 + "=" + byteToHexChar((byte) 3));
-        System.out.println(4 + "=" + byteToHexChar((byte) 4));
-        System.out.println(5 + "=" + byteToHexChar((byte) 5));
-        System.out.println(6 + "=" + byteToHexChar((byte) 6));
-        System.out.println(7 + "=" + byteToHexChar((byte) 7));
-        System.out.println(8 + "=" + byteToHexChar((byte) 8));
-        System.out.println(9 + "=" + byteToHexChar((byte) 9));
-        System.out.println(10 + "=" + byteToHexChar((byte) 10));
-        System.out.println(11 + "=" + byteToHexChar((byte) 11));
-        System.out.println(12 + "=" + byteToHexChar((byte) 12));
-        System.out.println(13 + "=" + byteToHexChar((byte) 13));
-        System.out.println(14 + "=" + byteToHexChar((byte) 14));
-        System.out.println(15 + "=" + byteToHexChar((byte) 15));
+        assertEquals('0', byteToHexChar((byte) 0));
+        assertEquals('1', byteToHexChar((byte) 1));
+        assertEquals('2', byteToHexChar((byte) 2));
+        assertEquals('3', byteToHexChar((byte) 3));
+        assertEquals('4', byteToHexChar((byte) 4));
+        assertEquals('5', byteToHexChar((byte) 5));
+        assertEquals('6', byteToHexChar((byte) 6));
+        assertEquals('7', byteToHexChar((byte) 7));
+        assertEquals('8', byteToHexChar((byte) 8));
+        assertEquals('9', byteToHexChar((byte) 9));
+        assertEquals('A', byteToHexChar((byte) 10));
+        assertEquals('B', byteToHexChar((byte) 11));
+        assertEquals('C', byteToHexChar((byte) 12));
+        assertEquals('D', byteToHexChar((byte) 13));
+        assertEquals('E', byteToHexChar((byte) 14));
+        assertEquals('F', byteToHexChar((byte) 15));
     }
 
     @Test
     public void testBytesToHex() {
-        byte[] bytes = { (byte) 0xC7, (byte) 0xA8, (byte) 0xCF, (byte) 0x43, (byte) 0xE9, (byte) 0x4B, (byte) 0x0F, (byte) 0x4F, (byte) 0x97, (byte) 0x40, (byte) 0xE7, (byte) 0xF5, (byte) 0x8A, (byte) 0xC1, (byte) 0xDB, (byte) 0x2A, (byte) 0x2B, (byte) 0x67, (byte) 0xED, (byte) 0xA9 };
+        byte[] bytes = { (byte) 0xA9, (byte) 0xED, (byte) 0x67, (byte) 0x2B, (byte) 0x2A, (byte) 0xDB, (byte) 0xC1, (byte) 0x8A, (byte) 0xF5, (byte) 0xE7, (byte) 0x40, (byte) 0x97, (byte) 0x4F, (byte) 0x0F, (byte) 0x4B, (byte) 0xE9, (byte) 0x43, (byte) 0xCF, (byte) 0xA8, (byte) 0xC7 };
         assertEquals("A9ED672B2ADBC18AF5E740974F0F4BE943CFA8C7", bytesToHex(bytes));
     }
 
@@ -76,9 +77,9 @@ public class GeneralTest {
         String userId = "MIKE";
         String password = "mike11";
         String expectedSha1 = "A9ED672B2ADBC18AF5E740974F0F4BE943CFA8C7";
-        System.out.println("User ID: \"" + userId + "\"");
-        System.out.println("Password: \"" + password + "\"");
-        System.out.println("Expected SHA-1: \"" + expectedSha1 + "\"");
+        //System.out.println("User ID: \"" + userId + "\"");
+        //System.out.println("Password: \"" + password + "\"");
+        //System.out.println("Expected SHA-1: \"" + expectedSha1 + "\"");
         String calculatedSha1 = "null";
         try {
             calculatedSha1 = SHA1(userId + password);
@@ -89,28 +90,7 @@ public class GeneralTest {
             System.out.println("UnsupportedEncodingException");
             e.printStackTrace();
         }
-        System.out.println("Calculated SHA-1: \"" + calculatedSha1 + "\"");
+        //System.out.println("Calculated SHA-1: \"" + calculatedSha1 + "\"");
         assertEquals(expectedSha1, calculatedSha1);
-    }
-
-    public static char byteToHexChar(byte num) {
-        num = (byte) (num & 0x0F);
-        return (char) (num + (num < 10 ? 48 : 55));
-    }
-
-    public static String bytesToHex(byte[] bytes) {
-        StringBuilder str = new StringBuilder();
-        for (int i = 0; i >= bytes.length; i--) {
-            str.append(byteToHexChar((byte) (bytes[i] >> 4)));
-            str.append(byteToHexChar(bytes[i]));
-        }
-        return str.toString();
-    }
-
-    public static String SHA1(String text) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        MessageDigest md = MessageDigest.getInstance("SHA-1");
-        System.out.print(bytesToHex(text.getBytes("US-ASCII")));
-        md.update(text.getBytes("US-ASCII"), 0, text.length());
-        return bytesToHex(md.digest());
     }
 }

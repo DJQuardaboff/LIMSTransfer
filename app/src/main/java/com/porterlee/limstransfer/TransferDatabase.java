@@ -1,7 +1,6 @@
 package com.porterlee.limstransfer;
 
 import android.content.Context;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 
@@ -31,6 +30,7 @@ public final class TransferDatabase {
 
         ItemTable.init(mDatabase);
         TransferTable.init(mDatabase);
+        AnalystTable.init(mDatabase);
 
         mSelect_count_from_itemTable_where_transferId_equals = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + Key.TRANSFER_ID + " = ?");
         mSelect_count_from_itemTable_where_transferId_equals_and_barcode_equals = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + Key.TRANSFER_ID + " = ? AND " + Key.BARCODE + " = ?");
@@ -143,6 +143,9 @@ public final class TransferDatabase {
         public static final String START_DATE_TIME = "start_date_time";
         public static final String SIGN_DATE_TIME = "sign_date_time";
         public static final String FINALIZE_DATE_TIME = "finalize_date_time";
+        public static final String ANALYST_ID = "analyst_id";
+        public static final String ANALYST_PASSWORD_SHA_1 = "analyst_password_sha_1";
+        public static final String ANALYST_DESCRIPTION = "analyst_description";
     }
 
     public static class Index {
@@ -150,6 +153,7 @@ public final class TransferDatabase {
         public static final String ITEMS_TRANSFER_ID_INDEX = "items_transfer_id_index";
         public static final String TRANSFERS_LOCATION_BARCODE_INDEX = "transfers_location_barcode_index";
         public static final String TRANSFERS_FINALIZED_CANCELED_INDEX = "transfer_finalized_index";
+        public static final String ANALYST_ID_INDEX = "analyst_id_index";
     }
 
     public static class ItemTable {
@@ -187,6 +191,22 @@ public final class TransferDatabase {
             public static final String START_DATE_TIME = NAME + "." + TransferDatabase.Key.START_DATE_TIME;
             public static final String SIGN_DATE_TIME = NAME + "." + TransferDatabase.Key.SIGN_DATE_TIME;
             public static final String FINALIZE_DATE_TIME = NAME + "." + TransferDatabase.Key.FINALIZE_DATE_TIME;
+        }
+    }
+
+    public static class AnalystTable {
+        public static final String NAME = "analysts";
+
+        private static void init(SQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS " + NAME + " ( " + TransferDatabase.Key.ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + TransferDatabase.Key.ANALYST_ID + " TEXT NOT NULL, " + TransferDatabase.Key.ANALYST_PASSWORD_SHA_1 + " TEXT NOT NULL CHECK(typeof(\"name\") = \"text\" AND length(\"name\") = 40 ), " + TransferDatabase.Key.ANALYST_DESCRIPTION + " TEXT NOT NULL )");
+            database.execSQL("CREATE INDEX IF NOT EXISTS " + TransferDatabase.Index.ANALYST_ID_INDEX + " ON " + NAME + " ( " + TransferDatabase.Key.ANALYST_ID + " )");
+        }
+
+        public static class Key {
+            public static final String ID = NAME + "." + TransferDatabase.Key.ID;
+            public static final String ANALYST_ID = NAME + '.' + TransferDatabase.Key.ANALYST_ID;
+            public static final String ANALYST_PASSWORD_SHA_1 =  NAME + '.' + TransferDatabase.Key.ANALYST_PASSWORD_SHA_1;
+            public static final String ANALYST_DESCRIPTION =  NAME + '.' + TransferDatabase.Key.ANALYST_DESCRIPTION;
         }
     }
 }

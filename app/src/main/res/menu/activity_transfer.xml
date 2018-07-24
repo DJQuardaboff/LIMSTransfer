@@ -4,16 +4,10 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/menu_sign"
-        android:title="@string/action_sign"
-        android:icon="@drawable/ic_sign"
-        app:showAsAction="ifRoom"/>
-
-    <item
         android:id="@+id/menu_finalize"
         android:title="@string/action_finalize"
         android:icon="@drawable/ic_finalize"
-        app:showAsAction="never"/>
+        app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/menu_cancel"
@@ -23,6 +17,11 @@
     <item
         android:id="@+id/menu_reset"
         android:title="@string/action_reset"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/menu_load_analysts"
+        android:title="@string/action_load_analysts"
         app:showAsAction="never"/>
 
     <!--item

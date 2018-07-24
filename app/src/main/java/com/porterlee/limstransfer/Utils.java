@@ -17,7 +17,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class Utils {
 
@@ -117,6 +120,26 @@ public class Utils {
             }
             return false;
         }
+    }
+
+    public static char byteToHexChar(byte num) {
+        //num = (byte) (num & 0x0F);
+        return (char) ((num = (byte) (num & 0x0F)) + (num < 10 ? 48 : 55));
+    }
+
+    public static String bytesToHex(byte[] bytes) {
+        StringBuilder str = new StringBuilder();
+        for (int i = 0; i < bytes.length; i++) {
+            str.append(byteToHexChar((byte) (bytes[i] >> 4)));
+            str.append(byteToHexChar(bytes[i]));
+        }
+        return str.toString();
+    }
+
+    public static String SHA1(String text) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+        MessageDigest md = MessageDigest.getInstance("SHA-1");
+        md.update(text.getBytes("US-ASCII"), 0, text.length());
+        return bytesToHex(md.digest());
     }
 
     public static class Holder <T> {

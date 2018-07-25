@@ -97,6 +97,20 @@
         app:layout_constraintBottom_toBottomOf="@+id/text_transfer_id_label"
         app:layout_constraintStart_toEndOf="@+id/text_transfer_id_label"/>
 
+    <android.support.v7.widget.AppCompatTextView
+        android:id="@+id/text_scan_barcode"
+        style="@style/Base.TextAppearance.AppCompat.Medium.Inverse"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/colorPrimary"
+        android:gravity="center"
+        android:text="@string/text_scan_barcode"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@+id/view_divider"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/progress_bar"/>
+
     <View
         android:id="@+id/view_divider"
         style="@style/Base.TextAppearance.AppCompat.Small"

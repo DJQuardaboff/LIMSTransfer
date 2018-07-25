@@ -103,6 +103,10 @@ public class Utils {
         return csv.replace(" ", "").matches(regex);
     }
 
+    public interface DetailedOnFinishListener {
+        void onFinish(boolean success, String message);
+    }
+
     public static class Toaster {
         protected WeakReference<Activity> activityWeakReference;
 

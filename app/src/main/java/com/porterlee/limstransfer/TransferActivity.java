@@ -1,6 +1,5 @@
 package com.porterlee.limstransfer;
 
-import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -169,14 +168,15 @@ public class TransferActivity extends AppCompatActivity {
                             public void onFinish(boolean success) {
                                 TransferActivity.this.<MaterialProgressBar>findViewById(R.id.progress_bar).setProgress(0);
                                 success &= mDataManager.finalizeCurrentTransfer();
-                                onFinishListener.onFinish(success);
+                                if (onFinishListener != null)
+                                    onFinishListener.onFinish(success);
                             }
                         });
                     }
                 }).setCancelable(false).create(), null);
     }
 
-    private void openSignDialog(final DataManager.InternalOnFinishListener onFinishListener) {
+    private void openSignDialog(final Utils.DetailedOnFinishListener onFinishListener) {
         final AppCompatDialog compatDialog = new AppCompatDialog(this, R.style.CustomDialogTheme);
 
         if (compatDialog.getWindow() != null) {
@@ -217,7 +217,8 @@ public class TransferActivity extends AppCompatActivity {
             buttonCancel.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    onFinishListener.onFinish(false, "Signing canceled");
+                    if (onFinishListener != null)
+                        onFinishListener.onFinish(false, "Signing canceled");
                     compatDialog.dismiss();
                 }
             });
@@ -233,7 +234,7 @@ public class TransferActivity extends AppCompatActivity {
         }
     }
 
-    private void openAnalystLoginDialog(final DataManager.InternalOnFinishListener onFinishListener) {
+    private void openAnalystLoginDialog(final Utils.DetailedOnFinishListener onFinishListener) {
         final AppCompatDialog compatDialog = new AppCompatDialog(this, R.style.CustomDialogTheme);
 
         if (compatDialog.getWindow() != null) {
@@ -282,12 +283,24 @@ public class TransferActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
                     DataManager.Analyst analyst = mDataManager.getAnalyst(editAnalystId.getText().toString());
-                    analyst.verifyAnalystLogin(editAnalystPassword.getText().toString());
-                    compatDialog.dismiss();
+                    if (analyst == null) {
+                        toastShort("Analyst not found");
+                    } else {
+                        if (analyst.verifyAnalystLogin(editAnalystPassword.getText().toString())) {
+                            compatDialog.dismiss();
+                        } else {
+                            toastShort("Incorrect password");
+                        }
+                    }
                 }
             });
 
-            mDataManager.showDialog(compatDialog, null);
+            mDataManager.showScannerDialog(compatDialog, null, new AbstractScanner.OnBarcodeScannedListener() {
+                @Override
+                public void onBarcodeScanned(String s) {
+                    editAnalystId.setText(s);
+                }
+            });
         }
     }
 
@@ -306,6 +319,9 @@ public class TransferActivity extends AppCompatActivity {
             toastShort("Scanner failed to initialize");
             return;
         }
+
+        mDataManager.pushOnBarcodeScannedListener(onBarcodeScannedListener);
+        mDataManager.pushOnBarcodeScannedListener(null);
 
         setContentView(R.layout.activity_transfer);
 
@@ -360,15 +376,17 @@ public class TransferActivity extends AppCompatActivity {
                     toastShort("Already canceled");
                 } else if (mDataManager.getItemCount() <= 0) {
                     toastShort("Scan items first");
+                } else if (mDataManager.isSaving()) {
+                    toastShort("Cannot finalize while saving");
                 } else {
                     if (mDataManager.requiresAnalystLogin()) {
-                        openAnalystLoginDialog(new DataManager.InternalOnFinishListener() {
+                        openAnalystLoginDialog(new Utils.DetailedOnFinishListener() {
                             @Override
                             public void onFinish(boolean success, String message) {
                                 if (success) {
                                     toastShort(message);
                                     if (mDataManager.requiresSignature()) {
-                                        openSignDialog(new DataManager.InternalOnFinishListener() {
+                                        openSignDialog(new Utils.DetailedOnFinishListener() {
                                             @Override
                                             public void onFinish(boolean success, String message) {
                                                 if (success) {
@@ -407,7 +425,7 @@ public class TransferActivity extends AppCompatActivity {
                         });
                     } else {
                         if (mDataManager.requiresSignature()) {
-                            openSignDialog(new DataManager.InternalOnFinishListener() {
+                            openSignDialog(new Utils.DetailedOnFinishListener() {
                                 @Override
                                 public void onFinish(boolean success, String message) {
                                     if (success) {
@@ -422,7 +440,7 @@ public class TransferActivity extends AppCompatActivity {
                                                 }
                                             }
                                         });
-} else {
+                                    } else {
                                         toastLong(message);
                                     }
                                 }
@@ -449,6 +467,8 @@ public class TransferActivity extends AppCompatActivity {
                     toastShort("Already finalized");
                 } else if (mDataManager.getCurrentTransfer().isCanceled()) {
                     toastShort("Already canceled");
+                } else if (mDataManager.isSaving()) {
+                    toastShort("Cannot cancel while saving");
                 } else {
                     mDataManager.showDialog(new AlertDialog.Builder(this)
                             .setTitle("Cancel transfer")
@@ -467,16 +487,27 @@ public class TransferActivity extends AppCompatActivity {
                 }
                 return true;
             case R.id.menu_reset:
-                mDataManager.showDialog(new AlertDialog.Builder(this)
-                        .setTitle("Reset transfers")
-                        .setMessage("Would you like to clear all transfer output and signatures?")
-                        .setNegativeButton(R.string.action_no, null)
-                        .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                mDataManager.reset(getApplicationContext());
-                            }
-                        }).create(), null);
+                if (mDataManager.isSaving()) {
+                    toastShort("Cannot reset while saving");
+                } else {
+                    mDataManager.showDialog(new AlertDialog.Builder(this)
+                            .setTitle("Reset transfers")
+                            .setMessage("Would you like to clear all transfer output and signatures?")
+                            .setNegativeButton(R.string.action_no, null)
+                            .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    mDataManager.reset(getApplicationContext());
+                                }
+                            }).create(), null);
+                }
+                return true;
+            case R.id.menu_load_analysts:
+                if (mDataManager.isSaving()) {
+                    toastShort("Cannot load analysts while saving");
+                } else {
+
+                }
                 return true;
             /*case R.id.menu_continuous_mode:
                 if (mDataManager.getScanner() != null && mDataManager.getScanner().setScanMode(item.isChecked() ? AbstractScanner.ONE_SHOT_MODE : AbstractScanner.CONTINUOUS_MODE)) {
@@ -528,7 +559,7 @@ public class TransferActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         getScanner().onResume();
-        AbstractScanner.setOnBarcodeScannedListener(onBarcodeScannedListener);
+        mDataManager.popOnBarcodeScannedListener();
         AbstractScanner.setActivity(this);
         refreshItemRecyclerAdapter();
     }
@@ -536,7 +567,7 @@ public class TransferActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         AbstractScanner.setActivity(null);
-        AbstractScanner.setOnBarcodeScannedListener(null);
+        mDataManager.pushOnBarcodeScannedListener(null);
         getScanner().onPause();
         if (mItemRecyclerAdapter != null && mItemRecyclerAdapter.getCursor() != null)
             mItemRecyclerAdapter.swapCursor(null).close();
@@ -649,11 +680,27 @@ public class TransferActivity extends AppCompatActivity {
     private void updateInfo(String location, int itemCount, long transferId) {
         final boolean isLocation = getBarcodeType(location).equals(BarcodeType.Location);
         final boolean isContainer = getBarcodeType(location).equals(BarcodeType.Container);
-        final boolean isNull = !isLocation && !isContainer;
-        this.<AppCompatTextView>findViewById(R.id.text_current_location_label).setText(getResources().getString(R.string.text_current_location_label, isNull ? "-" : (isLocation ? "Location" : "Container")));
-        this.<AppCompatTextView>findViewById(R.id.text_current_location).setText(isNull ? "-" : location);
-        this.<AppCompatTextView>findViewById(R.id.text_item_count).setText(itemCount >= 0 ? String.valueOf(itemCount) : "-");
-        this.<AppCompatTextView>findViewById(R.id.text_transfer_id).setText(transferId >= 0 ? String.valueOf(transferId) : "-");
+        final boolean isLocationNull = !isLocation && !isContainer;
+        this.<AppCompatTextView>findViewById(R.id.text_scan_barcode).setVisibility(isLocationNull ? View.VISIBLE : View.INVISIBLE);
+        this.<AppCompatTextView>findViewById(R.id.text_current_location_label).setVisibility(isLocationNull ? View.INVISIBLE : View.VISIBLE);
+        this.<AppCompatTextView>findViewById(R.id.text_current_location).setVisibility(isLocationNull ? View.INVISIBLE : View.VISIBLE);
+        this.<AppCompatTextView>findViewById(R.id.text_item_count_label).setVisibility(isLocationNull ? View.INVISIBLE : View.VISIBLE);
+        this.<AppCompatTextView>findViewById(R.id.text_item_count).setVisibility(isLocationNull ? View.INVISIBLE : View.VISIBLE);
+        this.<AppCompatTextView>findViewById(R.id.text_transfer_id_label).setVisibility(isLocationNull ? View.INVISIBLE : View.VISIBLE);
+        this.<AppCompatTextView>findViewById(R.id.text_transfer_id).setVisibility(isLocationNull ? View.INVISIBLE : View.VISIBLE);
+        if (!isLocationNull) {
+            this.<AppCompatTextView>findViewById(R.id.text_current_location_label).setText(isLocation ? R.string.label_location : R.string.label_container);
+            this.<AppCompatTextView>findViewById(R.id.text_current_location).setText(location);
+            this.<AppCompatTextView>findViewById(R.id.text_item_count).setText(itemCount >= 0 ? String.valueOf(itemCount) : "-");
+            if (transferId < 0) {
+                this.<AppCompatTextView>findViewById(R.id.text_transfer_id_label).setVisibility(View.INVISIBLE);
+                this.<AppCompatTextView>findViewById(R.id.text_transfer_id).setVisibility(View.INVISIBLE);
+            } else {
+                this.<AppCompatTextView>findViewById(R.id.text_transfer_id_label).setVisibility(View.VISIBLE);
+                this.<AppCompatTextView>findViewById(R.id.text_transfer_id).setVisibility(View.VISIBLE);
+                this.<AppCompatTextView>findViewById(R.id.text_transfer_id).setText(String.valueOf(transferId));
+            }
+        }
     }
 
     @Override

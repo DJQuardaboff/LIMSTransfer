@@ -7,19 +7,12 @@ import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.support.annotation.NonNull;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatDialog;
-import android.support.v7.widget.AppCompatButton;
 import android.util.Log;
-import android.view.View;
 import android.widget.Toast;
 
-import com.github.gcacace.signaturepad.views.SignaturePad;
 import com.porterlee.plcscanners.AbstractScanner;
 
 import java.io.File;
@@ -38,43 +31,54 @@ import org.apache.commons.io.filefilter.IOFileFilter;
 
 import org.jetbrains.annotations.NotNull;
 
-import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
-
 public class DataManager {
-    public static final String TAG = TransferActivity.class.getCanonicalName();
+    public static final String TAG = DataManager.class.getCanonicalName();
     public static final File EXTERNAL_PATH = new File(Environment.getExternalStorageDirectory(), "Transfer");
     public static final File SIGNATURES_PATH = new File(EXTERNAL_PATH, "Signatures");
     public static final File OUTPUT_FILE = new File(EXTERNAL_PATH, "transfer.txt");
     public static final String SIGNATURE_FILE_NAME = "signature_%d.png";
     private static final String OUTPUT_FILE_HEADER = String.format(Locale.US, "%s|%s|%s|v%s|%d", BuildConfig.APPLICATION_ID.split("\\.")[2], BuildConfig.FLAVOR, BuildConfig.BUILD_TYPE, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE);
-    private static final String REQUIRES_STARTUP_LOGIN = "requires_startup_login";
-    private static final String REQUIRES_ANALYST_LOGIN = "requires_analyst_login";
-    private static final String REQUIRES_SIGNATURE = "requires_signature";
+    private static final String KEY_REQUIRES_STARTUP_LOGIN = "requires_startup_login";
+    private static final String KEY_REQUIRES_ANALYST_LOGIN = "requires_analyst_login";
+    private static final String KEY_REQUIRES_SIGNATURE = "requires_signature";
     private volatile TransferDatabase mTransferDatabase;
     private SharedPreferences mSharedPreferences;
     private Transfer mCurrentTransfer;
     private Runnable mOnCurrentTransferChangedListener;
     private boolean mIsShowingDialog;
+    private boolean mIsShowingModalDialog;
     private boolean mIsSaving;
-    private int mScannerDisableCount;
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private ArrayList<Object> listenerReferences = new ArrayList<>();
+    private ArrayList<AbstractScanner.OnBarcodeScannedListener> onBarcodeScannedListenersQueue = new ArrayList<>();
 
     public DataManager (Activity activity) {
         mSharedPreferences = activity.getPreferences(Context.MODE_PRIVATE);
         AbstractScanner.setActivity(activity);
     }
 
+    public void showScannerDialog(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener, AbstractScanner.OnBarcodeScannedListener onBarcodeScannedListener) {
+        showDialog0(dialog, onDismissListener, onBarcodeScannedListener, false);
+    }
+
     public void showDialog(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener) {
+        showDialog0(dialog, onDismissListener, null, true);
+    }
+
+    private void showDialog0(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener, AbstractScanner.OnBarcodeScannedListener onBarcodeScannedListener, final boolean disableScanner) {
         if (dialog == null || mIsShowingDialog) {
             onDismissListener.onDismiss(null);
             return;
         }
         setIsShowingDialog(true);
+        setIsShowingModalDialog(disableScanner);
+        pushOnBarcodeScannedListener(onBarcodeScannedListener);
         dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
             public void onDismiss(DialogInterface dialog) {
+                popOnBarcodeScannedListener();
                 setIsShowingDialog(false);
+                setIsShowingModalDialog(false);
                 if (onDismissListener != null)
                     onDismissListener.onDismiss(dialog);
             }
@@ -84,17 +88,17 @@ public class DataManager {
 
     public boolean requiresStartupLogin() {
         //todo change to false
-        return mSharedPreferences.getBoolean(REQUIRES_STARTUP_LOGIN, true);
+        return mSharedPreferences.getBoolean(KEY_REQUIRES_STARTUP_LOGIN, true);
     }
 
     public boolean requiresAnalystLogin() {
         //todo change to false
-        return mSharedPreferences.getBoolean(REQUIRES_STARTUP_LOGIN, true);
+        return mSharedPreferences.getBoolean(KEY_REQUIRES_ANALYST_LOGIN, true);
     }
 
     public boolean requiresSignature() {
         //todo change to false
-        return mSharedPreferences.getBoolean(REQUIRES_SIGNATURE, true);
+        return mSharedPreferences.getBoolean(KEY_REQUIRES_SIGNATURE, true);
     }
 
     public boolean isSaving() {
@@ -227,27 +231,37 @@ public class DataManager {
     }
 
     private void setIsShowingDialog(boolean showingDialog) {
+        Log.e(TAG, "setIsShowingDialog");
         this.mIsShowingDialog = showingDialog;
-        if (showingDialog) {
-            mScannerDisableCount++;
-        } else {
-            mScannerDisableCount--;
-        }
+        updateScannerIsDisabled();
+    }
+
+    private void setIsShowingModalDialog(boolean showingModalDialog) {
+        Log.e(TAG, "setIsShowingModalDialog");
+        this.mIsShowingModalDialog = showingModalDialog;
         updateScannerIsDisabled();
     }
 
     private void setIsSaving(boolean isSaving) {
+        Log.e(TAG, "setIsSaving");
         this.mIsSaving = isSaving;
-        if (isSaving) {
-            mScannerDisableCount++;
-        } else {
-            mScannerDisableCount--;
-        }
         updateScannerIsDisabled();
     }
 
     private void updateScannerIsDisabled() {
-        getScanner().setIsEnabled(mScannerDisableCount == 0);
+        getScanner().setIsEnabled(!mIsShowingModalDialog && !mIsSaving);
+    }
+
+    public void pushOnBarcodeScannedListener(AbstractScanner.OnBarcodeScannedListener onBarcodeScannedListener) {
+        onBarcodeScannedListenersQueue.add(AbstractScanner.getOnBarcodeScannedListener());
+        AbstractScanner.setOnBarcodeScannedListener(onBarcodeScannedListener);
+    }
+
+    public AbstractScanner.OnBarcodeScannedListener popOnBarcodeScannedListener() {
+        AbstractScanner.OnBarcodeScannedListener temp = AbstractScanner.getOnBarcodeScannedListener();
+        int index = onBarcodeScannedListenersQueue.size() - 1;
+        AbstractScanner.setOnBarcodeScannedListener(index < 0 ? null : onBarcodeScannedListenersQueue.remove(index));
+        return temp;
     }
 
     public boolean deleteDatabase(Context context) {
@@ -310,8 +324,8 @@ public class DataManager {
         return mCurrentTransfer.id;
     }
 
-    public void saveSignature(final Activity activity, Bitmap bitmap, final Transfer transfer, final InternalOnFinishListener onFinishListener) {
-        final InternalOnFinishListener temp = new InternalOnFinishListener() {
+    public void saveSignature(final Activity activity, Bitmap bitmap, final Transfer transfer, final Utils.DetailedOnFinishListener onFinishListener) {
+        final Utils.DetailedOnFinishListener temp = new Utils.DetailedOnFinishListener() {
             @Override
             public void onFinish(boolean success, final String message) {
                 if (success) {
@@ -319,7 +333,8 @@ public class DataManager {
                     transfer.signed = true;
                 }
 
-                onFinishListener.onFinish(success, message);
+                if (onFinishListener != null)
+                    onFinishListener.onFinish(success, message);
                 listenerReferences.remove(this);
             }
         };
@@ -328,11 +343,11 @@ public class DataManager {
         asyncSaveSignature(activity, bitmap, transfer.id, temp);
     }
 
-    private static void asyncSaveSignature(Activity activity, final Bitmap bitmap, long transferId, InternalOnFinishListener onFinishListener) {
+    private static void asyncSaveSignature(Activity activity, final Bitmap bitmap, long transferId, Utils.DetailedOnFinishListener onFinishListener) {
         final WeakReference<Context> contextWeakReference = new WeakReference<>(activity.getApplicationContext());
         activity = null;
         final File file = new File(SIGNATURES_PATH, String.format(Locale.US, SIGNATURE_FILE_NAME, transferId));
-        final WeakReference<InternalOnFinishListener> weakOnFinishListener = new WeakReference<>(onFinishListener);
+        final WeakReference<Utils.DetailedOnFinishListener> weakOnFinishListener = new WeakReference<>(onFinishListener);
         onFinishListener = null;
         AsyncTask.execute(new Runnable() {
             @Override
@@ -374,15 +389,17 @@ public class DataManager {
 
     public void saveTransferToFile(final Activity activity, final Utils.OnProgressUpdateListener onProgressUpdateListener, final Utils.OnFinishListener onFinishListener) {
         setIsSaving(true);
+        pushOnBarcodeScannedListener(null);
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 Toast.makeText(activity.getApplicationContext(), "Saving...", Toast.LENGTH_SHORT).show();
             }
         });
-        final InternalOnFinishListener temp = new InternalOnFinishListener() {
+        final Utils.DetailedOnFinishListener temp = new Utils.DetailedOnFinishListener() {
             @Override
             public void onFinish(final boolean success, final String message) {
+                popOnBarcodeScannedListener();
                 setIsSaving(false);
                 activity.runOnUiThread(new Runnable() {
                     @Override
@@ -400,12 +417,12 @@ public class DataManager {
         asyncSaveTransferToFile(activity, getCurrentTransferRowQuery(), getCurrentTransferRowItemQuery(), onProgressUpdateListener, temp);
     }
 
-    public static void asyncSaveTransferToFile(Activity activity, final Utils.QueryHolder transferQuery, final Utils.QueryHolder itemQuery, Utils.OnProgressUpdateListener onProgressUpdateListener, InternalOnFinishListener onFinishListener) {
+    public static void asyncSaveTransferToFile(Activity activity, final Utils.QueryHolder transferQuery, final Utils.QueryHolder itemQuery, Utils.OnProgressUpdateListener onProgressUpdateListener, Utils.DetailedOnFinishListener onFinishListener) {
         final WeakReference<Context> contextWeakReference = new WeakReference<>(activity.getApplicationContext());
         activity = null;
         final WeakReference<Utils.OnProgressUpdateListener> weakOnProgressUpdateListener = new WeakReference<>(onProgressUpdateListener);
         onProgressUpdateListener = null;
-        final WeakReference<InternalOnFinishListener> weakOnFinishListener = new WeakReference<>(onFinishListener);
+        final WeakReference<Utils.DetailedOnFinishListener> weakOnFinishListener = new WeakReference<>(onFinishListener);
         onFinishListener = null;
         AsyncTask.execute(new Runnable() {
             @Override
@@ -481,10 +498,6 @@ public class DataManager {
         Analyst temp = new Analyst(cursor.getLong(cursor.getColumnIndex(TransferDatabase.Key.ID)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_ID)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_PASSWORD_SHA_1)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_DESCRIPTION)));
         cursor.close();
         return temp;
-    }
-
-    public interface InternalOnFinishListener {
-        void onFinish(boolean success, String message);
     }
 
     public static class Item {

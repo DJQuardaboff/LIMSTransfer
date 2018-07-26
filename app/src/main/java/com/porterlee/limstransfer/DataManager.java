@@ -2,6 +2,7 @@ package com.porterlee.limstransfer;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
@@ -61,7 +62,7 @@ public class DataManager {
         showDialog0(dialog, onDismissListener, onBarcodeScannedListener, false);
     }
 
-    public void showDialog(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener) {
+    public void showModalScannerDialog(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener) {
         showDialog0(dialog, onDismissListener, null, true);
     }
 
@@ -154,13 +155,6 @@ public class DataManager {
         return mCurrentTransfer;
     }
 
-    public boolean finalizeCurrentTransfer() {
-        boolean success = mTransferDatabase.update_transferTable_set_finalized_equalTo_where_id_equals(true, getCurrentTransferId()) > 0;
-        if (success)
-            updateCurrentTransfer(getLastUnfinishedTransfer());
-        return success;
-    }
-
     public boolean cancelCurrentTransfer() {
         final boolean success = mTransferDatabase.update_transferTable_set_canceled_equalTo_where_id_equals(true, getCurrentTransferId()) > 0;
         if (success)
@@ -231,19 +225,21 @@ public class DataManager {
     }
 
     private void setIsShowingDialog(boolean showingDialog) {
-        Log.e(TAG, "setIsShowingDialog");
         this.mIsShowingDialog = showingDialog;
         updateScannerIsDisabled();
     }
 
     private void setIsShowingModalDialog(boolean showingModalDialog) {
-        Log.e(TAG, "setIsShowingModalDialog");
         this.mIsShowingModalDialog = showingModalDialog;
         updateScannerIsDisabled();
     }
 
     private void setIsSaving(boolean isSaving) {
-        Log.e(TAG, "setIsSaving");
+        if (isSaving) {
+            pushOnBarcodeScannedListener(null);
+        } else {
+            popOnBarcodeScannedListener();
+        }
         this.mIsSaving = isSaving;
         updateScannerIsDisabled();
     }
@@ -324,13 +320,16 @@ public class DataManager {
         return mCurrentTransfer.id;
     }
 
-    public void saveSignature(final Activity activity, Bitmap bitmap, final Transfer transfer, final Utils.DetailedOnFinishListener onFinishListener) {
+    public void signCurrentTransfer(final Context context, Bitmap bitmap, final Transfer transfer, final Utils.DetailedOnFinishListener onFinishListener) {
         final Utils.DetailedOnFinishListener temp = new Utils.DetailedOnFinishListener() {
             @Override
-            public void onFinish(boolean success, final String message) {
+            public void onFinish(boolean success, String message) {
                 if (success) {
-                    mTransferDatabase.update_transferTable_set_signed_equalTo_where_id_equals(true, transfer.id);
-                    transfer.signed = true;
+                    success = mTransferDatabase.update_transferTable_set_signed_equalTo_where_id_equals(true, transfer.id) > 0;
+                    if (success)
+                        transfer.signed = true;
+                    else
+                        message += ": Error signing";
                 }
 
                 if (onFinishListener != null)
@@ -340,12 +339,12 @@ public class DataManager {
         };
         listenerReferences.add(temp);
 
-        asyncSaveSignature(activity, bitmap, transfer.id, temp);
+        asyncSaveSignature(context, bitmap, transfer.id, temp);
     }
 
-    private static void asyncSaveSignature(Activity activity, final Bitmap bitmap, long transferId, Utils.DetailedOnFinishListener onFinishListener) {
-        final WeakReference<Context> contextWeakReference = new WeakReference<>(activity.getApplicationContext());
-        activity = null;
+    private static void asyncSaveSignature(Context context, final Bitmap bitmap, long transferId, Utils.DetailedOnFinishListener onFinishListener) {
+        final WeakReference<Context> contextWeakReference = new WeakReference<>(context.getApplicationContext());
+        context = null;
         final File file = new File(SIGNATURES_PATH, String.format(Locale.US, SIGNATURE_FILE_NAME, transferId));
         final WeakReference<Utils.DetailedOnFinishListener> weakOnFinishListener = new WeakReference<>(onFinishListener);
         onFinishListener = null;
@@ -387,32 +386,28 @@ public class DataManager {
         });
     }
 
-    public void saveTransferToFile(final Activity activity, final Utils.OnProgressUpdateListener onProgressUpdateListener, final Utils.OnFinishListener onFinishListener) {
+    public void finalizeCurrentTransfer(final Activity activity, final Utils.OnProgressUpdateListener onProgressUpdateListener, final Utils.DetailedOnFinishListener onFinishListener) {
         setIsSaving(true);
-        pushOnBarcodeScannedListener(null);
-        activity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(activity.getApplicationContext(), "Saving...", Toast.LENGTH_SHORT).show();
-            }
-        });
         final Utils.DetailedOnFinishListener temp = new Utils.DetailedOnFinishListener() {
             @Override
-            public void onFinish(final boolean success, final String message) {
-                popOnBarcodeScannedListener();
+            public void onFinish(boolean success, String message) {
                 setIsSaving(false);
-                activity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(activity.getApplicationContext(), message, success ? Toast.LENGTH_SHORT : Toast.LENGTH_LONG).show();
-                    }
-                });
-                onFinishListener.onFinish(success);
+                if (success) {
+                    success = mTransferDatabase.update_transferTable_set_finalized_equalTo_where_id_equals(true, getCurrentTransferId()) > 0;
+                    if (success)
+                        updateCurrentTransfer(getLastUnfinishedTransfer());
+                    else
+                        message += ": Error finalizing";
+                }
+
+                onFinishListener.onFinish(success, message);
                 listenerReferences.remove(this);
+                listenerReferences.remove(onFinishListener);
                 listenerReferences.remove(onProgressUpdateListener);
             }
         };
         listenerReferences.add(temp);
+        listenerReferences.add(onFinishListener);
         listenerReferences.add(onProgressUpdateListener);
         asyncSaveTransferToFile(activity, getCurrentTransferRowQuery(), getCurrentTransferRowItemQuery(), onProgressUpdateListener, temp);
     }
@@ -442,6 +437,8 @@ public class DataManager {
                 int itemDateTimeIndex = itemCursor.getColumnIndex(TransferDatabase.Key.DATE_TIME);
 
                 try {
+                    OUTPUT_FILE.setReadOnly();
+                    OUTPUT_FILE.setWritable(true, true);
                     printStream = new PrintStream(new FileOutputStream(OUTPUT_FILE, true));
                     int updateNum = 0;
                     int itemIndex = 0;

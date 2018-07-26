@@ -1,26 +1,24 @@
 <resources>
+    <string name="text_location_label">Location:</string>
+    <string name="text_container_location_label">Container:</string>
     <string name="text_item_count_label">Items:</string>
-    <string name="text_current_location_label">%s:</string>
-    <string name="text_analyst_login">Analyst login</string>
-    <string name="text_analyst_id">User ID:</string>
-    <string name="text_analyst_password">Password:</string>
-    <string name="expanded_menu_description">Options</string>
+    <string name="text_transfer_id_label">ID:</string>
+    <string name="text_analyst_login_title">Analyst login</string>
+    <string name="text_analyst_id_hint">User ID</string>
+    <string name="text_analyst_password_hint">Password</string>
+    <string name="text_sign_here">Sign here</string>
     <string name="action_remove">Remove</string>
     <string name="action_continuous_mode">Continuous mode</string>
     <string name="action_reset">Reset</string>
     <string name="action_load_analysts">Load analysts</string>
     <string name="action_sign">Sign</string>
-    <string name="title_sign_here">Sign here</string>
     <string name="action_clear">Clear</string>
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
-    <string name="title_transfer_id">ID:</string>
     <string name="action_finalize">Finalize</string>
     <string name="action_delete">Delete</string>
     <string name="action_yes">Yes</string>
     <string name="action_no">No</string>
     <string name="action_login">login</string>
     <string name="text_scan_barcode">Scan a barcode</string>
-    <string name="label_location">Container:</string>
-    <string name="label_container">Location:</string>
 </resources>

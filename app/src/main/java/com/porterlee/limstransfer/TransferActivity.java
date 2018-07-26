@@ -264,81 +264,11 @@ public class TransferActivity extends AppCompatActivity {
                 });
             }
         });
-        tempAlertDialog.show();
-
-        /*
-        final AppCompatDialog compatDialog = new AppCompatDialog(this, R.style.CustomDialogTheme);
-
-        if (compatDialog.getWindow() != null) {
-            compatDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            compatDialog.setCancelable(false);
-            compatDialog.setContentView(R.layout.fragment_sign);
-
-            View v = compatDialog.getWindow().getDecorView();
-            final SignaturePad signaturePad = v.findViewById(R.id.signature_pad);
-            final AppCompatButton buttonClear = v.findViewById(R.id.button_clear);
-            final AppCompatButton buttonCancel = v.findViewById(R.id.button_cancel);
-            final AppCompatButton buttonSave = v.findViewById(R.id.button_save);
-
-            signaturePad.setOnSignedListener(new SignaturePad.OnSignedListener() {
-                @Override
-                public void onStartSigning() {
-                }
-
-                @Override
-                public void onSigned() {
-                    buttonClear.setEnabled(true);
-                    buttonSave.setEnabled(true);
-                }
-
-                @Override
-                public void onClear() {
-                    buttonClear.setEnabled(false);
-                    buttonSave.setEnabled(false);
-                }
-            });
-
-            buttonClear.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    signaturePad.clear();
-                }
-            });
-            buttonCancel.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    toastShort("Signing canceled");
-                    if (onFinishListener != null)
-                        onFinishListener.onFinish(false);
-                    compatDialog.dismiss();
-                }
-            });
-            buttonSave.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mDataManager.signCurrentTransfer(TransferActivity.this, signaturePad.getSignatureBitmap(), mDataManager.getCurrentTransfer(), new Utils.DetailedOnFinishListener() {
-                        @Override
-                        public void onFinish(boolean success, String message) {
-                            if (success) {
-                                toastShort(message);
-                            } else {
-                                toastLong(message);
-                            }
-                            if (onFinishListener != null)
-                                onFinishListener.onFinish(success);
-                        }
-                    });
-                    compatDialog.dismiss();
-                }
-            });
-
-            mDataManager.showDialog(compatDialog, null);
-        }
-        */
+        mDataManager.showModalScannerDialog(tempAlertDialog, null);
     }
 
     public void openAnalystLoginDialog(final Utils.OnFinishListener onFinishListener) {
-        AlertDialog analystLoginDialog = new AlertDialog.Builder(this)
+        final AlertDialog analystLoginDialog = new AlertDialog.Builder(this)
                 .setCancelable(false)
                 .setTitle(R.string.text_analyst_login_title)
                 .setView(R.layout.fragment_login)
@@ -405,7 +335,12 @@ public class TransferActivity extends AppCompatActivity {
                 });
             }
         });
-        analystLoginDialog.show();
+        mDataManager.showScannerDialog(analystLoginDialog, null, new AbstractScanner.OnBarcodeScannedListener() {
+            @Override
+            public void onBarcodeScanned(String s) {
+                analystLoginDialog.<AppCompatEditText>findViewById(R.id.edit_analyst_id).setText(s);
+            }
+        });
     }
 
     private void openCancelDialog() {

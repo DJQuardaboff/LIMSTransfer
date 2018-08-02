@@ -24,6 +24,11 @@
         android:title="@string/action_load_analysts"
         app:showAsAction="never"/>
 
+    <item
+        android:id="@+id/menu_open_setup_dialog"
+        android:title="Open Setup Dialog"
+        app:showAsAction="never"/>
+
     <!--item
         android:id="@+id/menu_continuous_mode"
         android:title="@string/action_continuous_mode"

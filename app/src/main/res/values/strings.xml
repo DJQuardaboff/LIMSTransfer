@@ -6,6 +6,7 @@
     <string name="text_analyst_login_title">Analyst login</string>
     <string name="text_analyst_id_hint">User ID</string>
     <string name="text_analyst_password_hint">Password</string>
+    <string name="text_setup_title">Setup</string>
     <string name="text_sign_here">Sign here</string>
     <string name="action_remove">Remove</string>
     <string name="action_continuous_mode">Continuous mode</string>
@@ -21,4 +22,11 @@
     <string name="action_no">No</string>
     <string name="action_login">login</string>
     <string name="text_scan_barcode">Scan a barcode</string>
+    <string name="text_finalize_transfer_title">Finalize transfer</string>
+    <string name="text_finalize_transfer_body">Would you like to finalize this transfer?</string>
+    <string name="text_cancel_transfer_title">Cancel transfer</string>
+    <string name="text_cancel_transfer_body">Would you like to cancel this transfer?</string>
+    <string name="text_require_startup_login">Require login at startup</string>
+    <string name="text_require_analyst_password">Require analyst password</string>
+    <string name="text_require_signature">Use signature capture</string>
 </resources>

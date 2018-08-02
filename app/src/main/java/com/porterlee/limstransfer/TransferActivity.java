@@ -18,6 +18,7 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SwitchCompat;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -139,32 +140,49 @@ public class TransferActivity extends AppCompatActivity {
         });
     }
 
-    public void openAdminSettingsDialog() {
+    private void loadAnalysts() {
+
+    }
+
+    public void openSetupDialog() {
         AlertDialog tempAlertDialog = new AlertDialog.Builder(this)
-                .setTitle(R.string.text_analyst_login_title)
-                .setView(R.layout.fragment_login)
-                //.setPositiveButton(R.string.action_login, null)
-                //.setNegativeButton(R.string.action_cancel, null)
+                .setTitle(R.string.text_setup_title)
+                .setView(R.layout.fragment_setup)
+                .setPositiveButton(R.string.action_save, null)
+                .setNegativeButton(R.string.action_cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        toastShort("Setup canceled");
+                    }
+                })
+                .setCancelable(false)
                 .create();
+
         tempAlertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
                     @Override
                     public void onShow(DialogInterface dialog) {
-                        AlertDialog alertDialog = (AlertDialog) dialog;
-                        alertDialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+                        final AlertDialog alertDialog = (AlertDialog) dialog;
+                        final Button buttonSave = alertDialog.getButton(DialogInterface.BUTTON_POSITIVE);
+
+                        buttonSave.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-
+                                mDataManager.setRequiresStartupLogin(alertDialog.<SwitchCompat>findViewById(R.id.switch_requires_startup_login).isChecked());
+                                mDataManager.setRequiresAnalystLogin(alertDialog.<SwitchCompat>findViewById(R.id.switch_requires_analyst_login).isChecked());
+                                mDataManager.setRequiresSignature(alertDialog.<SwitchCompat>findViewById(R.id.switch_requires_signature).isChecked());
+                                alertDialog.dismiss();
                             }
                         });
                     }
                 });
+
         mDataManager.showModalScannerDialog(tempAlertDialog, null);
     }
 
     public void openFinalizeDialog(final Utils.OnFinishListener onFinishListener) {
         mDataManager.showModalScannerDialog(new AlertDialog.Builder(this)
-                .setTitle("Finalize transfer")
-                .setMessage("Would you like to finalize this transfer?")
+                .setTitle(R.string.text_finalize_transfer_title)
+                .setMessage(R.string.text_finalize_transfer_body)
                 .setNegativeButton(R.string.action_cancel, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -197,7 +215,8 @@ public class TransferActivity extends AppCompatActivity {
                             }
                         });
                     }
-                }).setCancelable(false).create(), null);
+                }).setCancelable(false)
+                .create(), null);
     }
 
     private void openSignDialog(final Utils.OnFinishListener onFinishListener) {
@@ -264,6 +283,7 @@ public class TransferActivity extends AppCompatActivity {
                 });
             }
         });
+
         mDataManager.showModalScannerDialog(tempAlertDialog, null);
     }
 
@@ -287,14 +307,17 @@ public class TransferActivity extends AppCompatActivity {
             public void onShow(DialogInterface dialog) {
                 final AlertDialog alertDialog = (AlertDialog) dialog;
                 final Button buttonLogin = alertDialog.getButton(DialogInterface.BUTTON_POSITIVE);
-                final AppCompatEditText editAnalystId = alertDialog.findViewById(R.id.edit_analyst_id);
+                final AppCompatTextView textAnalystDescription = alertDialog.findViewById(R.id.text_analyst_description);
+                textAnalystDescription.setText(mDataManager.getCurrentAnalyst().getDescription());
                 final AppCompatEditText editAnalystPassword = alertDialog.findViewById(R.id.edit_analyst_password);
+
+                alertDialog.findViewById(R.id.edit_analyst_id).setVisibility(View.INVISIBLE);
 
                 buttonLogin.setEnabled(false);
                 buttonLogin.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        DataManager.Analyst analyst = mDataManager.getAnalyst(editAnalystId.getText().toString());
+                        DataManager.Analyst analyst = mDataManager.getCurrentAnalyst();
                         if (analyst == null) {
                             toastShort("Analyst not found");
                         } else {
@@ -309,18 +332,6 @@ public class TransferActivity extends AppCompatActivity {
                         }
                     }
                 });
-                editAnalystId.addTextChangedListener(new TextWatcher() {
-                    @Override
-                    public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-
-                    @Override
-                    public void onTextChanged(CharSequence s, int start, int before, int count) { }
-
-                    @Override
-                    public void afterTextChanged(Editable s) {
-                        buttonLogin.setEnabled(!s.toString().equals("") && !editAnalystPassword.getText().toString().equals(""));
-                    }
-                });
                 editAnalystPassword.addTextChangedListener(new TextWatcher() {
                     @Override
                     public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
@@ -330,9 +341,10 @@ public class TransferActivity extends AppCompatActivity {
 
                     @Override
                     public void afterTextChanged(Editable s) {
-                        buttonLogin.setEnabled(!s.toString().equals("") && !editAnalystId.getText().toString().equals(""));
+                        buttonLogin.setEnabled(!s.toString().equals(""));
                     }
                 });
+                editAnalystPassword.requestFocus();
             }
         });
         mDataManager.showScannerDialog(analystLoginDialog, null, new AbstractScanner.OnBarcodeScannedListener() {
@@ -345,8 +357,8 @@ public class TransferActivity extends AppCompatActivity {
 
     private void openCancelDialog() {
         mDataManager.showModalScannerDialog(new AlertDialog.Builder(this)
-                .setTitle("Cancel transfer")
-                .setMessage("Would you like to cancel this transfer?")
+                .setTitle(R.string.text_cancel_transfer_title)
+                .setMessage(R.string.text_cancel_transfer_body)
                 .setNegativeButton(R.string.action_no, null)
                 .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
                     @Override
@@ -520,7 +532,14 @@ public class TransferActivity extends AppCompatActivity {
                 if (mDataManager.isSaving()) {
                     toastShort("Cannot load analysts while saving");
                 } else {
-                    openAdminSettingsDialog();
+                    loadAnalysts();
+                }
+                return true;
+            case R.id.menu_open_setup_dialog:
+                if (mDataManager.isSaving()) {
+                    toastShort("Cannot load analysts while saving");
+                } else {
+                    openSetupDialog();
                 }
                 return true;
             /*case R.id.menu_continuous_mode:

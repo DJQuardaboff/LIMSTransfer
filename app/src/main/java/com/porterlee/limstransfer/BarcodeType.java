@@ -32,6 +32,34 @@ public enum BarcodeType {
         return otherPrefixes;
     }
 
+    public static String getAnalystId(String barcode) {
+        BarcodeType barcodeType = getBarcodeType(barcode);
+
+        if (barcodeType.equals(Location)) {
+            return barcodeType.getAnalystId_fast(barcode);
+        }
+
+        return null;
+    }
+
+    private String getAnalystId_fast(String barcode) {
+        return barcode != null ? barcode.substring(5, 13).trim() : null;
+    }
+
+    public static String getLocationPrefix(String barcode) {
+        BarcodeType barcodeType = getBarcodeType(barcode);
+
+        if (barcodeType.equals(Location)) {
+            return barcodeType.getLocationPrefix_fast(barcode);
+        }
+
+        return null;
+    }
+
+    private String getLocationPrefix_fast(String barcode) {
+        return barcode != null ? barcode.substring(1, 5).trim() : null;
+    }
+
     public static String getEcn(String barcode) {
         BarcodeType barcodeType = getBarcodeType(barcode);
 
@@ -42,7 +70,7 @@ public enum BarcodeType {
         return null;
     }
 
-    public String getEcn_fast(String barcode) {
+    private String getEcn_fast(String barcode) {
         String prefix = getPrefix_fast(barcode);
         if (prefix != null) {
             int prefixLength = prefix.length();
@@ -67,7 +95,7 @@ public enum BarcodeType {
         return null;
     }
 
-    public String getLabCode_fast(String barcode) {
+    private String getLabCode_fast(String barcode) {
         if (BuildConfig.is_LAM_system && this.equals(Item)) {
             return null;
         }
@@ -103,7 +131,7 @@ public enum BarcodeType {
         return null;
     }
 
-    public String getPrefix_fast(String barcode) {
+    private String getPrefix_fast(String barcode) {
         if (barcode == null) {
             return null;
         }
@@ -179,7 +207,7 @@ public enum BarcodeType {
         return false;
     }
 
-    public boolean getIsBase32_fast(String barcode) {
+    private boolean getIsBase32_fast(String barcode) {
         if (base32Prefix != null) {
             String ecn = getEcn_fast(barcode);
             return ecn != null && Base32.validate(ecn);
@@ -221,7 +249,7 @@ public enum BarcodeType {
         return false;
     }
 
-    public boolean getIsBase64_fast(String barcode) {
+    private boolean getIsBase64_fast(String barcode) {
         if (base64Prefix != null) {
             String ecn = getEcn_fast(barcode);
             return ecn != null && Base64.validate(ecn);

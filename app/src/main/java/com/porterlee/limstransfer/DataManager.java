@@ -2,7 +2,6 @@ package com.porterlee.limstransfer;
 
 import android.app.Activity;
 import android.app.Dialog;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
@@ -12,7 +11,6 @@ import android.os.AsyncTask;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.porterlee.plcscanners.AbstractScanner;
 
@@ -40,11 +38,12 @@ public class DataManager {
     public static final String SIGNATURE_FILE_NAME = "signature_%d.png";
     private static final String OUTPUT_FILE_HEADER = String.format(Locale.US, "%s|%s|%s|v%s|%d", BuildConfig.APPLICATION_ID.split("\\.")[2], BuildConfig.FLAVOR, BuildConfig.BUILD_TYPE, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE);
     private static final String KEY_REQUIRES_STARTUP_LOGIN = "requires_startup_login";
-    private static final String KEY_REQUIRES_ANALYST_LOGIN = "requires_analyst_login";
+    private static final String KEY_REQUIRES_ANALYST_PASSWORD = "requires_analyst_password";
     private static final String KEY_REQUIRES_SIGNATURE = "requires_signature";
     private volatile TransferDatabase mTransferDatabase;
     private SharedPreferences mSharedPreferences;
     private Transfer mCurrentTransfer;
+    private Analyst mCurrentAnalyst;
     private Runnable mOnCurrentTransferChangedListener;
     private boolean mIsShowingDialog;
     private boolean mIsShowingModalDialog;
@@ -88,18 +87,27 @@ public class DataManager {
     }
 
     public boolean requiresStartupLogin() {
-        //todo change to false
-        return mSharedPreferences.getBoolean(KEY_REQUIRES_STARTUP_LOGIN, true);
+        return mSharedPreferences.getBoolean(KEY_REQUIRES_STARTUP_LOGIN, false);
+    }
+
+    public boolean setRequiresStartupLogin(boolean b) {
+        return mSharedPreferences.edit().putBoolean(KEY_REQUIRES_STARTUP_LOGIN, b).commit();
     }
 
     public boolean requiresAnalystLogin() {
-        //todo change to false
-        return mSharedPreferences.getBoolean(KEY_REQUIRES_ANALYST_LOGIN, true);
+        return mSharedPreferences.getBoolean(KEY_REQUIRES_ANALYST_PASSWORD, true);
+    }
+
+    public boolean setRequiresAnalystLogin(boolean b) {
+        return mSharedPreferences.edit().putBoolean(KEY_REQUIRES_ANALYST_PASSWORD, b).commit();
     }
 
     public boolean requiresSignature() {
-        //todo change to false
         return mSharedPreferences.getBoolean(KEY_REQUIRES_SIGNATURE, true);
+    }
+
+    public boolean setRequiresSignature(boolean b) {
+        return mSharedPreferences.edit().putBoolean(KEY_REQUIRES_SIGNATURE, b).commit();
     }
 
     public boolean isSaving() {
@@ -155,6 +163,10 @@ public class DataManager {
         return mCurrentTransfer;
     }
 
+    public Analyst getCurrentAnalyst() {
+        return mCurrentAnalyst;
+    }
+
     public boolean cancelCurrentTransfer() {
         final boolean success = mTransferDatabase.update_transferTable_set_canceled_equalTo_where_id_equals(true, getCurrentTransferId()) > 0;
         if (success)
@@ -171,6 +183,22 @@ public class DataManager {
 
     private void updateCurrentTransfer(Transfer transfer) {
         mCurrentTransfer = transfer;
+        if (transfer != null && transfer.locationBarcode != null) {
+            String analystId = BarcodeType.getAnalystId(transfer.locationBarcode);
+            if (analystId != null) {
+                try {
+                    mCurrentAnalyst = getAnalyst(Utils.SHA1(analystId));
+                } catch (NoSuchAlgorithmException e) {
+                    Log.e(TAG, "\"SHA-1\" algorithm not found");
+                    e.printStackTrace();
+                } catch (UnsupportedEncodingException e) {
+                    Log.e(TAG, "\"US-ASCII\" charset not found");
+                    e.printStackTrace();
+                }
+            } else {
+                mCurrentAnalyst = null;
+            }
+        }
         if (mOnCurrentTransferChangedListener != null)
             mOnCurrentTransferChangedListener.run();
     }
@@ -487,12 +515,12 @@ public class DataManager {
         });
     }
 
-    public Analyst getAnalyst(String analystId) {
-        final Cursor cursor = mTransferDatabase.getDatabase().query(TransferDatabase.AnalystTable.NAME, new String[] { TransferDatabase.Key.ID, TransferDatabase.Key.ANALYST_ID, TransferDatabase.Key.ANALYST_PASSWORD_SHA_1, TransferDatabase.Key.ANALYST_DESCRIPTION }, TransferDatabase.Key.ANALYST_ID + " = ?", new String[] { analystId }, null, null, null, "1");
+    private Analyst getAnalyst(String analystIdSha1) {
+        final Cursor cursor = mTransferDatabase.getDatabase().query(TransferDatabase.AnalystTable.NAME, new String[] { TransferDatabase.Key.ID, TransferDatabase.Key.ANALYST_ID_SHA_1, TransferDatabase.Key.ANALYST_PASSWORD_SHA_1, TransferDatabase.Key.ANALYST_DESCRIPTION }, TransferDatabase.Key.ANALYST_ID_SHA_1 + " = ?", new String[] { analystIdSha1 }, null, null, null, "1");
         if (cursor.getCount() <= 0)
             return null;
         cursor.moveToFirst();
-        Analyst temp = new Analyst(cursor.getLong(cursor.getColumnIndex(TransferDatabase.Key.ID)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_ID)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_PASSWORD_SHA_1)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_DESCRIPTION)));
+        Analyst temp = new Analyst(cursor.getLong(cursor.getColumnIndex(TransferDatabase.Key.ID)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_ID_SHA_1)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_PASSWORD_SHA_1)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_DESCRIPTION)));
         cursor.close();
         return temp;
     }
@@ -556,7 +584,7 @@ public class DataManager {
 
         public boolean verifyAnalystLogin(String password) {
             try {
-                return password.equals(Utils.SHA1(analystId + password))  ;
+                return password.equals(Utils.SHA1(analystId + password));
             } catch (NoSuchAlgorithmException e) {
                 Log.e(TAG, "\"SHA-1\" algorithm not found");
                 e.printStackTrace();

@@ -143,7 +143,7 @@ public final class TransferDatabase {
         public static final String START_DATE_TIME = "start_date_time";
         public static final String SIGN_DATE_TIME = "sign_date_time";
         public static final String FINALIZE_DATE_TIME = "finalize_date_time";
-        public static final String ANALYST_ID = "analyst_id";
+        public static final String ANALYST_ID_SHA_1 = "analyst_id_sha_1";
         public static final String ANALYST_PASSWORD_SHA_1 = "analyst_password_sha_1";
         public static final String ANALYST_DESCRIPTION = "analyst_description";
     }
@@ -198,13 +198,13 @@ public final class TransferDatabase {
         public static final String NAME = "analysts";
 
         private static void init(SQLiteDatabase database) {
-            database.execSQL("CREATE TABLE IF NOT EXISTS " + NAME + " ( " + TransferDatabase.Key.ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + TransferDatabase.Key.ANALYST_ID + " TEXT NOT NULL, " + TransferDatabase.Key.ANALYST_PASSWORD_SHA_1 + " TEXT NOT NULL CHECK(typeof(\"name\") = \"text\" AND length(\"name\") = 40 ), " + TransferDatabase.Key.ANALYST_DESCRIPTION + " TEXT NOT NULL )");
-            database.execSQL("CREATE INDEX IF NOT EXISTS " + TransferDatabase.Index.ANALYST_ID_INDEX + " ON " + NAME + " ( " + TransferDatabase.Key.ANALYST_ID + " )");
+            database.execSQL("CREATE TABLE IF NOT EXISTS " + NAME + " ( " + TransferDatabase.Key.ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + TransferDatabase.Key.ANALYST_ID_SHA_1 + " TEXT NOT NULL CHECK(typeof(\"" + TransferDatabase.Key.ANALYST_ID_SHA_1 + "\") = \"text\" AND length(\"" + TransferDatabase.Key.ANALYST_ID_SHA_1 + "\") = 40), " + TransferDatabase.Key.ANALYST_PASSWORD_SHA_1 + " TEXT NOT NULL CHECK(typeof(\"" + TransferDatabase.Key.ANALYST_PASSWORD_SHA_1 + "\") = \"text\" AND length(\"" + TransferDatabase.Key.ANALYST_PASSWORD_SHA_1 + "\") = 40 ), " + TransferDatabase.Key.ANALYST_DESCRIPTION + " TEXT NOT NULL )");
+            database.execSQL("CREATE INDEX IF NOT EXISTS " + TransferDatabase.Index.ANALYST_ID_INDEX + " ON " + NAME + " ( " + TransferDatabase.Key.ANALYST_ID_SHA_1 + " )");
         }
 
         public static class Key {
             public static final String ID = NAME + "." + TransferDatabase.Key.ID;
-            public static final String ANALYST_ID = NAME + '.' + TransferDatabase.Key.ANALYST_ID;
+            public static final String ANALYST_ID_SHA_1 = NAME + '.' + TransferDatabase.Key.ANALYST_ID_SHA_1;
             public static final String ANALYST_PASSWORD_SHA_1 =  NAME + '.' + TransferDatabase.Key.ANALYST_PASSWORD_SHA_1;
             public static final String ANALYST_DESCRIPTION =  NAME + '.' + TransferDatabase.Key.ANALYST_DESCRIPTION;
         }

@@ -1,16 +1,22 @@
 package com.porterlee.limstransfer;
 
-public enum BarcodeType {
-    Item(BuildConfig.is_LAM_system ? "J" : "E", BuildConfig.is_LAM_system ? "J" : "e1"),
-    Container("M", "m1"),
-    Location(null, null, "V"),
-    Invalid(null, null);
+import android.os.Build;
 
+public enum BarcodeType {
+    Item(false, BuildConfig.is_Default_system || BuildConfig.is_EMS_system, BuildConfig.is_LAM_system ? "J" : (BuildConfig.is_EMS_system ? "T" : "E"), BuildConfig.is_LAM_system ? "J" : (BuildConfig.is_EMS_system ? "t1" : "e1")),
+    Container(false, BuildConfig.is_Default_system || BuildConfig.is_LAM_system || BuildConfig.is_EMS_system, BuildConfig.is_EMS_system ? "A" : "M", BuildConfig.is_EMS_system ? "a1" : "m1"),
+    Location(BuildConfig.is_Default_system || BuildConfig.is_LAM_system, false, null, null, BuildConfig.is_EMS_system ? "L5" :"V"),
+    Invalid(false, false, null, null);
+
+    private final boolean hasCustodyOf;
+    private final boolean hasLabCode;
     private final String base32Prefix;
     private final String base64Prefix;
     private final String[] otherPrefixes;
 
-    BarcodeType(String base32Prefix, String base64Prefix, String... otherPrefixes) {
+    BarcodeType(boolean hasCustodyOf, boolean hasLabCode, String base32Prefix, String base64Prefix, String... otherPrefixes) {
+        this.hasCustodyOf = hasCustodyOf;
+        this.hasLabCode = hasLabCode;
         this.base32Prefix = base32Prefix;
         this.base64Prefix = base64Prefix;
         if (otherPrefixes == null || (otherPrefixes.length == 1 && otherPrefixes[0] == null)) {
@@ -43,7 +49,12 @@ public enum BarcodeType {
     }
 
     private String getLocationName_fast(String barcode) {
-        return barcode != null ? barcode.substring(5, 13).trim() : null;
+        if (hasCustodyOf) {
+            return barcode != null ? barcode.substring(getLocationCustodyOf_fast(barcode).length()).trim() : null;
+        } else {
+            String prefix = getPrefix_fast(barcode);
+            return prefix != null ? barcode.substring(prefix.length()).trim() : null;
+        }
     }
 
     public static String getLocationCustodyOf(String barcode) {
@@ -57,13 +68,21 @@ public enum BarcodeType {
     }
 
     private String getLocationCustodyOf_fast(String barcode) {
-        return barcode != null ? barcode.substring(1, 5).trim() : null;
+        if (hasCustodyOf) {
+            String prefix = getPrefix_fast(barcode);
+            if (prefix != null) {
+                int prefixLength = prefix.length();
+                return barcode.substring(prefixLength, prefixLength + 4).trim();
+            }
+        }
+
+        return null;
     }
 
     public static String getEcn(String barcode) {
         BarcodeType barcodeType = getBarcodeType(barcode);
 
-        if (!barcodeType.equals(Invalid)) {
+        if (barcodeType.equals(Item) || barcodeType.equals(Container)) {
             return barcodeType.getEcn_fast(barcode);
         }
 
@@ -89,40 +108,36 @@ public enum BarcodeType {
         BarcodeType barcodeType = getBarcodeType(barcode);
 
         if (barcodeType.equals(Item) || barcodeType.equals(Container)) {
-            return barcodeType.getEcn_fast(barcode);
+            return barcodeType.getLabCode_fast(barcode);
         }
 
         return null;
     }
 
     private String getLabCode_fast(String barcode) {
-        if (BuildConfig.is_LAM_system && this.equals(Item)) {
-            return null;
-        }
-
-        String prefix = getPrefix_fast(barcode);
-        if (prefix != null) {
-            int prefixLength = prefix.length();
-            return barcode.substring(prefixLength, prefixLength + 3);
+        if (hasLabCode) {
+            String prefix = getPrefix_fast(barcode);
+            if (prefix != null) {
+                int prefixLength = prefix.length();
+                return barcode.substring(prefixLength, prefixLength + 3);
+            }
         }
 
         return null;
     }
 
     public static String getPrefix(String barcode) {
-        if (barcode == null) {
-            return null;
-        }
-
-        for(BarcodeType barcodeType : BarcodeType.values()) {
-            if (barcodeType.base32Prefix != null && barcode.startsWith(barcodeType.base32Prefix)) {
-                return barcodeType.base32Prefix;
-            } else if (barcodeType.base64Prefix != null && barcode.startsWith(barcodeType.base64Prefix)) {
-                return barcodeType.base64Prefix;
-            } else if (barcodeType.otherPrefixes != null) {
-                for (String prefix : barcodeType.otherPrefixes) {
-                    if (barcode.startsWith(prefix)) {
-                        return prefix;
+        if (barcode != null) {
+            for (BarcodeType barcodeType : BarcodeType.values()) {
+                if (barcodeType.base32Prefix != null && barcode.startsWith(barcodeType.base32Prefix)) {
+                    return barcodeType.base32Prefix;
+                } else if (barcodeType.base64Prefix != null && barcode.startsWith(barcodeType.base64Prefix)) {
+                    return barcodeType.base64Prefix;
+                } else if (barcodeType.otherPrefixes != null) {
+                    for (String prefix : barcodeType.otherPrefixes) {
+                        if (barcode.startsWith(prefix)) {
+                            return prefix;
+                        }
                     }
                 }
             }
@@ -132,18 +147,16 @@ public enum BarcodeType {
     }
 
     private String getPrefix_fast(String barcode) {
-        if (barcode == null) {
-            return null;
-        }
-
-        if (base32Prefix != null && barcode.startsWith(base32Prefix)) {
-            return base32Prefix;
-        } else if (base64Prefix != null && barcode.startsWith(base64Prefix)) {
-            return base64Prefix;
-        } else if (otherPrefixes != null) {
-            for (String prefix : otherPrefixes) {
-                if (barcode.startsWith(prefix)) {
-                    return prefix;
+        if (barcode != null) {
+            if (base32Prefix != null && barcode.startsWith(base32Prefix)) {
+                return base32Prefix;
+            } else if (base64Prefix != null && barcode.startsWith(base64Prefix)) {
+                return base64Prefix;
+            } else if (otherPrefixes != null) {
+                for (String prefix : otherPrefixes) {
+                    if (barcode.startsWith(prefix)) {
+                        return prefix;
+                    }
                 }
             }
         }
@@ -172,19 +185,17 @@ public enum BarcodeType {
     }
 
     public static BarcodeType getBarcodeType(String barcode) {
-        if (barcode == null) {
-            return Invalid;
-        }
-
-        for(BarcodeType barcodeType : BarcodeType.values()) {
-            if (barcodeType.base32Prefix != null && barcode.startsWith(barcodeType.base32Prefix)) {
-                return barcodeType;
-            } else if (barcodeType.base64Prefix != null && barcode.startsWith(barcodeType.base64Prefix)) {
-                return barcodeType;
-            } else if (barcodeType.otherPrefixes != null) {
-                for (String prefix : barcodeType.otherPrefixes) {
-                    if (barcode.startsWith(prefix)) {
-                        return barcodeType;
+        if (barcode != null) {
+            for (BarcodeType barcodeType : BarcodeType.values()) {
+                if (barcodeType.base32Prefix != null && barcode.startsWith(barcodeType.base32Prefix)) {
+                    return barcodeType;
+                } else if (barcodeType.base64Prefix != null && barcode.startsWith(barcodeType.base64Prefix)) {
+                    return barcodeType;
+                } else if (barcodeType.otherPrefixes != null) {
+                    for (String prefix : barcodeType.otherPrefixes) {
+                        if (barcode.startsWith(prefix)) {
+                            return barcodeType;
+                        }
                     }
                 }
             }
@@ -194,13 +205,11 @@ public enum BarcodeType {
     }
 
     public static boolean getIsBase32(String barcode) {
-        if (barcode == null) {
-            return false;
-        }
-
-        for (BarcodeType barcodeType : BarcodeType.values()) {
-            if (barcodeType.getIsBase32_fast(barcode)) {
-                return true;
+        if (barcode != null) {
+            for (BarcodeType barcodeType : BarcodeType.values()) {
+                if (barcodeType.getIsBase32_fast(barcode)) {
+                    return true;
+                }
             }
         }
 
@@ -236,13 +245,11 @@ public enum BarcodeType {
     }
 
     public static boolean getIsBase64(String barcode) {
-        if (barcode == null) {
-            return false;
-        }
-
-        for(BarcodeType barcodeType : BarcodeType.values()) {
-            if (barcodeType.getIsBase64_fast(barcode)) {
-                return true;
+        if (barcode != null) {
+            for (BarcodeType barcodeType : BarcodeType.values()) {
+                if (barcodeType.getIsBase64_fast(barcode)) {
+                    return true;
+                }
             }
         }
 

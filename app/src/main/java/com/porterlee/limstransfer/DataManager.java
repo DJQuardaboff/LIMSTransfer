@@ -9,7 +9,6 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Environment;
-import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.porterlee.plcscanners.AbstractScanner;
@@ -44,6 +43,7 @@ public class DataManager {
     private SharedPreferences mSharedPreferences;
     private Transfer mCurrentTransfer;
     private Analyst mCurrentAnalyst;
+    private boolean mIsCurrentLocationAnalyst;
     private Runnable mOnCurrentTransferChangedListener;
     private boolean mIsShowingDialog;
     private boolean mIsShowingModalDialog;
@@ -67,7 +67,8 @@ public class DataManager {
 
     private void showDialog0(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener, AbstractScanner.OnBarcodeScannedListener onBarcodeScannedListener, final boolean disableScanner) {
         if (dialog == null || mIsShowingDialog) {
-            onDismissListener.onDismiss(null);
+            if (onDismissListener != null)
+                onDismissListener.onDismiss(null);
             return;
         }
         setIsShowingDialog(true);
@@ -167,6 +168,14 @@ public class DataManager {
         return mCurrentAnalyst;
     }
 
+    public boolean isAnalystBarcode(String barcode) {
+        String barcodePrefix = BarcodeType.getLocationCustodyOf(barcode);
+        return barcodePrefix != null && mTransferDatabase.select_count_from_analystNameTable_where_analystName_equals(barcodePrefix) > 0;
+    }
+    public boolean isCurrentLocationAnalyst() {
+        return mIsCurrentLocationAnalyst;
+    }
+
     public boolean cancelCurrentTransfer() {
         final boolean success = mTransferDatabase.update_transferTable_set_canceled_equalTo_where_id_equals(true, getCurrentTransferId()) > 0;
         if (success)
@@ -183,21 +192,12 @@ public class DataManager {
 
     private void updateCurrentTransfer(Transfer transfer) {
         mCurrentTransfer = transfer;
-        if (transfer != null && transfer.locationBarcode != null) {
-            String analystId = BarcodeType.getAnalystId(transfer.locationBarcode);
-            if (analystId != null) {
-                try {
-                    mCurrentAnalyst = getAnalyst(Utils.SHA1(analystId));
-                } catch (NoSuchAlgorithmException e) {
-                    Log.e(TAG, "\"SHA-1\" algorithm not found");
-                    e.printStackTrace();
-                } catch (UnsupportedEncodingException e) {
-                    Log.e(TAG, "\"US-ASCII\" charset not found");
-                    e.printStackTrace();
-                }
-            } else {
-                mCurrentAnalyst = null;
-            }
+        if (transfer != null && transfer.locationBarcode != null && BarcodeType.Location.isOfType(transfer.locationBarcode) && isAnalystBarcode(transfer.locationBarcode)) {
+            mIsCurrentLocationAnalyst = true;
+            mCurrentAnalyst = getAnalyst(BarcodeType.getLocationCustodyOf(transfer.locationBarcode));
+        } else {
+            mIsCurrentLocationAnalyst = false;
+            mCurrentAnalyst = null;
         }
         if (mOnCurrentTransferChangedListener != null)
             mOnCurrentTransferChangedListener.run();
@@ -346,6 +346,91 @@ public class DataManager {
     public long newTransfer(@NotNull String locationBarcode) {
         updateCurrentTransfer(new Transfer(mTransferDatabase.insert_locationBarcode_into_transferTable(locationBarcode), false, false, false, locationBarcode));
         return mCurrentTransfer.id;
+    }
+
+    public void loadAnalysts() {
+        /*
+        //new WeakAsyncTask<>(readFileTaskListeners).execute();
+        LineNumberReader lineReader = null;
+        try {
+            lineReader = new LineNumberReader(new FileReader(INPUT_FILE));
+            String line;
+            String[] elements;
+            long currentLocationId = -1;
+
+            mDatabase.beginTransaction();
+
+            while ((line = lineReader.readLine()) != null) {
+                elements = line.split("((?<!\\|)(\\|)(?!\\|))");
+
+                for (int i = 0; i < elements.length; i++) {
+                    elements[i] = elements[i].replaceAll("(^\")|(\"$)", "").replace("\"\"", "\"").replace("||", "|");
+                }
+
+                if (elements.length > 0) {
+                    GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.bindString(1, elements[1]);
+                    GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.bindString(1, elements[1]);
+                    if (Location.isOfType(elements[1]) ? !(GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.simpleQueryForLong() > 0) : !(GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.simpleQueryForLong() > 0)) {
+                        if (elements.length == 3 && elements[0].equals("L")) {
+                            //System.out.println("Location: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\'");
+                            currentLocationId = addPreloadLocation(elements[1], elements[2]);
+                            if (currentLocationId == -1)
+                                throw new SQLException(String.format(Locale.US, "Error adding location \"%s\" from line %d", elements[1], lineReader.getLineNumber()));
+                        } else if (elements.length == 4 && elements[0].equals(CASE_CONTAINER)) {
+                            //System.out.println("Case-Container: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\', case-number = \'" + elements[3] + "\'");
+                            if (addPreloadItem(currentLocationId, elements[1], elements[3], "", "", elements[2], ItemTable.ItemType.CASE_CONTAINER) < 0)
+                                throw new SQLiteException(String.format(Locale.US, "Error adding case-container \"%s\" from line %d", elements[1], lineReader.getLineNumber()));
+                        } else if (elements.length == 3 && elements[0].equals(BULK_CONTAINER)) {
+                            //System.out.println("Bulk-Container: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\'");
+                            if (addPreloadItem(currentLocationId, elements[1], "", "", "", elements[2], BULK_CONTAINER) < 0)
+                                throw new SQLiteException(String.format(Locale.US, "Error adding bulk-container \"%s\" from line %d", elements[1], lineReader.getLineNumber()));
+                        } else if (!BuildConfig.is_LAM_system && elements.length == 6 && elements[0].equals(ITEM)) {
+                            //System.out.println("Item: barcode = \'" + elements[1] + "\', case-number = \'" + elements[2] + "\', item-number = \'" + elements[3] + "\', package = \'" + elements[4] + "\', description = \'" + elements[5] + "\'");
+                            if (addPreloadItem(currentLocationId, elements[1], elements[2], elements[3], elements[4], elements[5], ItemTable.ItemType.ITEM) < 0)
+                                throw new SQLiteException(String.format(Locale.US, "Error adding item \"%s\" from line %d", elements[1], lineReader.getLineNumber()));
+                        } else if (BuildConfig.is_LAM_system && elements.length == 3 && elements[0].equals(CHEM_ITEM)) {
+                            //System.out.println("Chem-Item: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\'");
+                            if (addPreloadItem(currentLocationId, elements[1], "", "", "", elements[2], ItemTable.ItemType.CHEM_ITEM) < 0)
+                                throw new SQLiteException(String.format(Locale.US, "Error adding chem-item \"%s\" from line %d", elements[1], lineReader.getLineNumber()));
+                        } else {
+                            if ("L".equals(elements[0]) || CASE_CONTAINER.equals(elements[0]) || BULK_CONTAINER.equals(elements[0]) || (!BuildConfig.is_LAM_system && ITEM.equals(elements[0])) || (BuildConfig.is_LAM_system && CHEM_ITEM.equals(elements[0]))) {
+                                throw new ParseException("Incorrect format or number of elements", lineReader.getLineNumber());
+                            } else if (BuildConfig.is_LAM_system && ITEM.equals(elements[0])) {
+                                throw new ParseException("LIMS item encountered in LAM preload data", lineReader.getLineNumber());
+                            } else if (!BuildConfig.is_LAM_system && CHEM_ITEM.equals(elements[0])) {
+                                throw new ParseException("LAM item encountered in LIMS preload data", lineReader.getLineNumber());
+                            } else {
+                                throw new ParseException(String.format("Identifier \"%s\" not recognised", elements[0]), lineReader.getLineNumber());
+                            }
+                        }
+                    }
+                } else if (lineReader.getLineNumber() < 2)
+                    throw new ParseException("Blank file", lineReader.getLineNumber());
+            }
+
+            mDatabase.setTransactionSuccessful();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+            startActivity(new Intent(PreloadInventoryActivity.this, PreloadLocationsActivity.class));
+            finish();
+            toastShort("There was an error parsing the file");
+        } finally {
+            if (lineReader != null) {
+                try {
+                    lineReader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (mDatabase.inTransaction())
+                mDatabase.endTransaction();
+        }
+        */
     }
 
     public void signCurrentTransfer(final Context context, Bitmap bitmap, final Transfer transfer, final Utils.DetailedOnFinishListener onFinishListener) {
@@ -515,12 +600,25 @@ public class DataManager {
         });
     }
 
-    private Analyst getAnalyst(String analystIdSha1) {
+    private Analyst getAnalyst(String analystId) {
+        if (analystId == null) return null;
+        String analystIdSha1 = null;
+        try {
+            analystIdSha1 = Utils.SHA1(analystId);
+        } catch (NoSuchAlgorithmException e) {
+            Log.e(TAG, "\"SHA-1\" algorithm not found");
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            Log.e(TAG, "\"US-ASCII\" charset not found");
+            e.printStackTrace();
+        }
+        if (analystIdSha1 == null) return null;
+
         final Cursor cursor = mTransferDatabase.getDatabase().query(TransferDatabase.AnalystTable.NAME, new String[] { TransferDatabase.Key.ID, TransferDatabase.Key.ANALYST_ID_SHA_1, TransferDatabase.Key.ANALYST_PASSWORD_SHA_1, TransferDatabase.Key.ANALYST_DESCRIPTION }, TransferDatabase.Key.ANALYST_ID_SHA_1 + " = ?", new String[] { analystIdSha1 }, null, null, null, "1");
         if (cursor.getCount() <= 0)
             return null;
         cursor.moveToFirst();
-        Analyst temp = new Analyst(cursor.getLong(cursor.getColumnIndex(TransferDatabase.Key.ID)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_ID_SHA_1)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_PASSWORD_SHA_1)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_DESCRIPTION)));
+        Analyst temp = new Analyst(cursor.getLong(cursor.getColumnIndex(TransferDatabase.Key.ID)), analystId, cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_PASSWORD_SHA_1)), cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.ANALYST_DESCRIPTION)));
         cursor.close();
         return temp;
     }
@@ -572,19 +670,19 @@ public class DataManager {
     public static class Analyst {
         public final long id;
         public final String analystId;
-        public final String password;
+        public final String passwordSha1;
         public final String analystDescription;
 
-        private Analyst(long id, @NonNull String analystId, @NonNull String password, @NonNull String analystDescription) {
+        private Analyst(long id, String analystId, String passwordSha1, String analystDescription) {
             this.id = id;
             this.analystId = analystId;
-            this.password = password;
+            this.passwordSha1 = passwordSha1;
             this.analystDescription = analystDescription;
         }
 
         public boolean verifyAnalystLogin(String password) {
             try {
-                return password.equals(Utils.SHA1(analystId + password));
+                return passwordSha1.equals(Utils.SHA1(analystId + password));
             } catch (NoSuchAlgorithmException e) {
                 Log.e(TAG, "\"SHA-1\" algorithm not found");
                 e.printStackTrace();

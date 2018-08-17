@@ -32,31 +32,31 @@ public enum BarcodeType {
         return otherPrefixes;
     }
 
-    public static String getAnalystId(String barcode) {
+    public static String getLocationName(String barcode) {
         BarcodeType barcodeType = getBarcodeType(barcode);
 
         if (barcodeType.equals(Location)) {
-            return barcodeType.getAnalystId_fast(barcode);
+            return barcodeType.getLocationName_fast(barcode);
         }
 
         return null;
     }
 
-    private String getAnalystId_fast(String barcode) {
+    private String getLocationName_fast(String barcode) {
         return barcode != null ? barcode.substring(5, 13).trim() : null;
     }
 
-    public static String getLocationPrefix(String barcode) {
+    public static String getLocationCustodyOf(String barcode) {
         BarcodeType barcodeType = getBarcodeType(barcode);
 
         if (barcodeType.equals(Location)) {
-            return barcodeType.getLocationPrefix_fast(barcode);
+            return barcodeType.getLocationCustodyOf_fast(barcode);
         }
 
         return null;
     }
 
-    private String getLocationPrefix_fast(String barcode) {
+    private String getLocationCustodyOf_fast(String barcode) {
         return barcode != null ? barcode.substring(1, 5).trim() : null;
     }
 

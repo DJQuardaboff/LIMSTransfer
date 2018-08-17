@@ -4,6 +4,7 @@ import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteCantOpenDatabaseException;
+import android.graphics.ImageFormat;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.support.annotation.NonNull;
@@ -11,6 +12,7 @@ import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.AppCompatCheckBox;
 import android.support.v7.widget.AppCompatEditText;
 import android.support.v7.widget.AppCompatImageButton;
 import android.support.v7.widget.AppCompatTextView;
@@ -140,10 +142,6 @@ public class TransferActivity extends AppCompatActivity {
         });
     }
 
-    private void loadAnalysts() {
-
-    }
-
     public void openSetupDialog() {
         AlertDialog tempAlertDialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.text_setup_title)
@@ -154,8 +152,7 @@ public class TransferActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {
                         toastShort("Setup canceled");
                     }
-                })
-                .setCancelable(false)
+                }).setCancelable(false)
                 .create();
 
         tempAlertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
@@ -163,13 +160,22 @@ public class TransferActivity extends AppCompatActivity {
                     public void onShow(DialogInterface dialog) {
                         final AlertDialog alertDialog = (AlertDialog) dialog;
                         final Button buttonSave = alertDialog.getButton(DialogInterface.BUTTON_POSITIVE);
+                        final AppCompatCheckBox checkBoxRequiresStartupLogin = alertDialog.findViewById(R.id.switch_requires_startup_login);
+                        final AppCompatCheckBox checkBoxRequiresAnalystLogin = alertDialog.findViewById(R.id.switch_requires_analyst_login);
+                        final AppCompatCheckBox checkBoxRequiresSignature = alertDialog.findViewById(R.id.switch_requires_signature);
+                        checkBoxRequiresStartupLogin.setChecked(mDataManager.requiresStartupLogin());
+                        checkBoxRequiresStartupLogin.jumpDrawablesToCurrentState();
+                        checkBoxRequiresAnalystLogin.setChecked(mDataManager.requiresAnalystLogin());
+                        checkBoxRequiresAnalystLogin.jumpDrawablesToCurrentState();
+                        checkBoxRequiresSignature.setChecked(mDataManager.requiresSignature());
+                        checkBoxRequiresSignature.jumpDrawablesToCurrentState();
 
                         buttonSave.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                mDataManager.setRequiresStartupLogin(alertDialog.<SwitchCompat>findViewById(R.id.switch_requires_startup_login).isChecked());
-                                mDataManager.setRequiresAnalystLogin(alertDialog.<SwitchCompat>findViewById(R.id.switch_requires_analyst_login).isChecked());
-                                mDataManager.setRequiresSignature(alertDialog.<SwitchCompat>findViewById(R.id.switch_requires_signature).isChecked());
+                                mDataManager.setRequiresStartupLogin(checkBoxRequiresStartupLogin.isChecked());
+                                mDataManager.setRequiresAnalystLogin(checkBoxRequiresAnalystLogin.isChecked());
+                                mDataManager.setRequiresSignature(checkBoxRequiresSignature.isChecked());
                                 alertDialog.dismiss();
                             }
                         });
@@ -246,7 +252,8 @@ public class TransferActivity extends AppCompatActivity {
                         if (onFinishListener != null)
                             onFinishListener.onFinish(false);
                     }
-                }).create();
+                }).setCancelable(false)
+                .create();
 
         tempAlertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
@@ -495,14 +502,22 @@ public class TransferActivity extends AppCompatActivity {
                     };
 
                     if (mDataManager.requiresAnalystLogin()) {
-                        openAnalystLoginDialog(new Utils.OnFinishListener() {
-                            @Override
-                            public void onFinish(boolean success) {
-                                if (success) {
-                                    runOnUiThread(sign);
-                                }
+                        if (mDataManager.isCurrentLocationAnalyst()) {
+                            if (mDataManager.getCurrentAnalyst() != null) {
+                                openAnalystLoginDialog(new Utils.OnFinishListener() {
+                                    @Override
+                                    public void onFinish(boolean success) {
+                                        if (success) {
+                                            runOnUiThread(sign);
+                                        }
+                                    }
+                                });
+                            } else {
+                                toastShort("Update analysts");
                             }
-                        });
+                        } else {
+                            runOnUiThread(sign);
+                        }
                     } else {
                         runOnUiThread(sign);
                     }
@@ -532,7 +547,7 @@ public class TransferActivity extends AppCompatActivity {
                 if (mDataManager.isSaving()) {
                     toastShort("Cannot load analysts while saving");
                 } else {
-                    loadAnalysts();
+                    mDataManager.loadAnalysts();
                 }
                 return true;
             case R.id.menu_open_setup_dialog:

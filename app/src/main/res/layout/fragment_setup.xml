@@ -8,25 +8,26 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="16dp"
-    android:layout_marginEnd="16dp">
+    android:paddingTop="8dp"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp">
 
-    <android.support.v7.widget.SwitchCompat
+    <android.support.v7.widget.AppCompatCheckBox
         android:id="@+id/switch_requires_startup_login"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="wrap_content"
         android:text="@string/text_require_startup_login"/>
 
-    <android.support.v7.widget.SwitchCompat
+    <android.support.v7.widget.AppCompatCheckBox
         android:id="@+id/switch_requires_analyst_login"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="wrap_content"
         android:text="@string/text_require_analyst_password"/>
 
-    <android.support.v7.widget.SwitchCompat
+    <android.support.v7.widget.AppCompatCheckBox
         android:id="@+id/switch_requires_signature"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="wrap_content"
         android:text="@string/text_require_startup_login"/>
 
 </LinearLayout>

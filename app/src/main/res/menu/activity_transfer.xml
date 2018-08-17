@@ -6,7 +6,13 @@
     <item
         android:id="@+id/menu_finalize"
         android:title="@string/action_finalize"
-        android:icon="@drawable/ic_finalize"
+        android:icon="@drawable/ic_save"
+        app:showAsAction="always"/>
+
+    <item
+        android:id="@+id/menu_sign"
+        android:title="@string/action_sign"
+        android:icon="@drawable/ic_sign"
         app:showAsAction="ifRoom"/>
 
     <item
@@ -17,16 +23,6 @@
     <item
         android:id="@+id/menu_reset"
         android:title="@string/action_reset"
-        app:showAsAction="never"/>
-
-    <item
-        android:id="@+id/menu_load_analysts"
-        android:title="@string/action_load_analysts"
-        app:showAsAction="never"/>
-
-    <item
-        android:id="@+id/menu_open_setup_dialog"
-        android:title="Open Setup Dialog"
         app:showAsAction="never"/>
 
     <!--item

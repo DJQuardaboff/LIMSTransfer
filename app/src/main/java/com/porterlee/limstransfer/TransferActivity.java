@@ -467,60 +467,22 @@ public class TransferActivity extends AppCompatActivity {
                 } else if (mDataManager.isSaving()) {
                     toastShort("Cannot finalize while saving");
                 } else {
-                    final Runnable finalize = new Runnable() {
-                        @Override
-                        public void run() {
-                            openFinalizeDialog(new Utils.OnFinishListener() {
-                                @Override
-                                public void onFinish(boolean success) {
-                                    if (success) {
-                                        toastShort("Finalized");
-                                    } else {
-                                        toastLong("There was an error finalizing");
-                                    }
-                                }
-                            });
-                        }
-                    };
-
-                    final Runnable sign = new Runnable() {
-                        @Override
-                        public void run() {
-                            if (mDataManager.requiresSignature()) {
-                                openSignDialog(new Utils.OnFinishListener() {
-                                    @Override
-                                    public void onFinish(boolean success) {
-                                        if (success) {
-                                            runOnUiThread(finalize);
-                                        }
-                                    }
-                                });
-                            } else {
-                                runOnUiThread(finalize);
-                            }
-                        }
-                    };
-
-                    if (mDataManager.requiresAnalystLogin()) {
-                        if (mDataManager.isCurrentLocationAnalyst()) {
-                            if (mDataManager.getCurrentAnalyst() != null) {
-                                openAnalystLoginDialog(new Utils.OnFinishListener() {
-                                    @Override
-                                    public void onFinish(boolean success) {
-                                        if (success) {
-                                            runOnUiThread(sign);
-                                        }
-                                    }
-                                });
-                            } else {
-                                toastShort("Update analysts");
-                            }
-                        } else {
-                            runOnUiThread(sign);
-                        }
-                    } else {
-                        runOnUiThread(sign);
-                    }
+                    openFinalizeDialog(null);
+                }
+                return true;
+            case R.id.menu_sign:
+                if (mDataManager.getCurrentTransfer() == null) {
+                    toastShort("Start a transfer first");
+                } else if (mDataManager.getCurrentTransfer().isFinalized()) {
+                    toastShort("Already finalized");
+                } else if (mDataManager.getCurrentTransfer().isCanceled()) {
+                    toastShort("Already canceled");
+                } else if (mDataManager.getItemCount() <= 0) {
+                    toastShort("Scan items first");
+                } else if (mDataManager.isSaving()) {
+                    toastShort("Cannot finalize while saving");
+                } else {
+                    openSignDialog(null);
                 }
                 return true;
             case R.id.menu_cancel:
@@ -542,7 +504,7 @@ public class TransferActivity extends AppCompatActivity {
                 } else {
                     openResetDialog();
                 }
-                return true;
+                return true;/*
             case R.id.menu_load_analysts:
                 if (mDataManager.isSaving()) {
                     toastShort("Cannot load analysts while saving");
@@ -556,7 +518,7 @@ public class TransferActivity extends AppCompatActivity {
                 } else {
                     openSetupDialog();
                 }
-                return true;
+                return true;*/
             /*case R.id.menu_continuous_mode:
                 if (mDataManager.getScanner() != null && mDataManager.getScanner().setScanMode(item.isChecked() ? AbstractScanner.ONE_SHOT_MODE : AbstractScanner.CONTINUOUS_MODE)) {
                     item.setChecked(!item.isChecked());

@@ -20,7 +20,7 @@ public final class TransferDatabase {
     private SQLiteStatement mUpdate_transferTable_set_canceled_equalTo_where_id_equals;
     private SQLiteStatement mUpdate_transferTable_set_canceled_equalTo_where_finalized_equals;
     private SQLiteStatement mDelete_from_transferTable_where_id_equals;
-    private SQLiteStatement mSelect_count_from_analystNameTable_where_analystName_equals;
+    //private SQLiteStatement mSelect_count_from_analystNameTable_where_analystName_equals;
 
     public TransferDatabase(Context context) {
         reinit(context);
@@ -31,8 +31,8 @@ public final class TransferDatabase {
 
         ItemTable.init(mDatabase);
         TransferTable.init(mDatabase);
-        AnalystTable.init(mDatabase);
-        AnalystNameTable.init(mDatabase);
+        //AnalystTable.init(mDatabase);
+        //AnalystNameTable.init(mDatabase);
 
         mSelect_count_from_itemTable_where_transferId_equals = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + Key.TRANSFER_ID + " = ?");
         mSelect_count_from_itemTable_where_transferId_equals_and_barcode_equals = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + Key.TRANSFER_ID + " = ? AND " + Key.BARCODE + " = ?");
@@ -47,7 +47,7 @@ public final class TransferDatabase {
         mUpdate_transferTable_set_canceled_equalTo_where_finalized_equals = mDatabase.compileStatement("UPDATE " + TransferTable.NAME + " SET " + Key.CANCELED + " = ? WHERE " + Key.FINALIZED + " = ?");
         mDelete_from_transferTable_where_id_equals = mDatabase.compileStatement("DELETE FROM " + TransferTable.NAME + " WHERE " + Key.ID + " = ?");
 
-        mSelect_count_from_analystNameTable_where_analystName_equals = mDatabase.compileStatement("SELECT COUNT(*) FROM " + AnalystNameTable.NAME + " WHERE " + TransferDatabase.Key.ANALYST_NAME + " = ?");
+        //mSelect_count_from_analystNameTable_where_analystName_equals = mDatabase.compileStatement("SELECT COUNT(*) FROM " + AnalystNameTable.NAME + " WHERE " + TransferDatabase.Key.ANALYST_NAME + " = ?");
     }
 
     public SQLiteDatabase getDatabase() {
@@ -136,8 +136,7 @@ public final class TransferDatabase {
     }
 
     public synchronized long select_count_from_analystNameTable_where_analystName_equals(String analystName) {
-        mSelect_count_from_analystNameTable_where_analystName_equals.bindString(1, analystName);
-        return mSelect_count_from_analystNameTable_where_analystName_equals.simpleQueryForLong();
+        return 0;
     }
 
     public static class Key {

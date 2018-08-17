@@ -172,6 +172,7 @@ public class DataManager {
         String barcodePrefix = BarcodeType.getLocationCustodyOf(barcode);
         return barcodePrefix != null && mTransferDatabase.select_count_from_analystNameTable_where_analystName_equals(barcodePrefix) > 0;
     }
+
     public boolean isCurrentLocationAnalyst() {
         return mIsCurrentLocationAnalyst;
     }

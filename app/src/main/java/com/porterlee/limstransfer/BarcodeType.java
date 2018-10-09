@@ -3,9 +3,9 @@ package com.porterlee.limstransfer;
 import android.os.Build;
 
 public enum BarcodeType {
-    Item(false, BuildConfig.is_Default_system || BuildConfig.is_EMS_system, BuildConfig.is_LAM_system ? "J" : (BuildConfig.is_EMS_system ? "T" : "E"), BuildConfig.is_LAM_system ? "J" : (BuildConfig.is_EMS_system ? "t1" : "e1")),
-    Container(false, BuildConfig.is_Default_system || BuildConfig.is_LAM_system || BuildConfig.is_EMS_system, BuildConfig.is_EMS_system ? "A" : "M", BuildConfig.is_EMS_system ? "a1" : "m1"),
-    Location(BuildConfig.is_Default_system || BuildConfig.is_LAM_system, false, null, null, BuildConfig.is_EMS_system ? "L5" :"V"),
+    Item(false, BuildConfig.is_Default_system || BuildConfig.is_EMS_system, BuildConfig.is_LAM_system ? "J" : (BuildConfig.is_EMS_system ? "T" : "E"), BuildConfig.is_LAM_system ? "J" : (BuildConfig.is_EMS_system ? "t" : "e1")),
+    Container(false, BuildConfig.is_Default_system || BuildConfig.is_LAM_system || BuildConfig.is_EMS_system, BuildConfig.is_EMS_system ? "A" : "M", BuildConfig.is_EMS_system ? "a" : "m1"),
+    Location(BuildConfig.is_Default_system || BuildConfig.is_LAM_system, false, null, null, BuildConfig.is_EMS_system ? "L" :"V"),
     Invalid(false, false, null, null);
 
     private final boolean hasCustodyOf;

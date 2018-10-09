@@ -37,6 +37,12 @@ public class GeneralTest {
     }
 
     @Test
+    public void separatedValues_test() {
+        String appId = "com.porterlee.ems.transfer";
+        System.out.println(appId.substring(appId.indexOf('.', appId.indexOf('.') + 1) + 1));
+    }
+
+    @Test
     public void csvContainsInt_test() {
         assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 1), true);
         assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 5), true);

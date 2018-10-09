@@ -35,7 +35,7 @@ public class DataManager {
     public static final File SIGNATURES_PATH = new File(EXTERNAL_PATH, "Signatures");
     public static final File OUTPUT_FILE = new File(EXTERNAL_PATH, "transfer.txt");
     public static final String SIGNATURE_FILE_NAME = "signature_%d.png";
-    private static final String OUTPUT_FILE_HEADER = String.format(Locale.US, "%s|%s|%s|v%s|%d", BuildConfig.APPLICATION_ID.split("\\.")[2], BuildConfig.FLAVOR, BuildConfig.BUILD_TYPE, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE);
+    private static final String OUTPUT_FILE_HEADER = String.format(Locale.US, "%s|%s|%s|v%s|%d", BuildConfig.APPLICATION_ID.substring(BuildConfig.APPLICATION_ID.indexOf('.', BuildConfig.APPLICATION_ID.indexOf('.') + 1) + 1), BuildConfig.FLAVOR, BuildConfig.BUILD_TYPE, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE);
     private static final String KEY_REQUIRES_STARTUP_LOGIN = "requires_startup_login";
     private static final String KEY_REQUIRES_ANALYST_PASSWORD = "requires_analyst_password";
     private static final String KEY_REQUIRES_SIGNATURE = "requires_signature";

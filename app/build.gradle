@@ -3,7 +3,6 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 27
     defaultConfig {
-        applicationId "com.porterlee.limstransfer"
         minSdkVersion 17
         targetSdkVersion 27
         versionCode 8
@@ -22,19 +21,20 @@ android {
     }
     flavorDimensions "system", "scanner_sdk"
     productFlavors {
-        Default {
+        LIMS {
             dimension "system"
             resValue "string", "app_name", "LIMS Transfer"
+            applicationId "com.porterlee.lims.transfer"
         }
         LAM {
             dimension "system"
             resValue "string", "app_name", "LAM Transfer"
-            applicationIdSuffix ".lam"
+            applicationId "com.porterlee.lam.transfer"
         }
         EMS {
             dimension "system"
             resValue "string", "app_name", "EMS Transfer"
-            applicationIdSuffix ".ems"
+            applicationId "com.porterlee.ems.transfer"
         }
         janam_XM5 {
             dimension "scanner_sdk"
@@ -61,12 +61,12 @@ android {
         variant ->
             variant.outputs.all {
                 output ->
-                    if (output.baseName.startsWith("LAM")) {
+                    if (output.baseName.startsWith("LIMS")) {
+                        outputFileName = "v${variant.versionName}/LIMSTransfer.apk"
+                    } else if (output.baseName.startsWith("LAM")) {
                         outputFileName = "v${variant.versionName}/LAMTransfer.apk"
                     } else if (output.baseName.startsWith("EMS")) {
                         outputFileName = "v${variant.versionName}/EMSTransfer.apk"
-                    } else {
-                        outputFileName = "v${variant.versionName}/LIMSTransfer.apk"
                     }
             }
     }

@@ -1,11 +1,9 @@
 package com.porterlee.limstransfer;
 
-import android.os.Build;
-
 public enum BarcodeType {
-    Item(false, BuildConfig.is_LIMS_system || BuildConfig.is_EMS_system, BuildConfig.is_LAM_system ? "J" : (BuildConfig.is_EMS_system ? "T" : "E"), BuildConfig.is_LAM_system ? "J" : (BuildConfig.is_EMS_system ? "t" : "e1")),
-    Container(false, BuildConfig.is_LIMS_system || BuildConfig.is_LAM_system || BuildConfig.is_EMS_system, BuildConfig.is_EMS_system ? "A" : "M", BuildConfig.is_EMS_system ? "a" : "m1"),
-    Location(BuildConfig.is_LIMS_system || BuildConfig.is_LAM_system, false, null, null, BuildConfig.is_EMS_system ? "L" :"V"),
+    Item(BuildConfig.typeItem_hasCustodyOf, BuildConfig.typeItem_hasLabCode, BuildConfig.typeItem_base32Prefix, BuildConfig.typeItem_base64Prefix, BuildConfig.typeItem_otherPrefixes),
+    Container(BuildConfig.typeContainer_hasCustodyOf, BuildConfig.typeItem_hasLabCode, BuildConfig.typeContainer_base32Prefix, BuildConfig.typeContainer_base64Prefix, BuildConfig.typeContainer_otherPrefixes),
+    Location(BuildConfig.typeContainer_hasCustodyOf, BuildConfig.typeItem_hasLabCode, BuildConfig.typeContainer_base32Prefix, BuildConfig.typeContainer_base64Prefix, BuildConfig.typeContainer_otherPrefixes),
     Invalid(false, false, null, null);
 
     private final boolean hasCustodyOf;

@@ -69,7 +69,7 @@ android {
         LIMS {}
         LAM {}
         EMS {}
-        QMS {}
+        QM {}
         applicationVariants.all {
             variant ->
                 variant.outputs.all {

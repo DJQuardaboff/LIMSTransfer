@@ -50,7 +50,7 @@ ext {
 
         display_quantity : false
     ]
-    QMS = [
+    QM = [
         typeItem_hasLabCode    : false,
         typeItem_base32Prefix  : null,
         typeItem_base64Prefix  : null,
@@ -62,7 +62,7 @@ ext {
         typeContainer_otherPrefixes : null,
 
         typeLocation_hasCustodyOf  : false,
-        typeLocation_otherPrefixes : ['L'],
+        typeLocation_otherPrefixes : ['L1'],
 
         display_quantity : true
     ]

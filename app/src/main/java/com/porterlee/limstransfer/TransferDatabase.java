@@ -12,6 +12,7 @@ public final class TransferDatabase {
     private SQLiteStatement mSelect_count_from_itemTable_where_transferId_equals;
     private SQLiteStatement mSelect_count_from_itemTable_where_transferId_equals_and_barcode_equals;
     private SQLiteStatement mInsert_transferId_barcode_into_itemTable;
+    private SQLiteStatement mUpdate_itemTable_set_quantity_equalTo_where_id_equals;
     private SQLiteStatement mDelete_from_itemTable_where_id_equals;
     private SQLiteStatement mDelete_from_itemTable_where_transferId_equals;
     private SQLiteStatement mInsert_locationBarcode_into_transferTable;
@@ -37,6 +38,7 @@ public final class TransferDatabase {
         mSelect_count_from_itemTable_where_transferId_equals = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + Key.TRANSFER_ID + " = ?");
         mSelect_count_from_itemTable_where_transferId_equals_and_barcode_equals = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + Key.TRANSFER_ID + " = ? AND " + Key.BARCODE + " = ?");
         mInsert_transferId_barcode_into_itemTable = mDatabase.compileStatement("INSERT INTO " + ItemTable.NAME + " ( " + Key.TRANSFER_ID + ", " + Key.BARCODE + ", " + Key.DATE_TIME + " ) VALUES ( ?, ?, datetime('now', 'localtime') )");
+        mUpdate_itemTable_set_quantity_equalTo_where_id_equals = mDatabase.compileStatement("UPDATE " + ItemTable.NAME + " SET " + Key.QUANTITY + " = ? WHERE " + Key.ID + " = ?");
         mDelete_from_itemTable_where_id_equals = mDatabase.compileStatement("DELETE FROM " + ItemTable.NAME + " WHERE " + Key.ID + " = ?");
         mDelete_from_itemTable_where_transferId_equals = mDatabase.compileStatement("DELETE FROM " + ItemTable.NAME + " WHERE " + Key.TRANSFER_ID + " = ?");
 
@@ -89,6 +91,12 @@ public final class TransferDatabase {
         mInsert_transferId_barcode_into_itemTable.bindLong(1, transferId);
         mInsert_transferId_barcode_into_itemTable.bindString(2, barcode);
         return mInsert_transferId_barcode_into_itemTable.executeInsert();
+    }
+
+    public synchronized long update_itemTable_set_quantity_equalTo_where_id_equals(int quantity, long id) {
+        mUpdate_itemTable_set_quantity_equalTo_where_id_equals.bindLong(1, quantity);
+        mUpdate_itemTable_set_quantity_equalTo_where_id_equals.bindLong(2, id);
+        return mUpdate_itemTable_set_quantity_equalTo_where_id_equals.executeUpdateDelete();
     }
 
     public synchronized long delete_from_itemTable_where_id_equals(long id) {
@@ -146,6 +154,7 @@ public final class TransferDatabase {
         public static final String FINALIZED = "finalized";
         public static final String CANCELED = "canceled";
         public static final String BARCODE = "barcode";
+        public static final String QUANTITY = "quantity";
         public static final String LOCATION_BARCODE = "location_barcode";
         public static final String DATE_TIME = "date_time";
         public static final String START_DATE_TIME = "start_date_time";
@@ -170,7 +179,7 @@ public final class TransferDatabase {
         public static final String NAME = "items";
 
         private static void init(SQLiteDatabase database) {
-            database.execSQL("CREATE TABLE IF NOT EXISTS " + NAME + " ( " + TransferDatabase.Key.ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + TransferDatabase.Key.TRANSFER_ID + " INTEGER NOT NULL, " + TransferDatabase.Key.BARCODE + " TEXT NOT NULL, " + TransferDatabase.Key.DATE_TIME + " DATETIME NOT NULL )");
+            database.execSQL("CREATE TABLE IF NOT EXISTS " + NAME + " ( " + TransferDatabase.Key.ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + TransferDatabase.Key.TRANSFER_ID + " INTEGER NOT NULL, " + TransferDatabase.Key.BARCODE + " TEXT NOT NULL, " + TransferDatabase.Key.QUANTITY + " INTEGER NOT NULL DEFAULT 1, " + TransferDatabase.Key.DATE_TIME + " DATETIME NOT NULL )");
             database.execSQL("CREATE INDEX IF NOT EXISTS " + Index.ITEMS_TRANSFER_ID_INDEX + " ON " + NAME + " ( " + TransferDatabase.Key.TRANSFER_ID + " )");
             database.execSQL("CREATE INDEX IF NOT EXISTS " + Index.ITEMS_BARCODE_INDEX + " ON " + NAME + " ( " + TransferDatabase.Key.BARCODE + " )");
         }
@@ -179,6 +188,7 @@ public final class TransferDatabase {
             public static final String ID = NAME + "." + TransferDatabase.Key.ID;
             public static final String TRANSFER_ID = NAME + "." + TransferDatabase.Key.TRANSFER_ID;
             public static final String BARCODE = NAME + "." + TransferDatabase.Key.BARCODE;
+            public static final String QUANTITY = NAME + "." + TransferDatabase.Key.QUANTITY;
             public static final String DATE_TIME = NAME + "." + TransferDatabase.Key.DATE_TIME;
         }
     }

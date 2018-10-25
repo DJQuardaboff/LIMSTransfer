@@ -147,7 +147,7 @@ public class DataManager {
     }
 
     private Utils.QueryHolder getCurrentTransferRowItemQuery() {
-        return new Utils.QueryHolder(mTransferDatabase.getDatabase(), "SELECT " + TransferDatabase.Key.BARCODE + ", " + TransferDatabase.Key.DATE_TIME + " FROM " + TransferDatabase.ItemTable.NAME + " WHERE " + TransferDatabase.Key.TRANSFER_ID + " = ? ORDER BY " + TransferDatabase.Key.ID, String.valueOf(getCurrentTransferId()));
+        return new Utils.QueryHolder(mTransferDatabase.getDatabase(), "SELECT " + TransferDatabase.Key.BARCODE + ", " + TransferDatabase.Key.QUANTITY + ", " + TransferDatabase.Key.DATE_TIME + " FROM " + TransferDatabase.ItemTable.NAME + " WHERE " + TransferDatabase.Key.TRANSFER_ID + " = ? ORDER BY " + TransferDatabase.Key.ID, String.valueOf(getCurrentTransferId()));
     }
 
     private Transfer getLastUnfinishedTransfer() {
@@ -315,6 +315,10 @@ public class DataManager {
         return id < 0 ? -1 : (int) mTransferDatabase.select_count_from_itemTable_where_transferId_equals(id);
     }
 
+    public boolean updateQuantity(long itemId, int quantity) {
+        return mTransferDatabase.update_itemTable_set_quantity_equalTo_where_id_equals(quantity, itemId) > 0;
+    }
+
     public long insertItem(String itemBarcode) {
         return mTransferDatabase.insert_transferId_barcode_into_itemTable(getCurrentTransferId(), itemBarcode);
     }
@@ -324,7 +328,7 @@ public class DataManager {
     }
 
     public Cursor getItemListCursor() {
-        return mTransferDatabase.getDatabase().query(TransferDatabase.ItemTable.NAME, new String[] { TransferDatabase.Key.ID, TransferDatabase.Key.TRANSFER_ID, TransferDatabase.Key.BARCODE }, TransferDatabase.Key.TRANSFER_ID + " = ?", new String[] { String.valueOf(getCurrentTransferId()) }, null, null, TransferDatabase.Key.ID + " DESC");
+        return mTransferDatabase.getDatabase().query(TransferDatabase.ItemTable.NAME, new String[] { TransferDatabase.Key.ID, TransferDatabase.Key.TRANSFER_ID, TransferDatabase.Key.BARCODE, TransferDatabase.Key.QUANTITY }, TransferDatabase.Key.TRANSFER_ID + " = ?", new String[] { String.valueOf(getCurrentTransferId()) }, null, null, TransferDatabase.Key.ID + " DESC");
     }
     /*
     public long deleteCurrentTransfer() {
@@ -548,6 +552,7 @@ public class DataManager {
                 Cursor itemCursor = itemQuery.query();
                 itemCursor.moveToFirst();
                 int itemBarcodeIndex = itemCursor.getColumnIndex(TransferDatabase.Key.BARCODE);
+                int itemQuantityIndex = itemCursor.getColumnIndex(TransferDatabase.Key.QUANTITY);
                 int itemDateTimeIndex = itemCursor.getColumnIndex(TransferDatabase.Key.DATE_TIME);
 
                 try {
@@ -574,7 +579,11 @@ public class DataManager {
                             updateNum++;
                         }
 
-                        printStream.printf("\"%s\"|\"%d\"|\"%s\"\r\n", itemCursor.getString(itemBarcodeIndex).replace("\"", "\"\""), transferCursor.getLong(transferIdIndex), itemCursor.getString(itemDateTimeIndex).replace("-", "/"));
+                        if (BuildConfig.display_quantity) {
+                            printStream.printf("\"%s\"|\"%d\"|\"%d\"|\"%s\"\r\n", itemCursor.getString(itemBarcodeIndex).replace("\"", "\"\""), itemCursor.getLong(itemQuantityIndex), transferCursor.getLong(transferIdIndex), itemCursor.getString(itemDateTimeIndex).replace("-", "/"));
+                        } else {
+                            printStream.printf("\"%s\"|\"%d\"|\"%s\"\r\n", itemCursor.getString(itemBarcodeIndex).replace("\"", "\"\""), transferCursor.getLong(transferIdIndex), itemCursor.getString(itemDateTimeIndex).replace("-", "/"));
+                        }
                         printStream.flush();
 
                         itemCursor.moveToNext();

@@ -1,10 +1,11 @@
 package com.porterlee.limstransfer;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteCantOpenDatabaseException;
-import android.graphics.ImageFormat;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.support.annotation.NonNull;
@@ -20,16 +21,19 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.SwitchCompat;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.gcacace.signaturepad.views.SignaturePad;
@@ -667,6 +671,18 @@ public class TransferActivity extends AppCompatActivity {
         /*this.<AppCompatButton>findViewById(R.id.test_button).setOnClickListener(v -> {
 
         });*/
+        final SoftKeyboardHandledConstraintLayout softKeyboardHandler = findViewById(R.id.transfer_layout);
+        softKeyboardHandler.setOnSoftKeyboardVisibilityChangeListener(new SoftKeyboardHandledConstraintLayout.SoftKeyboardVisibilityChangeListener() {
+            @Override
+            public void onSoftKeyboardShow() { }
+
+            @Override
+            public void onSoftKeyboardHide() {
+                final View view = getCurrentFocus();
+                if (view  != null)
+                    view.clearFocus();
+            }
+        });
     }
 
     private void toastShort(final String message) {
@@ -745,9 +761,10 @@ public class TransferActivity extends AppCompatActivity {
     private class TransferItemViewHolder extends RecyclerView.ViewHolder {
         private long id;
         private String barcode;
+        private int quantity;
 
         public TransferItemViewHolder(ViewGroup parent) {
-            super(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_transfer, parent, false));
+            super(LayoutInflater.from(parent.getContext()).inflate(BuildConfig.display_quantity ? R.layout.item_quantity_transfer : R.layout.item_transfer, parent, false));
             final AppCompatImageButton expandedMenuButton = itemView.findViewById(R.id.button_menu);
             expandedMenuButton.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -780,11 +797,47 @@ public class TransferActivity extends AppCompatActivity {
                     popup.show();
                 }
             });
+            if (BuildConfig.display_quantity) {
+                final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
+                quantityEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                    @Override
+                    public void onFocusChange(View v, boolean hasFocus) {
+                        if (hasFocus) {
+                            quantityEditText.selectAll();
+                        } else {
+                            quantityEditText.setText(String.valueOf(quantity));
+                        }
+                    }
+                });
+                quantityEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                    @Override
+                    public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                        if (actionId== EditorInfo.IME_ACTION_DONE) {
+                            try {
+                                int inputQuantity = Integer.parseInt(quantityEditText.getText().toString());
+                                if (mDataManager.updateQuantity(id, inputQuantity)) {
+                                    quantity = inputQuantity;
+                                    refreshItemRecyclerAdapter();
+                                } else {
+                                    quantityEditText.setText(String.valueOf(quantity));
+                                }
+                            } catch(NumberFormatException e) {
+                                quantityEditText.setText(String.valueOf(quantity));
+                            }
+                            quantityEditText.clearFocus();
+                            InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                            imm.hideSoftInputFromWindow(quantityEditText.getWindowToken(), 0);
+                        }
+                        return false;
+                    }
+                });
+            }
         }
 
         public void bindViews(final Cursor cursor, final boolean isSelected) {
             id = cursor.getLong(cursor.getColumnIndexOrThrow(TransferDatabase.Key.ID));
             barcode = cursor.getString(cursor.getColumnIndexOrThrow(TransferDatabase.Key.BARCODE));
+            quantity = (int) cursor.getLong(cursor.getColumnIndexOrThrow(TransferDatabase.Key.QUANTITY));
             final AppCompatTextView textBarcode = itemView.findViewById(R.id.text_barcode);
             textBarcode.setTypeface(null, isSelected ? Typeface.BOLD : Typeface.NORMAL);
             textBarcode.setText(barcode);
@@ -793,6 +846,12 @@ public class TransferActivity extends AppCompatActivity {
                 itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.item_color_yellow, null));
             } else {
                 itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.item_color_white, null));
+            }
+
+            if (BuildConfig.display_quantity) {
+                final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
+                quantityEditText.setText(cursor.getString(cursor.getColumnIndexOrThrow(TransferDatabase.Key.QUANTITY)));
+                quantityEditText.clearFocus();
             }
         }
     }

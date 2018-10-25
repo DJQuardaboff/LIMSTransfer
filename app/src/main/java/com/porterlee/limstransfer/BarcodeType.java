@@ -2,8 +2,8 @@ package com.porterlee.limstransfer;
 
 public enum BarcodeType {
     Item(BuildConfig.typeItem_hasCustodyOf, BuildConfig.typeItem_hasLabCode, BuildConfig.typeItem_base32Prefix, BuildConfig.typeItem_base64Prefix, BuildConfig.typeItem_otherPrefixes),
-    Container(BuildConfig.typeContainer_hasCustodyOf, BuildConfig.typeItem_hasLabCode, BuildConfig.typeContainer_base32Prefix, BuildConfig.typeContainer_base64Prefix, BuildConfig.typeContainer_otherPrefixes),
-    Location(BuildConfig.typeContainer_hasCustodyOf, BuildConfig.typeItem_hasLabCode, BuildConfig.typeContainer_base32Prefix, BuildConfig.typeContainer_base64Prefix, BuildConfig.typeContainer_otherPrefixes),
+    Container(BuildConfig.typeContainer_hasCustodyOf, BuildConfig.typeContainer_hasLabCode, BuildConfig.typeContainer_base32Prefix, BuildConfig.typeContainer_base64Prefix, BuildConfig.typeContainer_otherPrefixes),
+    Location(BuildConfig.typeLocation_hasCustodyOf, BuildConfig.typeLocation_hasLabCode, BuildConfig.typeLocation_base32Prefix, BuildConfig.typeLocation_base64Prefix, BuildConfig.typeLocation_otherPrefixes),
     Invalid(false, false, null, null);
 
     private final boolean hasCustodyOf;
@@ -185,9 +185,9 @@ public enum BarcodeType {
     public static BarcodeType getBarcodeType(String barcode) {
         if (barcode != null) {
             for (BarcodeType barcodeType : BarcodeType.values()) {
-                if (barcodeType.base32Prefix != null && barcode.startsWith(barcodeType.base32Prefix)) {
+                if (barcodeType.base32Prefix != null && barcode.startsWith(barcodeType.base32Prefix) && barcodeType.getIsBase32_fast(barcode)) {
                     return barcodeType;
-                } else if (barcodeType.base64Prefix != null && barcode.startsWith(barcodeType.base64Prefix)) {
+                } else if (barcodeType.base64Prefix != null && barcode.startsWith(barcodeType.base64Prefix) && barcodeType.getIsBase64_fast(barcode)) {
                     return barcodeType;
                 } else if (barcodeType.otherPrefixes != null) {
                     for (String prefix : barcodeType.otherPrefixes) {

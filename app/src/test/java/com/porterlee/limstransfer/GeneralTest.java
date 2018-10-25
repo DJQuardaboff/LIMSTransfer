@@ -39,7 +39,9 @@ public class GeneralTest {
     @Test
     public void separatedValues_test() {
         String appId = "com.porterlee.ems.transfer";
-        System.out.println(appId.substring(appId.indexOf('.', appId.indexOf('.') + 1) + 1));
+        String expected = "ems.transfer";
+        String actual = appId.substring(appId.indexOf('.', appId.indexOf('.') + 1) + 1);
+        assertEquals(expected, actual);
     }
 
     @Test

@@ -1,8 +1,5 @@
 ext {
-    cool = true
     LIMS = [
-        //outputFileName = "v${versionName}/LIMSTransfer.apk"
-
         typeItem_hasLabCode    : true,
         typeItem_base32Prefix  : 'E',
         typeItem_base64Prefix  : 'e1',

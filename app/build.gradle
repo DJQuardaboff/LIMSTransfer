@@ -44,7 +44,7 @@ android {
             flavor.buildConfigField 'boolean',  'typeItem_hasLabCode', flavorData.typeItem_hasLabCode ? 'true' : 'false'
             flavor.buildConfigField 'String',   'typeItem_base32Prefix', flavorData.typeItem_base32Prefix ? "\"${flavorData.typeItem_base32Prefix}\"" : 'null'
             flavor.buildConfigField 'String',   'typeItem_base64Prefix', flavorData.typeItem_base64Prefix ? "\"${flavorData.typeItem_base64Prefix}\"" : 'null'
-            flavor.buildConfigField 'String[]', 'typeItem_otherPrefixes', flavorData.typeItem_otherPrefixes ? "{ \"${flavorData.typeItem_otherPrefixes.join('", "')}\" }" : 'null'
+            flavor.buildConfigField 'String[]', 'typeItem_otherPrefixes', flavorData.typeItem_otherPrefixes ? "{\"${flavorData.typeItem_otherPrefixes.join('", "')}\"}" : 'null'
             // BarcodeType item
 
             // BarcodeType container
@@ -52,7 +52,7 @@ android {
             flavor.buildConfigField 'boolean',  'typeContainer_hasLabCode', flavorData.typeContainer_hasLabCode ? 'true' : 'false'
             flavor.buildConfigField 'String',   'typeContainer_base32Prefix', flavorData.typeContainer_base32Prefix ? "\"${flavorData.typeContainer_base32Prefix}\"" : 'null'
             flavor.buildConfigField 'String',   'typeContainer_base64Prefix', flavorData.typeContainer_base64Prefix ? "\"${flavorData.typeContainer_base64Prefix}\"" : 'null'
-            flavor.buildConfigField 'String[]', 'typeContainer_otherPrefixes', flavorData.typeContainer_otherPrefixes ? "{ \"${flavorData.typeContainer_otherPrefixes.join('", "')}\" }" : 'null'
+            flavor.buildConfigField 'String[]', 'typeContainer_otherPrefixes', flavorData.typeContainer_otherPrefixes ? "{\"${flavorData.typeContainer_otherPrefixes.join('", "')}\"}" : 'null'
             // BarcodeType container
 
             // BarcodeType location
@@ -60,7 +60,7 @@ android {
             flavor.buildConfigField 'boolean',  'typeLocation_hasLabCode', flavorData.typeLocation_hasLabCode ? 'true' : 'false'
             flavor.buildConfigField 'String',   'typeLocation_base32Prefix', flavorData.typeLocation_base32Prefix ? "\"${flavorData.typeLocation_base32Prefix}\"" : 'null'
             flavor.buildConfigField 'String',   'typeLocation_base64Prefix', flavorData.typeLocation_base64Prefix ? "\"${flavorData.typeLocation_base64Prefix}\"" : 'null'
-            flavor.buildConfigField 'String[]', 'typeLocation_otherPrefixes', flavorData.typeLocation_otherPrefixes ? "{ \"${flavorData.typeLocation_otherPrefixes.join('", "')}\" }" : 'null'
+            flavor.buildConfigField 'String[]', 'typeLocation_otherPrefixes', flavorData.typeLocation_otherPrefixes ? "{\"${flavorData.typeLocation_otherPrefixes.join('", "')}\"}" : 'null'
             // BarcodeType location
 
             flavor.buildConfigField 'boolean',  'display_quantity', flavorData.display_quantity ? 'true' : 'false'

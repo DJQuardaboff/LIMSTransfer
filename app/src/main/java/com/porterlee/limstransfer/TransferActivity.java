@@ -799,13 +799,33 @@ public class TransferActivity extends AppCompatActivity {
             });
             if (BuildConfig.display_quantity) {
                 final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
+                final Runnable setQuantity = new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            String quantityText = quantityEditText.getText().toString();
+                            if(quantityText.length() > 0) {
+                                int inputQuantity = Integer.parseInt(quantityText);
+                                if (mDataManager.updateQuantity(id, inputQuantity)) {
+                                    quantity = inputQuantity;
+                                } else {
+                                    quantityEditText.setText(String.valueOf(quantity));
+                                    toastLong("Could not set quantity");
+                                }
+                            } else {
+                                quantityEditText.setText(String.valueOf(quantity));
+                            }
+                        } catch(NumberFormatException e) {
+                            quantityEditText.setText(String.valueOf(quantity));
+                            toastLong("Quantity incorrectly formatted");
+                        }
+                    }
+                };
                 quantityEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                     @Override
                     public void onFocusChange(View v, boolean hasFocus) {
-                        if (hasFocus) {
-                            quantityEditText.selectAll();
-                        } else {
-                            quantityEditText.setText(String.valueOf(quantity));
+                        if (!hasFocus) {
+                            findViewById(R.id.transfer_layout).post(setQuantity);
                         }
                     }
                 });
@@ -813,17 +833,7 @@ public class TransferActivity extends AppCompatActivity {
                     @Override
                     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                         if (actionId== EditorInfo.IME_ACTION_DONE) {
-                            try {
-                                int inputQuantity = Integer.parseInt(quantityEditText.getText().toString());
-                                if (mDataManager.updateQuantity(id, inputQuantity)) {
-                                    quantity = inputQuantity;
-                                    refreshItemRecyclerAdapter();
-                                } else {
-                                    quantityEditText.setText(String.valueOf(quantity));
-                                }
-                            } catch(NumberFormatException e) {
-                                quantityEditText.setText(String.valueOf(quantity));
-                            }
+                            setQuantity.run();
                             quantityEditText.clearFocus();
                             InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
                             imm.hideSoftInputFromWindow(quantityEditText.getWindowToken(), 0);

@@ -204,6 +204,14 @@ public class TransferActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         toastShort("Finalizing...");
+                        final RecyclerView itemRecyclerView = findViewById(R.id.item_recycler_view);
+                        for (int i = 0, childCount = itemRecyclerView.getChildCount(); i < childCount; i++) {
+                            final View v = itemRecyclerView.getChildAt(i);
+                            if (v != null) {
+                                final TransferItemViewHolder holder = (TransferItemViewHolder) itemRecyclerView.getChildViewHolder(v);
+                                holder.saveQuantity();
+                            }
+                        }
                         mDataManager.finalizeCurrentTransfer(TransferActivity.this, new Utils.OnProgressUpdateListener() {
                             @Override
                             public void onProgressUpdate(float progress) {
@@ -656,6 +664,11 @@ public class TransferActivity extends AppCompatActivity {
             public TransferItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
                 return new TransferItemViewHolder(parent);
             }
+
+            @Override
+            public void onViewRecycled(@NonNull TransferItemViewHolder holder) {
+                holder.saveQuantity();
+            }
         };
         itemRecyclerView.setAdapter(mItemRecyclerAdapter);
         itemRecyclerView.setHasFixedSize(true);
@@ -671,18 +684,21 @@ public class TransferActivity extends AppCompatActivity {
         /*this.<AppCompatButton>findViewById(R.id.test_button).setOnClickListener(v -> {
 
         });*/
-        final SoftKeyboardHandledConstraintLayout softKeyboardHandler = findViewById(R.id.transfer_layout);
-        softKeyboardHandler.setOnSoftKeyboardVisibilityChangeListener(new SoftKeyboardHandledConstraintLayout.SoftKeyboardVisibilityChangeListener() {
-            @Override
-            public void onSoftKeyboardShow() { }
+        if (BuildConfig.display_quantity) {
+            final SoftKeyboardHandledConstraintLayout softKeyboardHandler = findViewById(R.id.transfer_layout);
+            softKeyboardHandler.setOnSoftKeyboardVisibilityChangeListener(new SoftKeyboardHandledConstraintLayout.SoftKeyboardVisibilityChangeListener() {
+                @Override
+                public void onSoftKeyboardShow() {
+                }
 
-            @Override
-            public void onSoftKeyboardHide() {
-                final View view = getCurrentFocus();
-                if (view  != null)
-                    view.clearFocus();
-            }
-        });
+                @Override
+                public void onSoftKeyboardHide() {
+                    final View view = getCurrentFocus();
+                    if (view != null)
+                        view.clearFocus();
+                }
+            });
+        }
     }
 
     private void toastShort(final String message) {
@@ -799,33 +815,11 @@ public class TransferActivity extends AppCompatActivity {
             });
             if (BuildConfig.display_quantity) {
                 final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
-                final Runnable setQuantity = new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            String quantityText = quantityEditText.getText().toString();
-                            if(quantityText.length() > 0) {
-                                int inputQuantity = Integer.parseInt(quantityText);
-                                if (mDataManager.updateQuantity(id, inputQuantity)) {
-                                    quantity = inputQuantity;
-                                } else {
-                                    quantityEditText.setText(String.valueOf(quantity));
-                                    toastLong("Could not set quantity");
-                                }
-                            } else {
-                                quantityEditText.setText(String.valueOf(quantity));
-                            }
-                        } catch(NumberFormatException e) {
-                            quantityEditText.setText(String.valueOf(quantity));
-                            toastLong("Quantity incorrectly formatted");
-                        }
-                    }
-                };
                 quantityEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                     @Override
                     public void onFocusChange(View v, boolean hasFocus) {
                         if (!hasFocus) {
-                            findViewById(R.id.transfer_layout).post(setQuantity);
+                            saveQuantity();
                         }
                     }
                 });
@@ -833,14 +827,39 @@ public class TransferActivity extends AppCompatActivity {
                     @Override
                     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                         if (actionId== EditorInfo.IME_ACTION_DONE) {
-                            setQuantity.run();
+                            saveQuantity();
                             quantityEditText.clearFocus();
                             InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
                             imm.hideSoftInputFromWindow(quantityEditText.getWindowToken(), 0);
+                            return true;
                         }
                         return false;
                     }
                 });
+                expandedMenuButton.setFocusable(false);
+            }
+        }
+
+        void saveQuantity() {
+            if (BuildConfig.display_quantity) {
+                final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
+                try {
+                    String quantityText = quantityEditText.getText().toString();
+                    if(quantityText.length() > 0) {
+                        int inputQuantity = Integer.parseInt(quantityText);
+                        if (mDataManager.updateQuantity(id, inputQuantity)) {
+                            quantity = inputQuantity;
+                        } else {
+                            quantityEditText.setText(String.valueOf(quantity));
+                            toastLong("Could not set quantity");
+                        }
+                    } else {
+                        quantityEditText.setText(String.valueOf(quantity));
+                    }
+                } catch(NumberFormatException e) {
+                    quantityEditText.setText(String.valueOf(quantity));
+                    toastLong("Quantity incorrectly formatted");
+                }
             }
         }
 
@@ -861,7 +880,11 @@ public class TransferActivity extends AppCompatActivity {
             if (BuildConfig.display_quantity) {
                 final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
                 quantityEditText.setText(cursor.getString(cursor.getColumnIndexOrThrow(TransferDatabase.Key.QUANTITY)));
-                quantityEditText.clearFocus();
+                if (isSelected) {
+                    quantityEditText.requestFocus();
+                } else {
+                    quantityEditText.clearFocus();
+                }
             }
         }
     }

@@ -1,17 +1,54 @@
+import com.android.build.gradle.internal.dsl.SigningConfig
+import org.apache.commons.io.FilenameUtils
+
+import java.nio.file.Paths
+
 apply plugin: 'com.android.application'
-apply from: 'systems.gradle'
+apply from: 'plc_systems.gradle'
+apply from: 'version.gradle'
+
+def signingFilePath = 'signing.gradle'
+def performSigning = file(signingFilePath).exists()
+if (performSigning) {
+    apply from: signingFilePath
+}
+
+private static int generateVersionCode(def version) {
+    return (version.major * 10000) + (version.minor * 100) + version.patch
+}
+
+private static String generateVersionName(def version) {
+    String versionName = "${version.major}.${version.minor}.${version.patch}"
+    if (version.suffix != null) {
+        versionName += "-" + version.suffix
+    }
+    return versionName
+}
 
 android {
     compileSdkVersion 27
+    buildToolsVersion '27.0.3'
     defaultConfig {
-        minSdkVersion 17
         targetSdkVersion 27
-        versionCode 9
-        versionName '1.8'
+        minSdkVersion 23
+        versionCode generateVersionCode(plc_version)
+        versionName generateVersionName(plc_version)
         //testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
     }
     buildTypes {
         release {
+            if (performSigning) {
+                def signingConfig = new SigningConfig("release")
+                        .setStoreFile(file(plc_signing.storeFilePath))
+                        .setStorePassword(plc_signing.storePassword)
+                        .setKeyAlias(plc_signing.keyAlias)
+                        .setKeyPassword(plc_signing.keyPassword)
+                signingConfig.setV1SigningEnabled(plc_signing.v1SigningEnabled)
+                signingConfig.setV2SigningEnabled(plc_signing.v2SigningEnabled)
+                setSigningConfig(signingConfig)
+            } else {
+                logger.log(LogLevel.WARN, 'No signing config found, release apks will not be signed')
+            }
             //minifyEnabled false
             //proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -20,72 +57,98 @@ android {
             debuggable true
         }
     }
-    flavorDimensions 'system', 'scanner_sdk'
+    flavorDimensions 'system', 'scannerSdk'
     productFlavors {
-        janam_XM5 {
-            dimension 'scanner_sdk'
+        janam {
+            dimension 'scannerSdk'
         }
-        janam_XT2_XT2__XM75_XT100_XG200 {
-            dimension 'scanner_sdk'
-        }
-        zebra_emdk_symbol_26 {
-            dimension 'scanner_sdk'
+        zebra {
+            dimension 'scannerSdk'
+            targetSdkVersion 27
+            minSdkVersion 23
         }
     }
-    productFlavors.whenObjectAdded {
-        flavor ->
-            flavor.dimension = 'system'
-            def flavorData = project[flavor.name]
-            flavor.applicationId "com.porterlee.${flavor.name.toLowerCase()}.transfer"
-            flavor.resValue 'string', 'app_name', "${flavor.name} Transfer"
+
+    for (def system : plc_systems) {
+        productFlavors.create(system.key, {
+            dimension 'system'
+            def settings = system.value
+            applicationId "com.porterlee.${system.key}.transfer"
+            resValue 'string', 'app_name', "${settings.name} Transfer"
 
             // BarcodeType item
-            flavor.buildConfigField 'boolean',  'typeItem_hasCustodyOf', flavorData.typeItem_hasCustodyOf ? 'true' : 'false'
-            flavor.buildConfigField 'boolean',  'typeItem_hasLabCode', flavorData.typeItem_hasLabCode ? 'true' : 'false'
-            flavor.buildConfigField 'String',   'typeItem_base32Prefix', flavorData.typeItem_base32Prefix ? "\"${flavorData.typeItem_base32Prefix}\"" : 'null'
-            flavor.buildConfigField 'String',   'typeItem_base64Prefix', flavorData.typeItem_base64Prefix ? "\"${flavorData.typeItem_base64Prefix}\"" : 'null'
-            flavor.buildConfigField 'String[]', 'typeItem_otherPrefixes', flavorData.typeItem_otherPrefixes ? "{\"${flavorData.typeItem_otherPrefixes.join('", "')}\"}" : 'null'
+            def item = settings.item
+            buildConfigField 'boolean', 'typeItem_hasCustodyOf', item.hasCustodyOf ? 'true' : 'false'
+            buildConfigField 'boolean', 'typeItem_hasLabCode', item.hasLabCode ? 'true' : 'false'
+            buildConfigField 'String', 'typeItem_base32Prefix', item.base32Prefix ? "\"${item.base32Prefix}\"" : 'null'
+            buildConfigField 'String', 'typeItem_base64Prefix', item.base64Prefix ? "\"${item.base64Prefix}\"" : 'null'
+            buildConfigField 'String[]', 'typeItem_otherPrefixes', item.otherPrefixes ? "{\"${item.otherPrefixes.join('", "')}\"}" : 'null'
             // BarcodeType item
 
             // BarcodeType container
-            flavor.buildConfigField 'boolean',  'typeContainer_hasCustodyOf', flavorData.typeContainer_hasCustodyOf ? 'true' : 'false'
-            flavor.buildConfigField 'boolean',  'typeContainer_hasLabCode', flavorData.typeContainer_hasLabCode ? 'true' : 'false'
-            flavor.buildConfigField 'String',   'typeContainer_base32Prefix', flavorData.typeContainer_base32Prefix ? "\"${flavorData.typeContainer_base32Prefix}\"" : 'null'
-            flavor.buildConfigField 'String',   'typeContainer_base64Prefix', flavorData.typeContainer_base64Prefix ? "\"${flavorData.typeContainer_base64Prefix}\"" : 'null'
-            flavor.buildConfigField 'String[]', 'typeContainer_otherPrefixes', flavorData.typeContainer_otherPrefixes ? "{\"${flavorData.typeContainer_otherPrefixes.join('", "')}\"}" : 'null'
+            def container = settings.container
+            buildConfigField 'boolean', 'typeContainer_hasCustodyOf', container.hasCustodyOf ? 'true' : 'false'
+            buildConfigField 'boolean', 'typeContainer_hasLabCode', container.hasLabCode ? 'true' : 'false'
+            buildConfigField 'String', 'typeContainer_base32Prefix', container.base32Prefix ? "\"${container.base32Prefix}\"" : 'null'
+            buildConfigField 'String', 'typeContainer_base64Prefix', container.base64Prefix ? "\"${container.base64Prefix}\"" : 'null'
+            buildConfigField 'String[]', 'typeContainer_otherPrefixes', container.otherPrefixes ? "{\"${container.otherPrefixes.join('", "')}\"}" : 'null'
             // BarcodeType container
 
             // BarcodeType location
-            flavor.buildConfigField 'boolean',  'typeLocation_hasCustodyOf', flavorData.typeLocation_hasCustodyOf ? 'true' : 'false'
-            flavor.buildConfigField 'boolean',  'typeLocation_hasLabCode', flavorData.typeLocation_hasLabCode ? 'true' : 'false'
-            flavor.buildConfigField 'String',   'typeLocation_base32Prefix', flavorData.typeLocation_base32Prefix ? "\"${flavorData.typeLocation_base32Prefix}\"" : 'null'
-            flavor.buildConfigField 'String',   'typeLocation_base64Prefix', flavorData.typeLocation_base64Prefix ? "\"${flavorData.typeLocation_base64Prefix}\"" : 'null'
-            flavor.buildConfigField 'String[]', 'typeLocation_otherPrefixes', flavorData.typeLocation_otherPrefixes ? "{\"${flavorData.typeLocation_otherPrefixes.join('", "')}\"}" : 'null'
+            def location = settings.location
+            buildConfigField 'boolean', 'typeLocation_hasCustodyOf', location.hasCustodyOf ? 'true' : 'false'
+            buildConfigField 'boolean', 'typeLocation_hasLabCode', location.hasLabCode ? 'true' : 'false'
+            buildConfigField 'String', 'typeLocation_base32Prefix', location.base32Prefix ? "\"${location.base32Prefix}\"" : 'null'
+            buildConfigField 'String', 'typeLocation_base64Prefix', location.base64Prefix ? "\"${location.base64Prefix}\"" : 'null'
+            buildConfigField 'String[]', 'typeLocation_otherPrefixes', location.otherPrefixes ? "{\"${location.otherPrefixes.join('", "')}\"}" : 'null'
             // BarcodeType location
 
-            flavor.buildConfigField 'boolean',  'display_quantity', flavorData.display_quantity ? 'true' : 'false'
+            buildConfigField 'boolean', 'display_quantity', settings.display_quantity ? 'true' : 'false'
+        })
     }
-    productFlavors {
-        LIMS {}
-        LAM {}
-        EMS {}
-        QM {}
-        applicationVariants.all {
-            variant ->
-                variant.outputs.all {
-                    output ->
-                        outputFileName = "v${versionName}/${variant.productFlavors[0].name}Transfer.apk"
+
+    def publishAll = project.tasks.create("publishAll")
+    def publishBuildTypes = new HashMap<String, Task>()
+    buildTypes.each {
+        buildType ->
+            def taskName = "publish" + buildType.name.capitalize()
+            publishBuildTypes.put(buildType.name, project.tasks.create(taskName))
+    }
+    applicationVariants.all {
+        variant ->
+            def inFile
+            variant.outputs.all {
+                variantOutput ->
+                    inFile = variantOutput.outputFile
+            }
+            if (inFile != null) {
+                def has_signingConfig = variant.signingConfig != null
+                def outDir = Paths.get(buildDir.path, variant.buildType.name, variant.productFlavors[1].name, 'v' + variant.versionName).toString()
+                String outName = plc_systems[variant.productFlavors[0].name].name + 'Inventory'
+                if (variant.buildType.debuggable) outName += '-debug'
+                if (!has_signingConfig) outName += '-unsigned'
+                def task = project.tasks.create("publish${variant.name.capitalize()}") {
+                    task ->
+                        task.dependsOn variant.assembleProvider
+                        task.doLast {
+                            if (!has_signingConfig) {
+                                logger.log(LogLevel.WARN, "Variant '${variant.name}' does not have a signingConfig, will be unsigned")
+                            }
+                            copy {
+                                from inFile
+                                into outDir
+                                rename(FilenameUtils.getBaseName(inFile.name), outName)
+                            }
+                        }
                 }
-        }
-    }
-    configurations.all {
-        resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+                publishAll.dependsOn task
+                publishBuildTypes[variant.buildType.name].dependsOn task
+            }
     }
 }
 dependencies {
-    janam_XM5Implementation project(':plc_scanners-janam_XM5Release')
-    janam_XT2_XT2__XM75_XT100_XG200Implementation project(':plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release')
-    zebra_emdk_symbol_26Implementation project(':plc_scanners-zebra_emdk_symbol_26Release')
+    janamImplementation project(':plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release')
+    zebraImplementation project(':plc_scanners-zebra_emdk_symbol_26Release')
 
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support:recyclerview-v7:27.1.1'
@@ -99,7 +162,7 @@ dependencies {
         //exclude module: 'appcompat-v7'
     }
     implementation 'org.jetbrains:annotations-java5:15.0'
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }

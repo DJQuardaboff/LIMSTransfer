@@ -10,7 +10,7 @@
     android:orientation="vertical"
     tools:context="com.porterlee.limstransfer.TransferActivity">
 
-    <android.support.v7.widget.AppCompatTextView
+    <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/text_current_location_label"
         style="@style/Base.TextAppearance.AppCompat.Medium"
         android:layout_width="0dp"
@@ -27,7 +27,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/progress_bar"/>
 
-    <android.support.v7.widget.AppCompatTextView
+    <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/text_current_location"
         style="@style/Base.TextAppearance.AppCompat.Medium"
         android:layout_width="0dp"
@@ -42,7 +42,7 @@
         app:layout_constraintStart_toEndOf="@+id/text_current_location_label"
         app:layout_constraintTop_toTopOf="@+id/text_current_location_label"/>
 
-    <android.support.v7.widget.AppCompatTextView
+    <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/text_item_count_label"
         style="@style/Base.TextAppearance.AppCompat.Medium"
         android:layout_width="0dp"
@@ -60,7 +60,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/text_current_location_label"/>
 
-    <android.support.v7.widget.AppCompatTextView
+    <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/text_item_count"
         style="@style/Base.TextAppearance.AppCompat.Medium"
         android:layout_width="0dp"
@@ -75,7 +75,7 @@
         app:layout_constraintStart_toEndOf="@+id/text_item_count_label"
         app:layout_constraintTop_toTopOf="@+id/text_item_count_label"/>
 
-    <android.support.v7.widget.AppCompatTextView
+    <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/text_transfer_id_label"
         style="@style/TextAppearance.AppCompat.Small.Inverse"
         android:layout_width="wrap_content"
@@ -86,7 +86,7 @@
         app:layout_constraintTop_toTopOf="@id/text_current_location_label"
         app:layout_constraintStart_toStartOf="parent"/>
 
-    <android.support.v7.widget.AppCompatTextView
+    <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/text_transfer_id"
         style="@style/TextAppearance.AppCompat.Small.Inverse"
         android:layout_width="wrap_content"
@@ -97,7 +97,7 @@
         app:layout_constraintBottom_toBottomOf="@+id/text_transfer_id_label"
         app:layout_constraintStart_toEndOf="@+id/text_transfer_id_label"/>
 
-    <android.support.v7.widget.AppCompatTextView
+    <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/text_scan_barcode"
         style="@style/Base.TextAppearance.AppCompat.Medium.Inverse"
         android:layout_width="0dp"
@@ -128,7 +128,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/text_item_count_label"/>
 
-    <android.support.v7.widget.RecyclerView
+    <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/item_recycler_view"
         android:layout_width="0dp"
         android:layout_height="0dp"

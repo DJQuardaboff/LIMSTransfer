@@ -26,10 +26,10 @@ private static String generateVersionName(def version) {
 }
 
 android {
-    compileSdkVersion 27
-    buildToolsVersion '27.0.3'
+    compileSdkVersion 29
+    buildToolsVersion '29.0.1'
     defaultConfig {
-        targetSdkVersion 27
+        targetSdkVersion 29
         minSdkVersion 23
         versionCode generateVersionCode(plc_version)
         versionName generateVersionName(plc_version)
@@ -150,19 +150,14 @@ dependencies {
     janamImplementation project(':plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release')
     zebraImplementation project(':plc_scanners-zebra_emdk_symbol_26Release')
 
-    implementation 'com.android.support:appcompat-v7:27.1.1'
-    implementation 'com.android.support:recyclerview-v7:27.1.1'
-    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation 'commons-io:commons-io:2.4'
-    implementation('com.github.gcacace:signature-pad:1.2.1') {
-        exclude group: 'com.android.support'
-    }
-    implementation('me.zhanghai.android.materialprogressbar:library:1.4.2')  {
-        exclude group: 'com.android.support'
-        //exclude module: 'appcompat-v7'
-    }
+    implementation 'com.github.gcacace:signature-pad:1.2.1'
+    implementation 'me.zhanghai.android.materialprogressbar:library:1.6.1'
     implementation 'org.jetbrains:annotations-java5:15.0'
     testImplementation 'junit:junit:4.13'
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 }

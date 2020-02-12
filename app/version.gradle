@@ -1,6 +1,6 @@
 ext.plc_version = [
-        major : 1,
-        minor : 9,
+        major : 2,
+        minor : 0,
         patch : 0,
-        suffix: null,
+        suffix: "dev",
 ]

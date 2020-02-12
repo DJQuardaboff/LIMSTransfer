@@ -4,7 +4,7 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 
-import org.jetbrains.annotations.NotNull;
+import androidx.annotation.NonNull;
 
 public final class TransferDatabase {
     public static final String NAME = "lims_transfer";
@@ -56,7 +56,7 @@ public final class TransferDatabase {
         return mDatabase;
     }
 
-    public boolean delete(@NotNull Context context) {
+    public boolean delete(@NonNull Context context) {
         return context.deleteDatabase(NAME);
     }
 
@@ -64,7 +64,7 @@ public final class TransferDatabase {
         return mDatabase != null && mDatabase.isOpen();
     }
 
-    public boolean exists(@NotNull Context context) {
+    public boolean exists(@NonNull Context context) {
         for (String name : context.databaseList())
             if (NAME.equals(name))
                 return true;

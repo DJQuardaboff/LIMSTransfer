@@ -11,7 +11,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.widget.Toast;
 
-import org.jetbrains.annotations.NotNull;
+import androidx.annotation.NonNull;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -98,7 +98,7 @@ public class Utils {
         return null;
     }
 
-    public static boolean csvContainsInt(@NotNull String csv, int i) {
+    public static boolean csvContainsInt(@NonNull String csv, int i) {
         final String regex = "(^" + i + ",.*)|(.*," + i + ",.*)|(.*," + i + "$)";
         return csv.replace(" ", "").matches(regex);
     }

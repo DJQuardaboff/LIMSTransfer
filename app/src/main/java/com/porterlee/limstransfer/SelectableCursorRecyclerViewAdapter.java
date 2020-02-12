@@ -5,8 +5,6 @@ import android.database.DataSetObserver;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -20,7 +18,7 @@ public abstract class SelectableCursorRecyclerViewAdapter<VH extends RecyclerVie
     private ArrayList<String> mDuplicateBarcodes = new ArrayList<>();
     private int mSelectedItem = -1;
 
-    public SelectableCursorRecyclerViewAdapter(Cursor cursor, @NotNull String idColumnName) {
+    public SelectableCursorRecyclerViewAdapter(Cursor cursor, @NonNull String idColumnName) {
         mCursor = cursor;
         mIdColumnName = idColumnName;
         mDataValid = cursor != null;

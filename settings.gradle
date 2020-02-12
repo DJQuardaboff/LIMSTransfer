@@ -1,1 +1,1 @@
-include ':app', ':plc_scanners-janam_XM5Release', ':plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release', ':plc_scanners-zebra_emdk_symbol_26Release'
+include ':app', ':janam_xt2_xt2-_xm75_xt100_xg200_sdk_v3-2-1'

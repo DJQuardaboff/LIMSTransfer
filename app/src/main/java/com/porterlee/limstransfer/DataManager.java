@@ -11,7 +11,7 @@ import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.Log;
 
-import com.porterlee.plcscanners.AbstractScanner;
+import androidx.annotation.NonNull;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -26,8 +26,6 @@ import java.util.Locale;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
-
-import org.jetbrains.annotations.NotNull;
 
 public class DataManager {
     public static final String TAG = DataManager.class.getCanonicalName();
@@ -50,14 +48,13 @@ public class DataManager {
     private boolean mIsSaving;
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private ArrayList<Object> listenerReferences = new ArrayList<>();
-    private ArrayList<AbstractScanner.OnBarcodeScannedListener> onBarcodeScannedListenersQueue = new ArrayList<>();
+    private ArrayList<ScannerUtils.OnBarcodeScannedListener> onBarcodeScannedListenersQueue = new ArrayList<>();
 
     public DataManager (Activity activity) {
         mSharedPreferences = activity.getPreferences(Context.MODE_PRIVATE);
-        AbstractScanner.setActivity(activity);
     }
 
-    public void showScannerDialog(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener, AbstractScanner.OnBarcodeScannedListener onBarcodeScannedListener) {
+    public void showScannerDialog(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener, ScannerUtils.OnBarcodeScannedListener onBarcodeScannedListener) {
         showDialog0(dialog, onDismissListener, onBarcodeScannedListener, false);
     }
 
@@ -65,19 +62,20 @@ public class DataManager {
         showDialog0(dialog, onDismissListener, null, true);
     }
 
-    private void showDialog0(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener, AbstractScanner.OnBarcodeScannedListener onBarcodeScannedListener, final boolean disableScanner) {
+    private void showDialog0(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener, final ScannerUtils.OnBarcodeScannedListener onBarcodeScannedListener, final boolean modal) {
         if (dialog == null || mIsShowingDialog) {
             if (onDismissListener != null)
                 onDismissListener.onDismiss(null);
             return;
         }
+        final ScannerUtils.OnBarcodeScannedListener temp = getScannerUtils().getOnBarcodeScannedListener();
         setIsShowingDialog(true);
-        setIsShowingModalDialog(disableScanner);
-        pushOnBarcodeScannedListener(onBarcodeScannedListener);
+        setIsShowingModalDialog(modal);
+        if (!modal) getScannerUtils().setOnBarcodeScannedListener(onBarcodeScannedListener);
         dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
             public void onDismiss(DialogInterface dialog) {
-                popOnBarcodeScannedListener();
+                if (!modal) getScannerUtils().setOnBarcodeScannedListener(temp);
                 setIsShowingDialog(false);
                 setIsShowingModalDialog(false);
                 if (onDismissListener != null)
@@ -115,10 +113,6 @@ public class DataManager {
         return mIsSaving;
     }
 
-    public boolean initScanner() {
-        return getScanner().init();
-    }
-
     public void init(Context context) {
         mTransferDatabase = new TransferDatabase(context);
         updateCurrentTransfer(getLastUnfinishedTransfer());
@@ -130,8 +124,12 @@ public class DataManager {
             Log.w(TAG, "Signature directory does not exist and could not be created, this may cause a problem");
     }
 
-    public AbstractScanner getScanner() {
-        return AbstractScanner.getInstance();
+    public Scanner getScanner() {
+        return Scanner.getInstance();
+    }
+
+    public ScannerUtils getScannerUtils() {
+        return ScannerUtils.getInstance();
     }
 
     public Runnable getOnCurrentTransferChangedListener() {
@@ -264,29 +262,12 @@ public class DataManager {
     }
 
     private void setIsSaving(boolean isSaving) {
-        if (isSaving) {
-            pushOnBarcodeScannedListener(null);
-        } else {
-            popOnBarcodeScannedListener();
-        }
         this.mIsSaving = isSaving;
         updateScannerIsDisabled();
     }
 
     private void updateScannerIsDisabled() {
         getScanner().setIsEnabled(!mIsShowingModalDialog && !mIsSaving);
-    }
-
-    public void pushOnBarcodeScannedListener(AbstractScanner.OnBarcodeScannedListener onBarcodeScannedListener) {
-        onBarcodeScannedListenersQueue.add(AbstractScanner.getOnBarcodeScannedListener());
-        AbstractScanner.setOnBarcodeScannedListener(onBarcodeScannedListener);
-    }
-
-    public AbstractScanner.OnBarcodeScannedListener popOnBarcodeScannedListener() {
-        AbstractScanner.OnBarcodeScannedListener temp = AbstractScanner.getOnBarcodeScannedListener();
-        int index = onBarcodeScannedListenersQueue.size() - 1;
-        AbstractScanner.setOnBarcodeScannedListener(index < 0 ? null : onBarcodeScannedListenersQueue.remove(index));
-        return temp;
     }
 
     public boolean deleteDatabase(Context context) {
@@ -348,7 +329,7 @@ public class DataManager {
      *
      * @param locationBarcode the barcode of the location to be added to the database
      */
-    public long newTransfer(@NotNull String locationBarcode) {
+    public long newTransfer(@NonNull String locationBarcode) {
         updateCurrentTransfer(new Transfer(mTransferDatabase.insert_locationBarcode_into_transferTable(locationBarcode), false, false, false, locationBarcode));
         return mCurrentTransfer.id;
     }

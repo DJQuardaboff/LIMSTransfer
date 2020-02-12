@@ -36,7 +36,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.gcacace.signaturepad.views.SignaturePad;
-import com.porterlee.plcscanners.AbstractScanner;
 
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
@@ -51,26 +50,26 @@ public class TransferActivity extends AppCompatActivity {
     private SelectableCursorRecyclerViewAdapter<TransferItemViewHolder> mItemRecyclerAdapter;
     private DataManager mDataManager;
 
-    private final AbstractScanner.OnBarcodeScannedListener onBarcodeScannedListener = new AbstractScanner.OnBarcodeScannedListener() {
+    private final ScannerUtils.OnBarcodeScannedListener onBarcodeScannedListener = new ScannerUtils.OnBarcodeScannedListener() {
         @Override
         public void onBarcodeScanned(final String barcode) {
             if (mDataManager == null)
                 return;
 
             if (mDataManager.isSaving()) {
-                AbstractScanner.onScanComplete(false);
+                getScannerUtils().onScanComplete(false);
                 toastShort("Cannot scan while saving");
             } else if (getBarcodeType(barcode).equals(Invalid)) {
-                AbstractScanner.onScanComplete(false);
+                getScannerUtils().onScanComplete(false);
                 toastLong(String.format("Unrecognised barcode: \"%s\"", barcode));
             } else if (mDataManager.hasOngoingTransfer()) {
                 final boolean isItem;
                 if (Location.isOfType(barcode)) {
-                    AbstractScanner.onScanComplete(false);
+                    getScannerUtils().onScanComplete(false);
                     toastShort("Finalize or cancel this transfer first");
                 } else if ((isItem = Item.isOfType(barcode)) || Container.isOfType(barcode)) {
                     if (mDataManager.isDuplicate(barcode)) {
-                        AbstractScanner.onScanComplete(false);
+                        getScannerUtils().onScanComplete(false);
                         mDataManager.showModalScannerDialog(new AlertDialog.Builder(TransferActivity.this)
                                 .setCancelable(false)
                                 .setTitle("Duplicate item")
@@ -96,11 +95,11 @@ public class TransferActivity extends AppCompatActivity {
                                 }).create(), null);
                     } else {
                         if (mDataManager.insertItem(barcode) > 0) {
-                            AbstractScanner.onScanComplete(true);
+                            getScannerUtils().onScanComplete(true);
                             refreshItemCount();
                             refreshItemRecyclerAdapter();
                         } else {
-                            AbstractScanner.onScanComplete(false);
+                            getScannerUtils().onScanComplete(false);
                             Log.w(TAG, String.format("Error adding %s \"%s\" to database", isItem ? "item" : "container", barcode));
                             toastLong("Error adding " + (isItem ? "item" : "container"));
                         }
@@ -110,14 +109,14 @@ public class TransferActivity extends AppCompatActivity {
             } else {
                 final boolean isLocation;
                 if (Item.isOfType(barcode)) {
-                    AbstractScanner.onScanComplete(false);
+                    getScannerUtils().onScanComplete(false);
                     toastShort("Start a new transfer by scanning a location or container");
                 } else if ((isLocation = Location.isOfType(barcode)) || Container.isOfType(barcode)) {
                     if (mDataManager.newTransfer(barcode) > 0) {
-                        AbstractScanner.onScanComplete(true);
+                        getScannerUtils().onScanComplete(true);
                         refreshItemRecyclerAdapter();
                     } else {
-                        AbstractScanner.onScanComplete(false);
+                        getScannerUtils().onScanComplete(false);
                         Log.w(TAG, String.format("Error adding %s \"%s\" to database", (isLocation ? "location" : "container"), barcode));
                         toastLong("Error starting transfer");
                     }
@@ -126,8 +125,12 @@ public class TransferActivity extends AppCompatActivity {
         }
     };
 
-    private AbstractScanner getScanner() {
-        return AbstractScanner.getInstance();
+    private Scanner getScanner() {
+        return Scanner.getInstance();
+    }
+
+    private ScannerUtils getScannerUtils() {
+        return ScannerUtils.getInstance();
     }
 
     private void refreshItemCount() {
@@ -365,7 +368,7 @@ public class TransferActivity extends AppCompatActivity {
                 editAnalystPassword.requestFocus();
             }
         });
-        mDataManager.showScannerDialog(analystLoginDialog, null, new AbstractScanner.OnBarcodeScannedListener() {
+        mDataManager.showScannerDialog(analystLoginDialog, null, new ScannerUtils.OnBarcodeScannedListener() {
             @Override
             public void onBarcodeScanned(String s) {
                 analystLoginDialog.<AppCompatEditText>findViewById(R.id.edit_analyst_id).setText(s);
@@ -407,20 +410,19 @@ public class TransferActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (!AbstractScanner.isCompatible()) {
-            Log.w(TAG, "Might not be compatible");
-        }
 
         mDataManager = new DataManager(this);
 
-        if (!mDataManager.initScanner()) {
+        getScannerUtils().setActivity(this);
+
+        try {
+            getScanner().init();
+        } catch (RuntimeException e) {
+            e.printStackTrace();
             finish();
             toastShort("Scanner failed to initialize");
             return;
         }
-
-        mDataManager.pushOnBarcodeScannedListener(onBarcodeScannedListener);
-        mDataManager.pushOnBarcodeScannedListener(null);
 
         setContentView(R.layout.activity_transfer);
 
@@ -460,7 +462,7 @@ public class TransferActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.activity_transfer, menu);
-        return super.onCreateOptionsMenu(menu) | getScanner().onCreateOptionsMenu(menu);
+        return super.onCreateOptionsMenu(menu);
     }
 
     @Override
@@ -538,7 +540,7 @@ public class TransferActivity extends AppCompatActivity {
                 }
                 return true;*/
         }
-        return super.onOptionsItemSelected(item) | getScanner().onOptionsItemSelected(item) ;
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -567,29 +569,26 @@ public class TransferActivity extends AppCompatActivity {
             itemReset.setVisible(false);
             //itemContinuous.setVisible(false);
         }
-        return super.onPrepareOptionsMenu(menu) | getScanner().onPrepareOptionsMenu(menu);
+        return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        getScanner().onStart();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        getScanner().onResume();
-        mDataManager.popOnBarcodeScannedListener();
-        AbstractScanner.setActivity(this);
+        getScannerUtils().setActivity(this);
+        getScannerUtils().setOnBarcodeScannedListener(onBarcodeScannedListener);
+        getScanner().start();
         refreshItemRecyclerAdapter();
     }
 
     @Override
     protected void onPause() {
-        AbstractScanner.setActivity(null);
-        mDataManager.pushOnBarcodeScannedListener(null);
-        getScanner().onPause();
+        getScanner().stop();
         if (mItemRecyclerAdapter != null && mItemRecyclerAdapter.getCursor() != null)
             mItemRecyclerAdapter.swapCursor(null).close();
         super.onPause();
@@ -597,7 +596,6 @@ public class TransferActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
-        getScanner().onStop();
         super.onStop();
     }
 
@@ -605,7 +603,7 @@ public class TransferActivity extends AppCompatActivity {
     protected void onDestroy() {
         if (mDataManager.isDatabaseOpen())
             mDataManager.closeDatabase();
-        getScanner().onDestroy();
+        getScanner().release();
         super.onDestroy();
     }
 

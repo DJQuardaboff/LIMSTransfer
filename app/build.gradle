@@ -147,8 +147,8 @@ android {
     }
 }
 dependencies {
-    janamImplementation project(':plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release')
-    zebraImplementation project(':plc_scanners-zebra_emdk_symbol_26Release')
+    janamImplementation project(':janam_xt2_xt2-_xm75_xt100_xg200_sdk_v3-2-1')
+    zebraCompileOnly 'com.symbol:emdk:7.0.0'
 
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
@@ -156,7 +156,6 @@ dependencies {
     implementation 'commons-io:commons-io:2.4'
     implementation 'com.github.gcacace:signature-pad:1.2.1'
     implementation 'me.zhanghai.android.materialprogressbar:library:1.6.1'
-    implementation 'org.jetbrains:annotations-java5:15.0'
     testImplementation 'junit:junit:4.13'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'

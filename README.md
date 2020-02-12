@@ -28,6 +28,15 @@ note: The following commands are also available:
 - `gradlew publish<system><scanner_sdk><variant>`
   - e.g.  `gradlew publishLimsZebraRelease`
 
+## Selecting a build variant
+
+Android Studio hides this feature a bit.
+It can be accessed in two different ways:
+
+1. View -> Tool Windows -> Build Variants
+
+2. 1. In the project tool window (usually open on the left), select the folder titled "app"
+   2. Build -> Select Build Variant
 
 ## Updating gradle
 

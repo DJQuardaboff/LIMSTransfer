@@ -124,7 +124,7 @@ android {
             if (inFile != null) {
                 def has_signingConfig = variant.signingConfig != null
                 def outDir = Paths.get(buildDir.path, variant.buildType.name, variant.productFlavors[1].name, 'v' + variant.versionName).toString()
-                String outName = plc_systems[variant.productFlavors[0].name].name + 'Inventory'
+                String outName = plc_systems[variant.productFlavors[0].name].name + 'Transfer'
                 if (variant.buildType.debuggable) outName += '-debug'
                 if (!has_signingConfig) outName += '-unsigned'
                 def task = project.tasks.create("publish${variant.name.capitalize()}") {

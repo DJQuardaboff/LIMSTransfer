@@ -138,11 +138,6 @@ public final class TransferDatabase {
         return mUpdate_transferTable_set_canceled_equalTo_where_finalized_equals.executeUpdateDelete();
     }
 
-    public synchronized long delete_from_transferTable_where_id_equals(long id) {
-        mDelete_from_transferTable_where_id_equals.bindLong(1, id);
-        return mDelete_from_transferTable_where_id_equals.executeUpdateDelete();
-    }
-
     public synchronized long select_count_from_analystNameTable_where_analystName_equals(String analystName) {
         return 0;
     }
@@ -160,10 +155,10 @@ public final class TransferDatabase {
         public static final String START_DATE_TIME = "start_date_time";
         public static final String SIGN_DATE_TIME = "sign_date_time";
         public static final String FINALIZE_DATE_TIME = "finalize_date_time";
-        public static final String ANALYST_ID_SHA_1 = "analyst_id_sha_1";
-        public static final String ANALYST_PASSWORD_SHA_1 = "analyst_password_sha_1";
-        public static final String ANALYST_DESCRIPTION = "analyst_description";
-        public static final String ANALYST_NAME = "analyst_name";
+        //public static final String ANALYST_ID_SHA_1 = "analyst_id_sha_1";
+        //public static final String ANALYST_PASSWORD_SHA_1 = "analyst_password_sha_1";
+        //public static final String ANALYST_DESCRIPTION = "analyst_description";
+        //public static final String ANALYST_NAME = "analyst_name";
     }
 
     public static class Index {
@@ -171,8 +166,8 @@ public final class TransferDatabase {
         public static final String ITEMS_TRANSFER_ID_INDEX = "items_transfer_id_index";
         public static final String TRANSFERS_LOCATION_BARCODE_INDEX = "transfers_location_barcode_index";
         public static final String TRANSFERS_FINALIZED_CANCELED_INDEX = "transfer_finalized_index";
-        public static final String ANALYST_ID_INDEX = "analyst_id_index";
-        public static final String ANALYST_NAME_INDEX = "analyst_name_index";
+        //public static final String ANALYST_ID_INDEX = "analyst_id_index";
+        //public static final String ANALYST_NAME_INDEX = "analyst_name_index";
     }
 
     public static class ItemTable {
@@ -213,7 +208,7 @@ public final class TransferDatabase {
             public static final String FINALIZE_DATE_TIME = NAME + "." + TransferDatabase.Key.FINALIZE_DATE_TIME;
         }
     }
-
+/*
     public static class AnalystTable {
         public static final String NAME = "analysts";
 
@@ -242,5 +237,5 @@ public final class TransferDatabase {
             public static final String ID = NAME + "." + TransferDatabase.Key.ID;
             public static final String ANALYST_NAME = NAME + '.' + TransferDatabase.Key.ANALYST_NAME;
         }
-    }
+    }*/
 }

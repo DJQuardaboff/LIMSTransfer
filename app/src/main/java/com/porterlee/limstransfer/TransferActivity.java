@@ -147,7 +147,7 @@ public class TransferActivity extends AppCompatActivity {
             }
         });
     }
-
+/*
     public void openSetupDialog() {
         AlertDialog tempAlertDialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.text_setup_title)
@@ -190,7 +190,7 @@ public class TransferActivity extends AppCompatActivity {
 
         mDataManager.showModalScannerDialog(tempAlertDialog, null);
     }
-
+*/
     public void openFinalizeDialog(final Utils.OnFinishListener onFinishListener) {
         mDataManager.showModalScannerDialog(new AlertDialog.Builder(this)
                 .setTitle(R.string.text_finalize_transfer_title)
@@ -307,7 +307,7 @@ public class TransferActivity extends AppCompatActivity {
 
         mDataManager.showModalScannerDialog(tempAlertDialog, null);
     }
-
+/*
     public void openAnalystLoginDialog(final Utils.OnFinishListener onFinishListener) {
         final AlertDialog analystLoginDialog = new AlertDialog.Builder(this)
                 .setCancelable(false)
@@ -375,7 +375,7 @@ public class TransferActivity extends AppCompatActivity {
             }
         });
     }
-
+*/
     private void openCancelDialog() {
         mDataManager.showModalScannerDialog(new AlertDialog.Builder(this)
                 .setTitle(R.string.text_cancel_transfer_title)

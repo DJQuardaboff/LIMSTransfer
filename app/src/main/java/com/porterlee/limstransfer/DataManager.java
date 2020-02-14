@@ -34,14 +34,14 @@ public class DataManager {
     public static final File OUTPUT_FILE = new File(EXTERNAL_PATH, "transfer.txt");
     public static final String SIGNATURE_FILE_NAME = "signature_%d.png";
     private static final String OUTPUT_FILE_HEADER = String.format(Locale.US, "%s|%s|%s|v%s|%d", BuildConfig.APPLICATION_ID.substring(BuildConfig.APPLICATION_ID.indexOf('.', BuildConfig.APPLICATION_ID.indexOf('.') + 1) + 1), BuildConfig.FLAVOR, BuildConfig.BUILD_TYPE, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE);
-    private static final String KEY_REQUIRES_STARTUP_LOGIN = "requires_startup_login";
-    private static final String KEY_REQUIRES_ANALYST_PASSWORD = "requires_analyst_password";
-    private static final String KEY_REQUIRES_SIGNATURE = "requires_signature";
+    //private static final String KEY_REQUIRES_STARTUP_LOGIN = "requires_startup_login";
+    //private static final String KEY_REQUIRES_ANALYST_PASSWORD = "requires_analyst_password";
+    //private static final String KEY_REQUIRES_SIGNATURE = "requires_signature";
     private volatile TransferDatabase mTransferDatabase;
     private SharedPreferences mSharedPreferences;
     private Transfer mCurrentTransfer;
-    private Analyst mCurrentAnalyst;
-    private boolean mIsCurrentLocationAnalyst;
+    //private Analyst mCurrentAnalyst;
+    //private boolean mIsCurrentLocationAnalyst;
     private Runnable mOnCurrentTransferChangedListener;
     private boolean mIsShowingDialog;
     private boolean mIsShowingModalDialog;
@@ -84,7 +84,7 @@ public class DataManager {
         });
         dialog.show();
     }
-
+/*
     public boolean requiresStartupLogin() {
         return mSharedPreferences.getBoolean(KEY_REQUIRES_STARTUP_LOGIN, false);
     }
@@ -108,7 +108,7 @@ public class DataManager {
     public boolean setRequiresSignature(boolean b) {
         return mSharedPreferences.edit().putBoolean(KEY_REQUIRES_SIGNATURE, b).commit();
     }
-
+*/
     public boolean isSaving() {
         return mIsSaving;
     }
@@ -161,7 +161,7 @@ public class DataManager {
     public Transfer getCurrentTransfer() {
         return mCurrentTransfer;
     }
-
+/*
     public Analyst getCurrentAnalyst() {
         return mCurrentAnalyst;
     }
@@ -174,6 +174,7 @@ public class DataManager {
     public boolean isCurrentLocationAnalyst() {
         return mIsCurrentLocationAnalyst;
     }
+*/
 
     public boolean cancelCurrentTransfer() {
         final boolean success = mTransferDatabase.update_transferTable_set_canceled_equalTo_where_id_equals(true, getCurrentTransferId()) > 0;
@@ -191,6 +192,7 @@ public class DataManager {
 
     private void updateCurrentTransfer(Transfer transfer) {
         mCurrentTransfer = transfer;
+        /*
         if (transfer != null && transfer.locationBarcode != null && BarcodeType.Location.isOfType(transfer.locationBarcode) && isAnalystBarcode(transfer.locationBarcode)) {
             mIsCurrentLocationAnalyst = true;
             mCurrentAnalyst = getAnalyst(BarcodeType.getLocationCustodyOf(transfer.locationBarcode));
@@ -198,6 +200,7 @@ public class DataManager {
             mIsCurrentLocationAnalyst = false;
             mCurrentAnalyst = null;
         }
+        */
         if (mOnCurrentTransferChangedListener != null)
             mOnCurrentTransferChangedListener.run();
     }
@@ -333,9 +336,8 @@ public class DataManager {
         updateCurrentTransfer(new Transfer(mTransferDatabase.insert_locationBarcode_into_transferTable(locationBarcode), false, false, false, locationBarcode));
         return mCurrentTransfer.id;
     }
-
+/*
     public void loadAnalysts() {
-        /*
         //new WeakAsyncTask<>(readFileTaskListeners).execute();
         LineNumberReader lineReader = null;
         try {
@@ -416,9 +418,8 @@ public class DataManager {
             if (mDatabase.inTransaction())
                 mDatabase.endTransaction();
         }
-        */
     }
-
+*/
     public void signCurrentTransfer(final Context context, Bitmap bitmap, final Transfer transfer, final Utils.DetailedOnFinishListener onFinishListener) {
         final Utils.DetailedOnFinishListener temp = new Utils.DetailedOnFinishListener() {
             @Override
@@ -590,7 +591,7 @@ public class DataManager {
             }
         });
     }
-
+/*
     private Analyst getAnalyst(String analystId) {
         if (analystId == null) return null;
         String analystIdSha1 = null;
@@ -613,7 +614,7 @@ public class DataManager {
         cursor.close();
         return temp;
     }
-
+*/
     public static class Item {
         private final long id;
         private final long transferId;
@@ -657,7 +658,7 @@ public class DataManager {
             return locationBarcode;
         }
     }
-
+/*
     public static class Analyst {
         public final long id;
         public final String analystId;
@@ -693,4 +694,5 @@ public class DataManager {
             return analystDescription;
         }
     }
+*/
 }

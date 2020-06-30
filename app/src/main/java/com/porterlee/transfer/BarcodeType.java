@@ -1,4 +1,4 @@
-package com.porterlee.limstransfer;
+package com.porterlee.transfer;
 
 public enum BarcodeType {
     Item(BuildConfig.typeItem_hasCustodyOf, BuildConfig.typeItem_hasLabCode, BuildConfig.typeItem_base32Prefix, BuildConfig.typeItem_base64Prefix, BuildConfig.typeItem_otherPrefixes),

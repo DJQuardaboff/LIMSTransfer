@@ -1,4 +1,4 @@
-package com.porterlee.limstransfer;
+package com.porterlee.transfer;
 
 import android.database.Cursor;
 import android.database.DataSetObserver;
@@ -17,6 +17,7 @@ public abstract class SelectableCursorRecyclerViewAdapter<VH extends RecyclerVie
     private HashMap<String, Integer> mBarcodeToIndexMap = new HashMap<>();
     private ArrayList<String> mDuplicateBarcodes = new ArrayList<>();
     private int mSelectedItem = -1;
+    private boolean mIsCanceled = false;
 
     public SelectableCursorRecyclerViewAdapter(Cursor cursor, @NonNull String idColumnName) {
         mCursor = cursor;
@@ -73,7 +74,7 @@ public abstract class SelectableCursorRecyclerViewAdapter<VH extends RecyclerVie
      */
     public void changeCursor(Cursor cursor) {
         Cursor old = swapCursor(cursor);
-        if (old != null) {
+        if (old != null && !old.isClosed()) {
             old.close();
         }
     }
@@ -144,6 +145,14 @@ public abstract class SelectableCursorRecyclerViewAdapter<VH extends RecyclerVie
 
     public int getSelectedItem() {
         return mSelectedItem;
+    }
+
+    public boolean getIsCanceled() {
+        return mIsCanceled;
+    }
+
+    public void setIsCanceled(boolean isCanceled) {
+        mIsCanceled = isCanceled;
     }
 
     public int getRowIndexByColumnData(String columnName, String columnData) {

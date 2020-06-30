@@ -1,4 +1,4 @@
-package com.porterlee.limstransfer;
+package com.porterlee.transfer;
 
 import android.content.Context;
 import android.content.res.TypedArray;

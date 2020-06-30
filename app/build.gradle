@@ -76,8 +76,12 @@ android {
             applicationId "com.porterlee.${system.key}.transfer"
             resValue 'string', 'app_name', "${settings.name} Transfer"
 
+            for (def system_temp : plc_systems) {
+                buildConfigField 'boolean', "isSystem${system_temp.key.capitalize()}", system.key == system_temp.key ? 'true' : 'false'
+            }
+
             // BarcodeType item
-            def item = settings.item
+            def item = settings.barcode_type['item']
             buildConfigField 'boolean', 'typeItem_hasCustodyOf', item.hasCustodyOf ? 'true' : 'false'
             buildConfigField 'boolean', 'typeItem_hasLabCode', item.hasLabCode ? 'true' : 'false'
             buildConfigField 'String', 'typeItem_base32Prefix', item.base32Prefix ? "\"${item.base32Prefix}\"" : 'null'
@@ -86,7 +90,7 @@ android {
             // BarcodeType item
 
             // BarcodeType container
-            def container = settings.container
+            def container = settings.barcode_type['container']
             buildConfigField 'boolean', 'typeContainer_hasCustodyOf', container.hasCustodyOf ? 'true' : 'false'
             buildConfigField 'boolean', 'typeContainer_hasLabCode', container.hasLabCode ? 'true' : 'false'
             buildConfigField 'String', 'typeContainer_base32Prefix', container.base32Prefix ? "\"${container.base32Prefix}\"" : 'null'
@@ -95,7 +99,7 @@ android {
             // BarcodeType container
 
             // BarcodeType location
-            def location = settings.location
+            def location = settings.barcode_type['location']
             buildConfigField 'boolean', 'typeLocation_hasCustodyOf', location.hasCustodyOf ? 'true' : 'false'
             buildConfigField 'boolean', 'typeLocation_hasLabCode', location.hasLabCode ? 'true' : 'false'
             buildConfigField 'String', 'typeLocation_base32Prefix', location.base32Prefix ? "\"${location.base32Prefix}\"" : 'null'
@@ -103,7 +107,8 @@ android {
             buildConfigField 'String[]', 'typeLocation_otherPrefixes', location.otherPrefixes ? "{\"${location.otherPrefixes.join('", "')}\"}" : 'null'
             // BarcodeType location
 
-            buildConfigField 'boolean', 'display_quantity', settings.display_quantity ? 'true' : 'false'
+            buildConfigField 'boolean', 'displayQuantity', settings.display_quantity ? 'true' : 'false'
+            buildConfigField 'boolean', 'displayTransferNavigation', settings.display_transfer_navigation ? 'true' : 'false'
         })
     }
 
@@ -146,6 +151,7 @@ android {
             }
     }
 }
+
 dependencies {
     janamImplementation project(':janam_xt2_xt2-_xm75_xt100_xg200_sdk_v3-2-1')
     zebraCompileOnly 'com.symbol:emdk:7.0.0'
@@ -153,7 +159,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    implementation 'commons-io:commons-io:2.4'
+    implementation 'commons-io:commons-io:2.6'
     implementation 'com.github.gcacace:signature-pad:1.2.1'
     implementation 'me.zhanghai.android.materialprogressbar:library:1.6.1'
     testImplementation 'junit:junit:4.13'

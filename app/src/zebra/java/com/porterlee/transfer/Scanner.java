@@ -1,4 +1,4 @@
-package com.porterlee.limstransfer;
+package com.porterlee.transfer;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -51,11 +51,11 @@ public class Scanner implements EMDKManager.EMDKListener, com.symbol.emdk.barcod
 
     public void enable() {
         try {
+            mScanner.enable();
             mScanner.triggerType = com.symbol.emdk.barcode.Scanner.TriggerType.HARD;
             if (!mScanner.isReadPending()) {
                 mScanner.read();
             }
-            mScanner.enable();
         } catch (ScannerException e) {
             throw new RuntimeException(e);
         }

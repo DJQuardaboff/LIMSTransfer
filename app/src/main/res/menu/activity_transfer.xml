@@ -4,10 +4,10 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/menu_finalize"
-        android:title="@string/action_finalize"
+        android:id="@+id/menu_save"
+        android:title="@string/action_save"
         android:icon="@drawable/ic_save"
-        app:showAsAction="always"/>
+        app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/menu_sign"
@@ -20,15 +20,9 @@
         android:title="@string/action_cancel"
         app:showAsAction="never"/>
 
-    <item
+    <!--item
         android:id="@+id/menu_reset"
         android:title="@string/action_reset"
-        app:showAsAction="never"/>
-
-    <!--item
-        android:id="@+id/menu_continuous_mode"
-        android:title="@string/action_continuous_mode"
-        android:checkable="true"
         app:showAsAction="never"/-->
 
 </menu>

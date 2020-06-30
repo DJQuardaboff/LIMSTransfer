@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.porterlee.limstransfer.SoftKeyboardHandledConstraintLayout
+<com.porterlee.transfer.SoftKeyboardHandledConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -8,71 +8,105 @@
     android:layout_height="match_parent"
     android:gravity="center_horizontal"
     android:orientation="vertical"
-    tools:context="com.porterlee.limstransfer.TransferActivity">
+    tools:context="com.porterlee.transfer.TransferActivity">
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/vertical_center_guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.5"/>
+
+    <View
+        android:id="@+id/info_bg"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/colorPrimary"
+        app:layout_constraintBottom_toTopOf="@+id/view_divider"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/progress_bar"/>
+
+    <androidx.appcompat.widget.AppCompatImageButton
+        android:id="@+id/button_left"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="?android:attr/actionBarItemBackground"
+        android:onClick="switchToPreviousTransfer"
+        android:src="@drawable/ic_chevron_left"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/view_divider"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/progress_bar"/>
+
+    <androidx.appcompat.widget.AppCompatImageButton
+        android:id="@+id/button_right"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="?android:attr/actionBarItemBackground"
+        android:onClick="switchToNextTransfer"
+        android:src="@drawable/ic_chevron_right"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/view_divider"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/progress_bar"/>
 
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/text_current_location_label"
         style="@style/Base.TextAppearance.AppCompat.Medium"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@color/colorPrimary"
         android:gravity="end"
         android:paddingEnd="8dp"
         android:paddingStart="0dp"
-        android:textColor="#FFFFFF"
+        android:textColor="?android:attr/textColorPrimaryInverse"
         app:layout_constraintBottom_toTopOf="@+id/text_item_count_label"
-        app:layout_constraintEnd_toStartOf="@+id/text_current_location"
+        app:layout_constraintEnd_toStartOf="@+id/vertical_center_guideline"
         app:layout_constraintHorizontal_chainStyle="spread"
         app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/progress_bar"/>
 
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/text_current_location"
         style="@style/Base.TextAppearance.AppCompat.Medium"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@color/colorPrimary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:gravity="start"
-        android:textColor="#FFFFFF"
+        android:textColor="?android:attr/textColorPrimaryInverse"
         app:layout_constraintBottom_toBottomOf="@+id/text_current_location_label"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_chainStyle="spread"
         app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintStart_toEndOf="@+id/text_current_location_label"
+        app:layout_constraintStart_toEndOf="@+id/vertical_center_guideline"
         app:layout_constraintTop_toTopOf="@+id/text_current_location_label"/>
 
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/text_item_count_label"
         style="@style/Base.TextAppearance.AppCompat.Medium"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@color/colorPrimary"
         android:gravity="end"
         android:paddingEnd="8dp"
         android:paddingStart="0dp"
+        android:layout_marginBottom="5dp"
         android:text="@string/text_item_count_label"
-        android:textColor="#FFFFFF"
+        android:textColor="?android:attr/textColorPrimaryInverse"
         app:layout_constraintBottom_toTopOf="@+id/view_divider"
-        app:layout_constraintEnd_toStartOf="@+id/text_item_count"
+        app:layout_constraintEnd_toStartOf="@+id/vertical_center_guideline"
         app:layout_constraintHorizontal_chainStyle="spread"
         app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/text_current_location_label"/>
 
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/text_item_count"
         style="@style/Base.TextAppearance.AppCompat.Medium"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@color/colorPrimary"
         android:gravity="start"
-        android:textColor="#FFFFFF"
+        android:textColor="?android:attr/textColorPrimaryInverse"
         app:layout_constraintBottom_toBottomOf="@+id/text_item_count_label"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_chainStyle="spread"
         app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintStart_toEndOf="@+id/text_item_count_label"
+        app:layout_constraintStart_toEndOf="@+id/vertical_center_guideline"
         app:layout_constraintTop_toTopOf="@+id/text_item_count_label"/>
 
     <androidx.appcompat.widget.AppCompatTextView
@@ -83,8 +117,9 @@
         android:layout_marginStart="4dp"
         android:layout_marginEnd="8dp"
         android:text="@string/text_transfer_id_label"
-        app:layout_constraintTop_toTopOf="@id/text_current_location_label"
-        app:layout_constraintStart_toStartOf="parent"/>
+        app:layout_constraintTop_toTopOf="@id/text_item_count_label"
+        app:layout_constraintBottom_toBottomOf="@id/text_item_count_label"
+        app:layout_constraintStart_toEndOf="@id/button_left"/>
 
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/text_transfer_id"
@@ -98,7 +133,7 @@
         app:layout_constraintStart_toEndOf="@+id/text_transfer_id_label"/>
 
     <androidx.appcompat.widget.AppCompatTextView
-        android:id="@+id/text_scan_barcode"
+        android:id="@+id/text_scan_barcode_hint"
         style="@style/Base.TextAppearance.AppCompat.Medium.Inverse"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -107,13 +142,12 @@
         android:text="@string/text_scan_barcode"
         android:visibility="invisible"
         app:layout_constraintBottom_toTopOf="@+id/view_divider"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/button_right"
+        app:layout_constraintStart_toEndOf="@id/button_left"
         app:layout_constraintTop_toBottomOf="@+id/progress_bar"/>
 
     <View
         android:id="@+id/view_divider"
-        style="@style/Base.TextAppearance.AppCompat.Small"
         android:layout_width="match_parent"
         android:layout_height="4dp"
         android:background="@color/colorPrimaryLight"
@@ -132,7 +166,7 @@
         android:id="@+id/item_recycler_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        tools:listitem="@layout/item_transfer"
+        tools:listitem="@layout/item_quantity_transfer"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -143,8 +177,7 @@
         style="@style/Widget.MaterialProgressBar.ProgressBar.Horizontal"
         android:layout_width="match_parent"
         android:layout_height="4dp"
-        android:background="@color/colorPrimary"
-        android:max="320"
+        android:max="100"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -161,4 +194,4 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/-->
 
-</com.porterlee.limstransfer.SoftKeyboardHandledConstraintLayout>
+</com.porterlee.transfer.SoftKeyboardHandledConstraintLayout>

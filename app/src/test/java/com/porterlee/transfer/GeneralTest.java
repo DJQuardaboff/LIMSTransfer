@@ -1,14 +1,13 @@
-package com.porterlee.limstransfer;
+package com.porterlee.transfer;
 
 import org.junit.Test;
 
 import java.io.UnsupportedEncodingException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import static com.porterlee.limstransfer.Utils.SHA1;
-import static com.porterlee.limstransfer.Utils.byteToHexChar;
-import static com.porterlee.limstransfer.Utils.bytesToHex;
+import static com.porterlee.transfer.Utils.SHA1;
+import static com.porterlee.transfer.Utils.byteToHexChar;
+import static com.porterlee.transfer.Utils.bytesToHex;
 import static org.junit.Assert.*;
 
 /**

@@ -1,101 +1,113 @@
 ext.plc_systems = [
         lims: [
-                name            : 'LIMS',
+                name                       : 'LIMS',
 
-                item            : [
-                        hasLabCode   : true,
-                        base32Prefix : 'E',
-                        base64Prefix : 'e1',
-                        otherPrefixes: null
+                barcode_type               : [
+                        item     : [
+                                hasLabCode   : true,
+                                base32Prefix : 'E',
+                                base64Prefix : 'e1',
+                                otherPrefixes: null
+                        ],
+
+                        container: [
+                                hasLabCode   : true,
+                                base32Prefix : 'M',
+                                base64Prefix : 'm1',
+                                otherPrefixes: null,
+                        ],
+
+                        location : [
+                                hasCustodyOf : true,
+                                otherPrefixes: ['V'],
+                        ]
                 ],
 
-                container       : [
-                        hasLabCode   : true,
-                        base32Prefix : 'M',
-                        base64Prefix : 'm1',
-                        otherPrefixes: null,
-                ],
-
-                location        : [
-                        hasCustodyOf : true,
-                        otherPrefixes: ['V'],
-                ],
-
-                display_quantity: false,
+                display_quantity           : false,
+                display_transfer_navigation: false,
         ],
 
         lam : [
-                name            : 'LAM',
+                name                       : 'LAM',
 
-                item            : [
-                        hasLabCode   : false,
-                        base32Prefix : 'J',
-                        base64Prefix : 'J',
-                        otherPrefixes: null,
+                barcode_type               : [
+                        item     : [
+                                hasLabCode   : false,
+                                base32Prefix : 'J',
+                                base64Prefix : 'J',
+                                otherPrefixes: null,
+                        ],
+
+                        container: [
+                                hasLabCode   : true,
+                                base32Prefix : 'M',
+                                base64Prefix : 'm1',
+                                otherPrefixes: null,
+                        ],
+
+                        location : [
+                                hasCustodyOf : true,
+                                otherPrefixes: ['V'],
+                        ]
                 ],
 
-                container       : [
-                        hasLabCode   : true,
-                        base32Prefix : 'M',
-                        base64Prefix : 'm1',
-                        otherPrefixes: null,
-                ],
-
-                location        : [
-                        hasCustodyOf : true,
-                        otherPrefixes: ['V'],
-                ],
-
-                display_quantity: false,
+                display_quantity           : false,
+                display_transfer_navigation: false,
         ],
 
         ems : [
-                name            : 'EMS',
+                name                       : 'EMS',
 
-                item            : [
-                        hasLabCode   : true,
-                        base32Prefix : 'T',
-                        base64Prefix : 't',
-                        otherPrefixes: null,
+                barcode_type               : [
+                        item     : [
+                                hasLabCode   : true,
+                                base32Prefix : 'T',
+                                base64Prefix : 't',
+                                otherPrefixes: null,
+                        ],
+
+                        container: [
+                                hasLabCode   : true,
+                                base32Prefix : 'A',
+                                base64Prefix : 'a',
+                                otherPrefixes: null,
+                        ],
+
+                        location : [
+                                hasCustodyOf : false,
+                                otherPrefixes: ['L'],
+                        ]
                 ],
 
-                container       : [
-                        hasLabCode   : true,
-                        base32Prefix : 'A',
-                        base64Prefix : 'a',
-                        otherPrefixes: null,
-                ],
-
-                location        : [
-                        hasCustodyOf : false,
-                        otherPrefixes: ['L'],
-                ],
-
-                display_quantity: false,
+                display_quantity           : false,
+                display_transfer_navigation: true,
         ],
 
         qm  : [
-                name            : 'QM',
+                name                       : 'QM',
 
-                item            : [
-                        hasLabCode   : false,
-                        base32Prefix : null,
-                        base64Prefix : null,
-                        otherPrefixes: ['Q'],
+                barcode_type               : [
+                        item     : [
+                                hasLabCode   : false,
+                                base32Prefix : null,
+                                base64Prefix : null,
+                                otherPrefixes: ['Q'],
+                        ],
+
+                        container: [
+                                hasLabCode   : false,
+                                base32Prefix : null,
+                                base64Prefix : null,
+                                otherPrefixes: null,
+                        ],
+
+                        location : [
+                                hasCustodyOf : false,
+                                otherPrefixes: ['L1'],
+                        ]
                 ],
 
-                container       : [
-                        hasLabCode   : false,
-                        base32Prefix : null,
-                        base64Prefix : null,
-                        otherPrefixes: null,
-                ],
-
-                location        : [
-                        hasCustodyOf : false,
-                        otherPrefixes: ['L1'],
-                ],
-
-                display_quantity: true,
+                display_quantity           : true,
+                display_transfer_navigation: false,
         ],
 ]

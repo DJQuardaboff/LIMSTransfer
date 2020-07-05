@@ -1,9 +1,9 @@
 package com.porterlee.transfer;
 
 public enum BarcodeType {
-    Item(BuildConfig.typeItem_hasCustodyOf, BuildConfig.typeItem_hasLabCode, BuildConfig.typeItem_base32Prefix, BuildConfig.typeItem_base64Prefix, BuildConfig.typeItem_otherPrefixes),
-    Container(BuildConfig.typeContainer_hasCustodyOf, BuildConfig.typeContainer_hasLabCode, BuildConfig.typeContainer_base32Prefix, BuildConfig.typeContainer_base64Prefix, BuildConfig.typeContainer_otherPrefixes),
-    Location(BuildConfig.typeLocation_hasCustodyOf, BuildConfig.typeLocation_hasLabCode, BuildConfig.typeLocation_base32Prefix, BuildConfig.typeLocation_base64Prefix, BuildConfig.typeLocation_otherPrefixes),
+    Item(BuildConfig.barcodeType_item_hasCustodyOf, BuildConfig.barcodeType_item_hasLabCode, BuildConfig.barcodeType_item_base32Prefix, BuildConfig.barcodeType_item_base64Prefix, BuildConfig.barcodeType_item_otherPrefixes),
+    Container(BuildConfig.barcodeType_container_hasCustodyOf, BuildConfig.barcodeType_container_hasLabCode, BuildConfig.barcodeType_container_base32Prefix, BuildConfig.barcodeType_container_base64Prefix, BuildConfig.barcodeType_container_otherPrefixes),
+    Location(BuildConfig.barcodeType_location_hasCustodyOf, BuildConfig.barcodeType_location_hasLabCode, BuildConfig.barcodeType_location_base32Prefix, BuildConfig.barcodeType_location_base64Prefix, BuildConfig.barcodeType_location_otherPrefixes),
     Invalid(false, false, null, null);
 
     private final boolean hasCustodyOf;

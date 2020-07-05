@@ -1,8 +1,8 @@
-ext.plc_systems = [
+ext.plcSystems = [
         lims: [
                 name                       : 'LIMS',
 
-                barcode_type               : [
+                barcodeType               : [
                         item     : [
                                 hasLabCode   : true,
                                 base32Prefix : 'E',
@@ -23,14 +23,14 @@ ext.plc_systems = [
                         ]
                 ],
 
-                display_quantity           : false,
-                display_transfer_navigation: false,
+                displayQuantity           : false,
+                displayTransferNavigation: false,
         ],
 
         lam : [
                 name                       : 'LAM',
 
-                barcode_type               : [
+                barcodeType               : [
                         item     : [
                                 hasLabCode   : false,
                                 base32Prefix : 'J',
@@ -51,14 +51,14 @@ ext.plc_systems = [
                         ]
                 ],
 
-                display_quantity           : false,
-                display_transfer_navigation: false,
+                displayQuantity           : false,
+                displayTransferNavigation: false,
         ],
 
         ems : [
                 name                       : 'EMS',
 
-                barcode_type               : [
+                barcodeType               : [
                         item     : [
                                 hasLabCode   : true,
                                 base32Prefix : 'T',
@@ -79,14 +79,14 @@ ext.plc_systems = [
                         ]
                 ],
 
-                display_quantity           : false,
-                display_transfer_navigation: true,
+                displayQuantity           : false,
+                displayTransferNavigation: true,
         ],
 
         qm  : [
                 name                       : 'QM',
 
-                barcode_type               : [
+                barcodeType               : [
                         item     : [
                                 hasLabCode   : false,
                                 base32Prefix : null,
@@ -107,7 +107,7 @@ ext.plc_systems = [
                         ]
                 ],
 
-                display_quantity           : true,
-                display_transfer_navigation: false,
+                displayQuantity           : true,
+                displayTransferNavigation: false,
         ],
 ]

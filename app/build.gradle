@@ -69,46 +69,72 @@ android {
         }
     }
 
-    for (def system : plc_systems) {
+    for (def system : plcSystems) {
         productFlavors.create(system.key, {
             dimension 'system'
-            def settings = system.value
+            def systemSettings = system.value
             applicationId "com.porterlee.${system.key}.transfer"
-            resValue 'string', 'app_name', "${settings.name} Transfer"
+            resValue 'string', 'app_name', "${systemSettings.name} Transfer"
 
-            for (def system_temp : plc_systems) {
-                buildConfigField 'boolean', "isSystem${system_temp.key.capitalize()}", system.key == system_temp.key ? 'true' : 'false'
+            for (def i : plcSystems) {
+                buildConfigField 'boolean', "isSystem${i.key.capitalize()}", system.key == i.key ? 'true' : 'false'
             }
 
-            // BarcodeType item
-            def item = settings.barcode_type['item']
-            buildConfigField 'boolean', 'typeItem_hasCustodyOf', item.hasCustodyOf ? 'true' : 'false'
-            buildConfigField 'boolean', 'typeItem_hasLabCode', item.hasLabCode ? 'true' : 'false'
-            buildConfigField 'String', 'typeItem_base32Prefix', item.base32Prefix ? "\"${item.base32Prefix}\"" : 'null'
-            buildConfigField 'String', 'typeItem_base64Prefix', item.base64Prefix ? "\"${item.base64Prefix}\"" : 'null'
-            buildConfigField 'String[]', 'typeItem_otherPrefixes', item.otherPrefixes ? "{\"${item.otherPrefixes.join('", "')}\"}" : 'null'
-            // BarcodeType item
+            def barcodeTypes = ['item', 'container', 'location']
+            def barcodeTypeProperties = [
+                    hasCustodyOf : [
+                            type          : 'boolean',
+                            valueFormatter: { value -> return value ? 'true' : 'false' },
+                    ],
+                    hasLabCode   : [
+                            type          : 'boolean',
+                            valueFormatter: { value -> return value ? 'true' : 'false' },
+                    ],
+                    base32Prefix : [
+                            type          : 'String',
+                            valueFormatter: { value -> value ? "\"${value}\"" : 'null' },
+                    ],
+                    base64Prefix : [
+                            type          : 'String',
+                            valueFormatter: { value -> value ? "\"${value}\"" : 'null' },
+                    ],
+                    otherPrefixes: [
+                            type          : 'String[]',
+                            valueFormatter: { value -> value ? "{\"${value.join('", "')}\"}" : 'null' },
+                    ],
+            ]
 
-            // BarcodeType container
-            def container = settings.barcode_type['container']
-            buildConfigField 'boolean', 'typeContainer_hasCustodyOf', container.hasCustodyOf ? 'true' : 'false'
-            buildConfigField 'boolean', 'typeContainer_hasLabCode', container.hasLabCode ? 'true' : 'false'
-            buildConfigField 'String', 'typeContainer_base32Prefix', container.base32Prefix ? "\"${container.base32Prefix}\"" : 'null'
-            buildConfigField 'String', 'typeContainer_base64Prefix', container.base64Prefix ? "\"${container.base64Prefix}\"" : 'null'
-            buildConfigField 'String[]', 'typeContainer_otherPrefixes', container.otherPrefixes ? "{\"${container.otherPrefixes.join('", "')}\"}" : 'null'
-            // BarcodeType container
+            for (def BTName : barcodeTypes) {
+                def BTValue = systemSettings.barcodeType[BTName]
+                println("${BTName}: ${BTValue}")
 
-            // BarcodeType location
-            def location = settings.barcode_type['location']
-            buildConfigField 'boolean', 'typeLocation_hasCustodyOf', location.hasCustodyOf ? 'true' : 'false'
-            buildConfigField 'boolean', 'typeLocation_hasLabCode', location.hasLabCode ? 'true' : 'false'
-            buildConfigField 'String', 'typeLocation_base32Prefix', location.base32Prefix ? "\"${location.base32Prefix}\"" : 'null'
-            buildConfigField 'String', 'typeLocation_base64Prefix', location.base64Prefix ? "\"${location.base64Prefix}\"" : 'null'
-            buildConfigField 'String[]', 'typeLocation_otherPrefixes', location.otherPrefixes ? "{\"${location.otherPrefixes.join('", "')}\"}" : 'null'
-            // BarcodeType location
+                for (def BTProp : barcodeTypeProperties) {
+                    def BTPropName = BTProp.key
+                    def BTPropValue = BTValue[BTPropName]
+                    def BTPropType = BTProp.value['type']
+                    def BTPropValueFormatter = BTProp.value['valueFormatter']
+                    buildConfigField BTPropType, "barcodeType_${BTName}_${BTPropName}", BTPropValueFormatter(BTPropValue)
+                }
+            }
 
-            buildConfigField 'boolean', 'displayQuantity', settings.display_quantity ? 'true' : 'false'
-            buildConfigField 'boolean', 'displayTransferNavigation', settings.display_transfer_navigation ? 'true' : 'false'
+            def settings = [
+                    displayQuantity          : [
+                            type          : 'boolean',
+                            valueFormatter: { value -> value ? 'true' : 'false' },
+                    ],
+                    displayTransferNavigation: [
+                            type          : 'boolean',
+                            valueFormatter: { value -> value ? 'true' : 'false' },
+                    ],
+            ]
+
+            for (def setting : settings) {
+                def settingName = setting.key
+                def settingValue = systemSettings[settingName]
+                def settingType = setting.value['type']
+                def settingValueFormatter = setting.value['valueFormatter']
+                buildConfigField settingType, settingName, settingValueFormatter(settingValue)
+            }
         })
     }
 
@@ -129,7 +155,7 @@ android {
             if (inFile != null) {
                 def has_signingConfig = variant.signingConfig != null
                 def outDir = Paths.get(buildDir.path, variant.buildType.name, variant.productFlavors[1].name, 'v' + variant.versionName).toString()
-                String outName = plc_systems[variant.productFlavors[0].name].name + 'Transfer'
+                String outName = plcSystems[variant.productFlavors[0].name].name + 'Transfer'
                 if (variant.buildType.debuggable) outName += '-debug'
                 if (!has_signingConfig) outName += '-unsigned'
                 def task = project.tasks.create("publish${variant.name.capitalize()}") {

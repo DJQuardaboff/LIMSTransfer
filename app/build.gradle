@@ -76,31 +76,32 @@ android {
             applicationId "com.porterlee.${system.key}.transfer"
             resValue 'string', 'app_name', "${systemSettings.name} Transfer"
 
+            def valueFormatters = [
+                    'boolean' : { value -> value ? 'true' : 'false' },
+                    'String'  : { value -> value ? "\"${value}\"" : 'null' },
+                    'String[]': { value -> value ? "{\"${value.join('", "')}\"}" : 'null' },
+            ]
+
             for (def i : plcSystems) {
-                buildConfigField 'boolean', "isSystem${i.key.capitalize()}", system.key == i.key ? 'true' : 'false'
+                buildConfigField 'boolean', "isSystem${i.key.capitalize()}", valueFormatters['boolean'](system.key == i.key)
             }
 
             def barcodeTypes = ['item', 'container', 'location']
             def barcodeTypeProperties = [
                     hasCustodyOf : [
-                            type          : 'boolean',
-                            valueFormatter: { value -> return value ? 'true' : 'false' },
+                            type: 'boolean',
                     ],
                     hasLabCode   : [
-                            type          : 'boolean',
-                            valueFormatter: { value -> return value ? 'true' : 'false' },
+                            type: 'boolean',
                     ],
                     base32Prefix : [
-                            type          : 'String',
-                            valueFormatter: { value -> value ? "\"${value}\"" : 'null' },
+                            type: 'String',
                     ],
                     base64Prefix : [
-                            type          : 'String',
-                            valueFormatter: { value -> value ? "\"${value}\"" : 'null' },
+                            type: 'String',
                     ],
                     otherPrefixes: [
-                            type          : 'String[]',
-                            valueFormatter: { value -> value ? "{\"${value.join('", "')}\"}" : 'null' },
+                            type: 'String[]',
                     ],
             ]
 
@@ -111,28 +112,26 @@ android {
                     def BTPropName = BTProp.key
                     def BTPropValue = BTValue[BTPropName]
                     def BTPropType = BTProp.value['type']
-                    def BTPropValueFormatter = BTProp.value['valueFormatter']
+                    def BTPropValueFormatter = valueFormatters[BTPropType]
                     buildConfigField BTPropType, "barcodeType_${BTName}_${BTPropName}", BTPropValueFormatter(BTPropValue)
                 }
             }
 
-            def settings = [
+            def systemProperties = [
                     displayQuantity          : [
-                            type          : 'boolean',
-                            valueFormatter: { value -> value ? 'true' : 'false' },
+                            type: 'boolean',
                     ],
                     displayTransferNavigation: [
-                            type          : 'boolean',
-                            valueFormatter: { value -> value ? 'true' : 'false' },
+                            type: 'boolean',
                     ],
             ]
 
-            for (def setting : settings) {
-                def settingName = setting.key
-                def settingValue = systemSettings[settingName]
-                def settingType = setting.value['type']
-                def settingValueFormatter = setting.value['valueFormatter']
-                buildConfigField settingType, settingName, settingValueFormatter(settingValue)
+            for (def SProp : systemProperties) {
+                def SPropName = SProp.key
+                def SPropValue = systemSettings[SPropName]
+                def SPropType = SProp.value['type']
+                def SPropValueFormatter = valueFormatters[SPropType]
+                buildConfigField SPropType, SPropName, SPropValueFormatter(SPropValue)
             }
         })
     }

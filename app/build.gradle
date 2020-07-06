@@ -106,7 +106,6 @@ android {
 
             for (def BTName : barcodeTypes) {
                 def BTValue = systemSettings.barcodeType[BTName]
-                println("${BTName}: ${BTValue}")
 
                 for (def BTProp : barcodeTypeProperties) {
                     def BTPropName = BTProp.key

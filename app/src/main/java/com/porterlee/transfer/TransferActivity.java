@@ -858,7 +858,7 @@ public class TransferActivity extends AppCompatActivity {
         private int quantity;
 
         public TransferItemViewHolder(ViewGroup parent) {
-            super(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_quantity_transfer, parent, false));
+            super(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_transfer, parent, false));
             final AppCompatImageButton expandedMenuButton = itemView.findViewById(R.id.button_menu);
             expandedMenuButton.setOnClickListener(new View.OnClickListener() {
                 @Override

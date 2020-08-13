@@ -180,7 +180,7 @@ dependencies {
     janamImplementation project(':janam_xt2_xt2-_xm75_xt100_xg200_sdk_v3-2-1')
     zebraCompileOnly 'com.symbol:emdk:7.0.0'
 
-    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation 'commons-io:commons-io:2.6'

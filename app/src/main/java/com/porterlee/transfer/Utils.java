@@ -208,12 +208,12 @@ public class Utils {
 
     public static class Transfer {
         public final long id;
-        public final Long batch_id;
+        public final long batch_id;
         public final String location_barcode;
         public final boolean signed;
         public final boolean finalized;
         public final boolean canceled;
-        public final Boolean saved;
+        public final boolean saved;
         public final String start_datetime;
         public final String sign_datetime;
         public final String finalize_datetime;

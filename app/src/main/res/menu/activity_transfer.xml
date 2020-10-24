@@ -20,9 +20,4 @@
         android:title="@string/action_cancel"
         app:showAsAction="never"/>
 
-    <!--item
-        android:id="@+id/menu_reset"
-        android:title="@string/action_reset"
-        app:showAsAction="never"/-->
-
 </menu>

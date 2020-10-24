@@ -9,6 +9,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.appcompat.app.AlertDialog;
@@ -40,11 +41,9 @@ import com.github.gcacace.signaturepad.views.SignaturePad;
 
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
-import static com.porterlee.transfer.BarcodeType.Item;
-import static com.porterlee.transfer.BarcodeType.Container;
-import static com.porterlee.transfer.BarcodeType.Location;
-import static com.porterlee.transfer.BarcodeType.Invalid;
-import static com.porterlee.transfer.BarcodeType.getBarcodeType;
+import static com.porterlee.transfer.PlcBarcode.BarcodeType.Item;
+import static com.porterlee.transfer.PlcBarcode.BarcodeType.Container;
+import static com.porterlee.transfer.PlcBarcode.BarcodeType.Location;
 
 public class TransferActivity extends AppCompatActivity {
     public static final String TAG = TransferActivity.class.getCanonicalName();
@@ -53,7 +52,7 @@ public class TransferActivity extends AppCompatActivity {
 
     private final ScannerUtils.OnBarcodeScannedListener onBarcodeScannedListener = new ScannerUtils.OnBarcodeScannedListener() {
         @Override
-        public void onBarcodeScanned(final String barcode) {
+        public void onBarcodeScanned(final String barcodeStr) {
             if (mDataManager == null)
                 return;
 
@@ -63,16 +62,16 @@ public class TransferActivity extends AppCompatActivity {
                 return;
             }
 
-            final BarcodeType barcodeType = getBarcodeType(barcode);
-            if (barcodeType.equals(Invalid)) {
+            final PlcBarcode barcode = new PlcBarcode(barcodeStr);
+            if (barcode.isOfType(null)) {
                 getScannerUtils().onScanComplete(false);
-                toastShort(String.format("Unrecognised barcode: \"%s\"", barcode));
+                toastShort(String.format("Unrecognised barcode: \"%s\"", barcode.getBarcode()));
                 return;
             }
 
             Utils.Transfer currentTransfer = mDataManager.getCurrentTransfer();
             if (currentTransfer == null || !currentTransfer.isActive()) { // null or inactive current transfer
-                if (Item.equals(barcodeType)) {
+                if (barcode.isOfType(Item)) {
                     getScannerUtils().onScanComplete(false);
                     if (currentTransfer != null) {
                         if (currentTransfer.canceled) {
@@ -88,13 +87,14 @@ public class TransferActivity extends AppCompatActivity {
                     return;
                 }
 
-                if (Location.equals(barcodeType) || Container.equals(barcodeType)) {
-                    if (mDataManager.startNewTransfer(barcode) > 0) {
+                if (barcode.isOfType(Location) || barcode.isOfType(Container)) {
+                    if (mDataManager.startNewTransfer(barcode.getBarcode()) > 0) {
                         getScannerUtils().onScanComplete(true);
+                        refreshItemCount();
                         refreshItemRecyclerAdapter();
                     } else {
                         getScannerUtils().onScanComplete(false);
-                        Log.w(TAG, String.format("Error adding %s \"%s\" to database", (Location.equals(barcodeType) ? "location" : "container"), barcode));
+                        Log.e(TAG, String.format("Error adding %s \"%s\" to database", barcode.getBarcodeType().toString().toLowerCase(), barcode.getBarcode()));
                         toastLong("Error starting transfer");
                     }
                 }
@@ -103,15 +103,15 @@ public class TransferActivity extends AppCompatActivity {
 
             // currentTransfer is non-null and active
 
-            if (Container.equals(barcodeType)) {
+            if (barcode.isOfType(Container)) {
                 // ask if the user would like to start a new transfer or add this to the current one
             }
 
-            if (Location.isOfType(barcode)) {
+            if (barcode.isOfType(Location)) {
                 getScannerUtils().onScanComplete(false);
                 toastShort("Finalize or cancel this transfer first");
-            } else if (Item.equals(barcodeType) || Container.equals(barcodeType)) {
-                if (mDataManager.query_currentTransferHasItemWithBarcode(barcode)) {
+            } else if (barcode.isOfType(Item) || barcode.isOfType(Container)) {
+                if (mDataManager.query_currentTransferHasItemWithBarcode(barcode.getBarcode())) {
                     getScannerUtils().onScanComplete(false);
                     openDialog_duplicateItemResolution(barcode);
                 } else {
@@ -126,7 +126,7 @@ public class TransferActivity extends AppCompatActivity {
         }
     };
 
-    public void openDialog_duplicateItemResolution(final String barcode) {
+    public void openDialog_duplicateItemResolution(@NonNull final PlcBarcode barcode) {
         mDataManager.showModalScannerDialog(new AlertDialog.Builder(TransferActivity.this)
                 .setCancelable(false)
                 .setTitle("Duplicate item")
@@ -135,7 +135,7 @@ public class TransferActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
-                        highlightItemWithBarcode(barcode);
+                        highlightItemWithBarcode(barcode.getBarcode());
                     }
                 }).setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
                     @Override
@@ -145,8 +145,8 @@ public class TransferActivity extends AppCompatActivity {
                 }).create(), null);
     }
 
-    private void insertItem(String barcode, Utils.OnFinishListener listener) {
-        if (mDataManager.query_insertItem(barcode) > 0) {
+    private void insertItem(@NonNull PlcBarcode barcode, Utils.OnFinishListener listener) {
+        if (mDataManager.query_insertItem(barcode.getBarcode()) > 0) {
             if (listener != null)
                 listener.onFinish(true);
 
@@ -156,13 +156,13 @@ public class TransferActivity extends AppCompatActivity {
             if (listener != null)
                 listener.onFinish(false);
 
-            boolean isItem = Item.isOfType(barcode);
-            boolean isContainer = Container.isOfType(barcode);
+            boolean isItem = barcode.isOfType(Item);
+            boolean isContainer = barcode.isOfType(Container);
             String barcodeTypeName = isItem ? "item" : (isContainer ? "container" : "barcode");
             Log.w(TAG, String.format("Error adding %s \"%s\" to database", barcodeTypeName, barcode));
             toastLong("Error adding " + barcodeTypeName);
         }
-        highlightItemWithBarcode(barcode);
+        highlightItemWithBarcode(barcode.getBarcode());
     }
 
     private Scanner getScanner() {
@@ -400,7 +400,7 @@ public class TransferActivity extends AppCompatActivity {
     }
 
     public void switchToNextTransfer(View v) {
-        mDataManager.switchToPreviousTransfer();
+        mDataManager.switchToNextTransfer();
     }
 
     @Override
@@ -422,7 +422,7 @@ public class TransferActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_transfer);
 
-        if (BuildConfig.displayTransferNavigation) {
+        if (BuildConfig.ui_enableTransferNavigation) {
             this.<AppCompatImageButton>findViewById(R.id.button_left).setVisibility(View.VISIBLE);
             this.<AppCompatImageButton>findViewById(R.id.button_right).setVisibility(View.VISIBLE);
         }
@@ -455,7 +455,7 @@ public class TransferActivity extends AppCompatActivity {
                         long transferId = mDataManager.getCurrentTransferId();
                         boolean isCanceled = currentTransfer != null && mDataManager.getCurrentTransfer().canceled;
                         updateInfo(
-                                currentTransfer != null ? currentTransfer.location_barcode : null,
+                                currentTransfer != null ? new PlcBarcode(currentTransfer.location_barcode) : null,
                                 transferId < 0 ? -1 : mDataManager.query_getItemCount(),
                                 transferId,
                                 isCanceled
@@ -586,8 +586,6 @@ public class TransferActivity extends AppCompatActivity {
         final MenuItem itemSave = menu.findItem(R.id.menu_save);
         final MenuItem itemSign = menu.findItem(R.id.menu_sign);
         final MenuItem itemCancel = menu.findItem(R.id.menu_cancel);
-        //final MenuItem itemReset = menu.findItem(R.id.menu_reset);
-        //final MenuItem itemContinuous = menu.findItem(R.id.menu_continuous_mode);
         if (mDataManager != null) {
             final boolean saveEnabled = mDataManager.getCurrentTransfer() != null;
             final boolean signEnabled = mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().signed && !mDataManager.getCurrentTransfer().finalized && !mDataManager.getCurrentTransfer().canceled;
@@ -596,17 +594,14 @@ public class TransferActivity extends AppCompatActivity {
             itemSave.setVisible(true);
             itemSign.setVisible(true);
             itemCancel.setVisible(true);
-            //itemReset.setVisible(true);
 
             setIconEnabled(itemSave, saveEnabled);
             setIconEnabled(itemSign, signEnabled);
             setIconEnabled(itemCancel, cancelEnabled);
-            //setIconEnabled(itemReset, resetEnabled);
         } else {
             itemSave.setVisible(false);
             itemSign.setVisible(false);
             itemCancel.setVisible(false);
-            //itemReset.setVisible(false);
         }
         return super.onPrepareOptionsMenu(menu);
     }
@@ -622,6 +617,7 @@ public class TransferActivity extends AppCompatActivity {
         getScannerUtils().setActivity(this);
         getScannerUtils().setOnBarcodeScannedListener(onBarcodeScannedListener);
         getScanner().start();
+        refreshItemCount();
         refreshItemRecyclerAdapter();
     }
 
@@ -702,7 +698,7 @@ public class TransferActivity extends AppCompatActivity {
         /*this.<AppCompatButton>findViewById(R.id.test_button).setOnClickListener(v -> {
 
         });*/
-        if (BuildConfig.displayQuantity) {
+        if (BuildConfig.ui_enableQuantityEdit) {
             final SoftKeyboardHandledConstraintLayout softKeyboardHandler = findViewById(R.id.transfer_layout);
             softKeyboardHandler.setOnSoftKeyboardVisibilityChangeListener(new SoftKeyboardHandledConstraintLayout.SoftKeyboardVisibilityChangeListener() {
                 @Override
@@ -764,59 +760,53 @@ public class TransferActivity extends AppCompatActivity {
         });
     }
 
-    private void updateInfo(String location, int itemCount, long transferId, boolean isCanceled) {
-        final boolean isLocation = getBarcodeType(location).equals(BarcodeType.Location);
-        final boolean isContainer = getBarcodeType(location).equals(BarcodeType.Container);
-        final boolean isLocationNull = !isLocation && !isContainer;
+    private void setInfoViewAttributes(View v, boolean isLocationNull) {
+        v.setVisibility(!isLocationNull ? View.VISIBLE : View.INVISIBLE);
+        v.setEnabled(!isLocationNull);
+    }
 
-        final AppCompatTextView textScanBarcodeHint = findViewById(R.id.text_scan_barcode_hint);
+    private void setInfoViewAttributes(int id, boolean isLocationNull) {
+        setInfoViewAttributes(findViewById(id), isLocationNull);
+    }
 
-        final AppCompatTextView textCurrentLocationLabel = findViewById(R.id.text_current_location_label);
-        final AppCompatTextView textCurrentLocation = findViewById(R.id.text_current_location);
+    static final int[] INFO_TEXT_VIEW_IDS = {
+            R.id.text_current_location_label,
+            R.id.text_current_location_label_separator,
+            R.id.text_current_location,
 
-        final AppCompatTextView textItemCountLabel = findViewById(R.id.text_item_count_label);
-        final AppCompatTextView textItemCount = findViewById(R.id.text_item_count);
+            R.id.text_item_count_label,
+            R.id.text_item_count_label_separator,
+            R.id.text_item_count,
 
-        final AppCompatTextView textTransferIdLabel = findViewById(R.id.text_transfer_id_label);
-        final AppCompatTextView textTransferId = findViewById(R.id.text_transfer_id);
+            R.id.text_transfer_id_label,
+            R.id.text_transfer_id_label_separator,
+            R.id.text_transfer_id
+    };
+
+    private void updateInfo(@Nullable PlcBarcode barcode, int itemCount, long transferId, boolean isCanceled) {
+        final boolean isLocationNull = barcode == null || !barcode.isOfType(Location) && !barcode.isOfType(Container);
 
         {
+            final AppCompatTextView textScanBarcodeHint = findViewById(R.id.text_scan_barcode_hint);
             textScanBarcodeHint.setVisibility(isLocationNull ? View.VISIBLE : View.INVISIBLE);
-
-            textCurrentLocationLabel.setVisibility(isLocationNull ? View.INVISIBLE : View.VISIBLE);
-            textCurrentLocation.setVisibility(isLocationNull ? View.INVISIBLE : View.VISIBLE);
-
-            textItemCountLabel.setVisibility(isLocationNull ? View.INVISIBLE : View.VISIBLE);
-            textItemCount.setVisibility(isLocationNull ? View.INVISIBLE : View.VISIBLE);
-
-            textTransferIdLabel.setVisibility(isLocationNull ? View.INVISIBLE : View.VISIBLE);
-            textTransferId.setVisibility(isLocationNull ? View.INVISIBLE : View.VISIBLE);
         }
 
-        {
-            textCurrentLocationLabel.setEnabled(!isCanceled);
-            textCurrentLocation.setEnabled(!isCanceled);
-
-            textItemCountLabel.setEnabled(!isCanceled);
-            textItemCount.setEnabled(!isCanceled);
-
-            textTransferIdLabel.setEnabled(!isCanceled);
-            textTransferId.setEnabled(!isCanceled);
+        for (int id : INFO_TEXT_VIEW_IDS) {
+            setInfoViewAttributes(id, isLocationNull);
         }
 
         if (!isLocationNull) {
-            textCurrentLocationLabel.setText(isLocation ? R.string.text_location_label : R.string.text_container_location_label);
-            textCurrentLocation.setText(location);
+            final AppCompatTextView textCurrentLocationLabel = findViewById(R.id.text_current_location_label);
+            final AppCompatTextView textCurrentLocation = findViewById(R.id.text_current_location);
+            textCurrentLocationLabel.setText(barcode.getBarcodeType().toString());
+            textCurrentLocation.setText(barcode.getBarcode());
+
+            final AppCompatTextView textItemCount = findViewById(R.id.text_item_count);
             textItemCount.setText(itemCount >= 0 ? String.valueOf(itemCount) : "-");
-            if (transferId < 0) {
-                textTransferIdLabel.setVisibility(View.INVISIBLE);
-                textTransferId.setVisibility(View.VISIBLE);
-                textTransferId.setText("-");
-            } else {
-                textTransferIdLabel.setVisibility(View.VISIBLE);
-                textTransferId.setVisibility(View.VISIBLE);
-                textTransferId.setText(String.valueOf(transferId));
-            }
+
+            final AppCompatTextView textTransferIdLabel = findViewById(R.id.text_transfer_id_label);
+            final AppCompatTextView textTransferId = findViewById(R.id.text_transfer_id);
+            textTransferId.setText(transferId < 0 ? "-" : String.valueOf(transferId));
         }
     }
 
@@ -854,7 +844,7 @@ public class TransferActivity extends AppCompatActivity {
 
     private class TransferItemViewHolder extends RecyclerView.ViewHolder {
         private long id;
-        private String barcode;
+        private String barcodeStr;
         private int quantity;
 
         public TransferItemViewHolder(ViewGroup parent) {
@@ -868,16 +858,17 @@ public class TransferActivity extends AppCompatActivity {
                     popup.getMenu().findItem(R.id.menu_remove).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                         @Override
                         public boolean onMenuItemClick(MenuItem item) {
+                            final PlcBarcode barcode = new PlcBarcode(barcodeStr);
                             mDataManager.showModalScannerDialog(new AlertDialog.Builder(TransferActivity.this)
                                     .setCancelable(false)
-                                    .setTitle("Remove " + BarcodeType.getBarcodeType(barcode).name())
-                                    .setMessage("Are you sure you want to remove " + (BarcodeType.Item.isOfType(barcode) ? "item" : "container") + " \"" + barcode + "\"")
+                                    .setTitle("Remove " + barcode.getBarcodeType().toString())
+                                    .setMessage("Are you sure you want to remove " + barcode.getBarcodeType().toString().toLowerCase() + " \"" + barcode.getBarcode() + "\"")
                                     .setNegativeButton(R.string.action_cancel, null)
                                     .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
                                         @Override
                                         public void onClick(DialogInterface dialog, int which) {
                                             if (mDataManager.query_deleteItem(id) > 0) {
-                                                TransferActivity.this.<AppCompatTextView>findViewById(R.id.text_item_count).setText(String.valueOf(mDataManager.query_getItemCount()));
+                                                refreshItemCount();
                                                 refreshItemRecyclerAdapter();
                                             } else {
                                                 Log.w(TAG, String.format("Error deleting item with an id of %d from database", id));
@@ -891,7 +882,7 @@ public class TransferActivity extends AppCompatActivity {
                     popup.show();
                 }
             });
-            if (BuildConfig.displayQuantity) {
+            if (BuildConfig.ui_enableQuantityEdit) {
                 final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
                 quantityEditText.setVisibility(View.VISIBLE);
                 quantityEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
@@ -920,7 +911,7 @@ public class TransferActivity extends AppCompatActivity {
         }
 
         void saveQuantity() {
-            if (BuildConfig.displayQuantity) {
+            if (BuildConfig.ui_enableQuantityEdit) {
                 final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
                 try {
                     String quantityText = quantityEditText.getText().toString();
@@ -944,7 +935,7 @@ public class TransferActivity extends AppCompatActivity {
 
         public void bindViews(final Cursor cursor, final boolean isSelected, final boolean isCanceled) {
             id = cursor.getLong(cursor.getColumnIndexOrThrow(TransferDatabase.Key.ID));
-            barcode = cursor.getString(cursor.getColumnIndexOrThrow(TransferDatabase.Key.BARCODE));
+            barcodeStr = cursor.getString(cursor.getColumnIndexOrThrow(TransferDatabase.Key.BARCODE));
             quantity = (int) cursor.getLong(cursor.getColumnIndexOrThrow(TransferDatabase.Key.QUANTITY));
 
             final AppCompatTextView textBarcode = itemView.findViewById(R.id.text_barcode);
@@ -954,15 +945,15 @@ public class TransferActivity extends AppCompatActivity {
             buttonMenu.setVisibility(isCanceled ? View.GONE : View.VISIBLE);
 
             textBarcode.setTypeface(null, isSelected ? Typeface.BOLD : Typeface.NORMAL);
-            textBarcode.setText(barcode);
+            textBarcode.setText(barcodeStr);
 
-            if (mItemRecyclerAdapter.getIsDuplicate(barcode)) {
+            if (mItemRecyclerAdapter.getIsDuplicate(barcodeStr)) {
                 itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.item_color_yellow, null));
             } else {
                 itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.item_color_white, null));
             }
 
-            if (BuildConfig.displayQuantity) {
+            if (BuildConfig.ui_enableQuantityEdit) {
                 final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
                 quantityEditText.setEnabled(!isCanceled);
                 quantityEditText.setText(cursor.getString(cursor.getColumnIndexOrThrow(TransferDatabase.Key.QUANTITY)));

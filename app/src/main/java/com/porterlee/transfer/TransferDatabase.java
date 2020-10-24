@@ -10,6 +10,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import java.io.File;
 import java.util.ArrayList;
 
 public final class TransferDatabase extends SQLiteOpenHelper {
@@ -78,6 +79,9 @@ public final class TransferDatabase extends SQLiteOpenHelper {
             db.execSQL("DETACH DATABASE old_db");
             // todo uncomment
             //mContext.deleteDatabase(OLD_DATABASE_NAME);
+            File oldDatabaseFile = mContext.getDatabasePath(OLD_DATABASE_NAME);
+            //noinspection ResultOfMethodCallIgnored
+            oldDatabaseFile.renameTo(new File(oldDatabaseFile.getParentFile(), OLD_DATABASE_NAME + ".old"));
 
             db.beginTransaction();
         }

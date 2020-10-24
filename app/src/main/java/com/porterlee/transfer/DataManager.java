@@ -723,7 +723,7 @@ public class DataManager {
                                 updateNum++;
                             }
 
-                            if (BuildConfig.displayQuantity) {
+                            if (BuildConfig.ui_enableQuantityEdit) {
                                 printStream.printf("\"%s\"|\"%d\"|\"%d\"|\"%s\"\r\n", itemCursor.getString(itemBarcodeIndex).replace("\"", "\"\""), itemCursor.getLong(itemQuantityIndex), transferCursor.getLong(transferIdIndex), itemCursor.getString(itemDateTimeIndex).replace("-", "/"));
                             } else {
                                 printStream.printf("\"%s\"|\"%d\"|\"%s\"\r\n", itemCursor.getString(itemBarcodeIndex).replace("\"", "\"\""), transferCursor.getLong(transferIdIndex), itemCursor.getString(itemDateTimeIndex).replace("-", "/"));

@@ -1,113 +1,228 @@
 ext.plcSystems = [
         lims: [
-                name                       : 'LIMS',
+                name       : 'LIMS',
 
-                barcodeType               : [
+                barcodeType: [
                         item     : [
-                                hasLabCode   : true,
-                                base32Prefix : 'E',
-                                base64Prefix : 'e1',
-                                otherPrefixes: null
+                                hasLabCode     : true,
+                                base32Prefix   : 'E',
+                                base64Prefix   : 'e1',
+                                genericPrefixes: null
                         ],
 
                         container: [
-                                hasLabCode   : true,
-                                base32Prefix : 'M',
-                                base64Prefix : 'm1',
-                                otherPrefixes: null,
+                                hasLabCode     : true,
+                                base32Prefix   : 'M',
+                                base64Prefix   : 'm1',
+                                genericPrefixes: null,
                         ],
 
                         location : [
-                                hasCustodyOf : true,
-                                otherPrefixes: ['V'],
+                                hasCustodyOf   : true,
+                                genericPrefixes: ['V'],
                         ]
                 ],
 
-                displayQuantity           : false,
-                displayTransferNavigation: false,
+                ui         : [
+                        enableQuantityEdit      : false,
+                        enableTransferNavigation: false,
+                ],
         ],
 
         lam : [
-                name                       : 'LAM',
+                name       : 'LAM',
 
-                barcodeType               : [
+                barcodeType: [
                         item     : [
-                                hasLabCode   : false,
-                                base32Prefix : 'J',
-                                base64Prefix : 'J',
-                                otherPrefixes: null,
+                                hasLabCode     : false,
+                                base32Prefix   : 'J',
+                                base64Prefix   : 'J',
+                                genericPrefixes: null,
                         ],
 
                         container: [
-                                hasLabCode   : true,
-                                base32Prefix : 'M',
-                                base64Prefix : 'm1',
-                                otherPrefixes: null,
+                                hasLabCode     : true,
+                                base32Prefix   : 'M',
+                                base64Prefix   : 'm1',
+                                genericPrefixes: null,
                         ],
 
                         location : [
-                                hasCustodyOf : true,
-                                otherPrefixes: ['V'],
+                                hasCustodyOf   : true,
+                                genericPrefixes: ['V'],
                         ]
                 ],
 
-                displayQuantity           : false,
-                displayTransferNavigation: false,
+                ui         : [
+                        enableQuantityEdit      : false,
+                        enableTransferNavigation: false,
+                ],
         ],
 
         ems : [
-                name                       : 'EMS',
+                name       : 'EMS',
 
-                barcodeType               : [
+                barcodeType: [
                         item     : [
-                                hasLabCode   : true,
-                                base32Prefix : 'T',
-                                base64Prefix : 't',
-                                otherPrefixes: null,
+                                hasLabCode     : true,
+                                base32Prefix   : 'T',
+                                base64Prefix   : 't',
+                                genericPrefixes: null,
                         ],
 
                         container: [
-                                hasLabCode   : true,
-                                base32Prefix : 'A',
-                                base64Prefix : 'a',
-                                otherPrefixes: null,
+                                hasLabCode     : true,
+                                base32Prefix   : 'A',
+                                base64Prefix   : 'a',
+                                genericPrefixes: null,
                         ],
 
                         location : [
-                                hasCustodyOf : false,
-                                otherPrefixes: ['L'],
+                                hasCustodyOf   : false,
+                                genericPrefixes: ['L'],
                         ]
                 ],
 
-                displayQuantity           : false,
-                displayTransferNavigation: true,
+                ui         : [
+                        enableQuantityEdit      : false,
+                        enableTransferNavigation: true,
+                ],
         ],
 
         qm  : [
-                name                       : 'QM',
+                name       : 'QM',
 
-                barcodeType               : [
+                barcodeType: [
                         item     : [
-                                hasLabCode   : false,
-                                base32Prefix : null,
-                                base64Prefix : null,
-                                otherPrefixes: ['Q'],
-                        ],
-
-                        container: [
-                                hasLabCode   : false,
-                                base32Prefix : null,
-                                base64Prefix : null,
-                                otherPrefixes: null,
+                                hasLabCode     : false,
+                                base32Prefix   : null,
+                                base64Prefix   : null,
+                                genericPrefixes: ['Q'],
                         ],
 
                         location : [
-                                hasCustodyOf : false,
-                                otherPrefixes: ['L1'],
+                                hasCustodyOf   : false,
+                                genericPrefixes: ['L1'],
                         ]
                 ],
 
-                displayQuantity           : true,
-                displayTransferNavigation: false,
+                ui         : [
+                        enableQuantityEdit      : true,
+                        enableTransferNavigation: false,
+                ],
+        ],
+]
+
+ext.plcSystemsMetadata = [
+        name       : [
+                type: String,
+        ],
+
+        barcodeType: [
+                child: [
+                        item     : [
+                                required: false,
+                                default:[:],
+                                child: [
+                                        hasLabCode     : [
+                                                required: false,
+                                                default : false,
+                                                type    : boolean,
+                                        ],
+
+                                        base32Prefix   : [
+                                                required: false,
+                                                default : null,
+                                                type    : String,
+                                        ],
+
+                                        base64Prefix   : [
+                                                required: false,
+                                                default : null,
+                                                type    : String,
+                                        ],
+
+                                        genericPrefixes: [
+                                                required: false,
+                                                default : null,
+                                                type    : String[],
+                                        ],
+                                ],
+                        ],
+
+                        container: [
+                                required: false,
+                                default:[:],
+                                child: [
+                                        hasLabCode     : [
+                                                required: false,
+                                                default : false,
+                                                type    : boolean,
+                                        ],
+
+                                        base32Prefix   : [
+                                                required: false,
+                                                default : null,
+                                                type    : String,
+                                        ],
+
+                                        base64Prefix   : [
+                                                required: false,
+                                                default : null,
+                                                type    : String,
+                                        ],
+
+                                        genericPrefixes: [
+                                                required: false,
+                                                default : null,
+                                                type    : String[],
+                                        ],
+                                ],
+                        ],
+
+                        location : [
+                                required: false,
+                                default:[:],
+                                child: [
+                                        hasCustodyOf   : [
+                                                required: false,
+                                                default : false,
+                                                type    : boolean,
+                                        ],
+
+                                        base32Prefix   : [
+                                                required: false,
+                                                default : false,
+                                                type    : String,
+                                        ],
+
+                                        base64Prefix   : [
+                                                required: false,
+                                                default : false,
+                                                type    : String,
+                                        ],
+
+                                        genericPrefixes: [
+                                                required: false,
+                                                default : false,
+                                                type    : String[],
+                                        ],
+                                ],
+                        ],
+                ],
+        ],
+
+        ui         : [
+                child: [
+                        enableQuantityEdit      : [
+                                required: true,
+                                type    : boolean,
+                        ],
+
+                        enableTransferNavigation: [
+                                required: true,
+                                type    : boolean,
+                        ],
+                ],
         ],
 ]

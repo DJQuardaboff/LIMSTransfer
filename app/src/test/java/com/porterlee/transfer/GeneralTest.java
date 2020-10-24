@@ -14,25 +14,42 @@ import static org.junit.Assert.*;
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
 public class GeneralTest {
-
     @Test
-    public void getBarcodeType_barcodeEqualTo_e1LAB00bWa_shouldReturn_Item() {
-        assertEquals(BarcodeType.getBarcodeType("e1LAB00bWa"), BarcodeType.Item);
-    }
+    public void plcBarcodeNoThrowOnPartialBarcode() {
+        String barcode = "";
+        PlcBarcode.Encoding encoding = null;
 
-    @Test
-    public void getBarcodeType_barcodeEqualTo_m1LAB003Df_shouldReturn_Container() {
-        assertEquals(BarcodeType.getBarcodeType("m1LAB003Df"), BarcodeType.Container);
-    }
+        if (BuildConfig.barcodeType_item_base32Prefix != null) {
+            encoding = PlcBarcode.Encoding.Base32;
+            barcode += BuildConfig.barcodeType_item_base32Prefix;
+        } else if (BuildConfig.barcodeType_item_base64Prefix != null) {
+            encoding = PlcBarcode.Encoding.Base64;
+            barcode += BuildConfig.barcodeType_item_base64Prefix;
+        } else if (BuildConfig.barcodeType_item_genericPrefixes != null) {
+            encoding = null;
+            barcode += BuildConfig.barcodeType_item_genericPrefixes[0];
+        }
 
-    @Test
-    public void getBarcodeType_barcodeEqualTo_VAN__ADB______shouldReturn_Location() {
-        assertEquals(BarcodeType.getBarcodeType("VAN  ADB     "), BarcodeType.Location);
-    }
+        if (BuildConfig.barcodeType_item_hasLabCode) {
+            barcode += "LAB";
+        }
 
-    @Test
-    public void getBarcodeType_barcodeEqualTo_00000000_shouldReturn_Invalid() {
-        assertEquals(BarcodeType.getBarcodeType("00000000"), BarcodeType.Invalid);
+        if (encoding != null) {
+            switch (encoding) {
+                case Base32:
+                    barcode += "9N7A";
+                    break;
+                case Base64:
+                    barcode += "k8mZq";
+                    break;
+            }
+        } else {
+            barcode += "ECN0";
+        }
+
+        for (int i = 0; i < barcode.length() + 1; i++) {
+            new PlcBarcode(barcode.substring(0, i));
+        }
     }
 
     @Test
@@ -45,10 +62,10 @@ public class GeneralTest {
 
     @Test
     public void csvContainsInt_test() {
-        assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 1), true);
-        assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 5), true);
-        assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 17), true);
-        assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 20), true);
+        assertTrue(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 1));
+        assertTrue(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 5));
+        assertTrue(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 17));
+        assertTrue(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 20));
         assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 100), false);
         assertEquals(Utils.csvContainsInt("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20", 56874), false);
     }

@@ -4,7 +4,10 @@ import org.apache.commons.io.FilenameUtils
 import java.nio.file.Paths
 
 apply plugin: 'com.android.application'
-apply from: 'plc_systems.gradle'
+
+def plcSystems_fileName = 'plc_systems.gradle'
+apply from: plcSystems_fileName
+
 apply from: 'version.gradle'
 
 def signingFilePath = 'signing.gradle'
@@ -25,9 +28,14 @@ private static String generateVersionName(def version) {
     return versionName
 }
 
+def valueFormatters = [
+        'boolean' : { value -> value ? 'true' : 'false' },
+        'String'  : { value -> value ? "\"${value}\"" : 'null' },
+        'String[]': { value -> value ? "{\"${value.join('", "')}\"}" : 'null' },
+]
+
 android {
     compileSdkVersion 29
-    buildToolsVersion '29.0.1'
     defaultConfig {
         targetSdkVersion 29
         minSdkVersion 23
@@ -72,67 +80,144 @@ android {
     for (def system : plcSystems) {
         productFlavors.create(system.key, {
             dimension 'system'
+            def systemKey = system.key
+            applicationId "com.porterlee.${systemKey}.transfer"
             def systemSettings = system.value
-            applicationId "com.porterlee.${system.key}.transfer"
-            resValue 'string', 'app_name', "${systemSettings.name} Transfer"
-
-            def valueFormatters = [
-                    'boolean' : { value -> value ? 'true' : 'false' },
-                    'String'  : { value -> value ? "\"${value}\"" : 'null' },
-                    'String[]': { value -> value ? "{\"${value.join('", "')}\"}" : 'null' },
-            ]
+            def systemName = systemSettings.name
+            resValue 'string', 'app_name', "${systemName} Transfer"
 
             for (def i : plcSystems) {
                 buildConfigField 'boolean', "isSystem${i.key.capitalize()}", valueFormatters['boolean'](system.key == i.key)
             }
 
-            def barcodeTypes = ['item', 'container', 'location']
-            def barcodeTypeProperties = [
-                    hasCustodyOf : [
-                            type: 'boolean',
-                    ],
-                    hasLabCode   : [
-                            type: 'boolean',
-                    ],
-                    base32Prefix : [
-                            type: 'String',
-                    ],
-                    base64Prefix : [
-                            type: 'String',
-                    ],
-                    otherPrefixes: [
-                            type: 'String[]',
-                    ],
-            ]
+            def traverseSettingsTree
 
-            for (def BTName : barcodeTypes) {
-                def BTValue = systemSettings.barcodeType[BTName]
+            traverseSettingsTree = { Map settings, Map metadata, List parentNames = (new ArrayList()) ->
+                def final key_required = 'required'
+                def final key_default = 'default'
+                def final key_type = 'type'
+                def final key_child = 'child'
 
-                for (def BTProp : barcodeTypeProperties) {
-                    def BTPropName = BTProp.key
-                    def BTPropValue = BTValue[BTPropName]
-                    def BTPropType = BTProp.value['type']
-                    def BTPropValueFormatter = valueFormatters[BTPropType]
-                    buildConfigField BTPropType, "barcodeType_${BTName}_${BTPropName}", BTPropValueFormatter(BTPropValue)
+                for (def entry : metadata) {
+                    def entryKey = entry.getKey()
+                    def entryValue = entry.getValue()
+                    if (!(entryValue instanceof Map)) {
+                        def message = "In '${plcSystems_fileName}': "
+                        message += "In metadata: "
+                        if (!parentNames.isEmpty()) message += "In '${parentNames.join('->')}': "
+                        if (entryValue instanceof List && entryValue.isEmpty()) {
+                            message += "'${entryKey}' is an empty List. The correct syntax for an empty Map is: \n${entryKey}: [:]"
+                        } else {
+                            message += "'${entryKey}' is of type '${entryValue.getClass().getSimpleName()}', but it should be a Map"
+                        }
+                        throw new GradleException(message)
+                    }
+
+                    def entryRequired = entryValue.getOrDefault(key_required, true)
+                    def settingsEntryExists = settings != null ? settings.containsKey(entryKey) : false
+
+                    if (entryRequired && !settingsEntryExists) {
+                        def message = "In '${plcSystems_fileName}': "
+                        message += "In system '${systemKey}': "
+                        if (!parentNames.isEmpty()) message += "In '${parentNames.join('->')}': "
+                        message += "Required key '${entryKey}' is not present"
+                        throw new GradleException(message)
+                    }
+
+                    // entryValue instanceof Map == true, (!entryRequired || settingsEntryExists) == true
+
+                    def entryDefaultExists = entryValue.containsKey(key_default)
+                    def entryTypeExists = entryValue.containsKey(key_type)
+                    def entryChildExists = entryValue.containsKey(key_child)
+                    def nextItParentNames = new ArrayList(parentNames)
+                    nextItParentNames.add(entryKey)
+
+                    if (!entryRequired && !settingsEntryExists) {
+                        if (entryDefaultExists) {
+                            def entryDefault = entryValue.get(key_default)
+
+                            if (entryTypeExists) {
+                                def entryTypeName = entryValue.get(key_type).getSimpleName()
+                                buildConfigField entryTypeName, nextItParentNames.join('_'), valueFormatters[entryTypeName](entryDefault)
+                            }
+
+                            if (entryChildExists) {
+                                def entryChild = entryValue.get(key_child)
+                                if (!(entryChild instanceof Map)) {
+                                    def message = "In '${plcSystems_fileName}': "
+                                    message += "In metadata: "
+                                    message += "In '${nextItParentNames.join("->${key_child}->")}': "
+                                    if (entryChild instanceof List && entryChild.isEmpty()) {
+                                        message += "'${key_child}' is an empty List. The correct syntax for an empty Map is:\n${key_child}: [:]"
+                                    } else {
+                                        message += "'${key_child}' is of type '${entryChild.getClass().getSimpleName()}', but it should be a Map"
+                                    }
+                                    throw new GradleException(message)
+                                }
+
+                                if (!(entryDefault instanceof Map)) {
+                                    def message = "In '${plcSystems_fileName}': "
+                                    message += "In metadata: "
+                                    message += "In '${nextItParentNames.join("->${key_child}->")}': "
+                                    if (entryDefault instanceof List && entryDefault.isEmpty()) {
+                                        message += "'${key_default}' is an empty List. The correct syntax for an empty Map is:\n${key_default}: [:]"
+                                    } else {
+                                        message += "'${key_default}' is of type '${settingsEntry.getClass().getSimpleName()}', but a metadata child entry requires a Map"
+                                    }
+                                    throw new GradleException(message)
+                                }
+
+                                // entryDefault instanceof Map == true, entryChild instanceof Map == true
+
+                                traverseSettingsTree(entryDefault, entryChild, nextItParentNames)
+                            }
+                        }
+                        continue
+                    }
+
+                    // entryValue instanceof Map == true, settingsEntryExists == true
+
+                    def settingsEntry = settings.get(entryKey)
+
+                    if (entryTypeExists) {
+                        def entryTypeName = entryValue.get(key_type).getSimpleName()
+                        buildConfigField entryTypeName, nextItParentNames.join('_'), valueFormatters[entryTypeName](settingsEntry)
+                    }
+
+                    if (entryChildExists) {
+                        def entryChild = entryValue.get(key_child)
+                        if (!(entryChild instanceof Map)) {
+                            def message = "In '${plcSystems_fileName}': "
+                            message += "In metadata: "
+                            message += "In '${nextItParentNames.join("->${key_child}->")}': "
+                            if (entryChild instanceof List && entryChild.isEmpty()) {
+                                message += "'${key_child}' is an empty List. The correct syntax for an empty Map is:\n${key_child}: [:]"
+                            } else {
+                                message += "'${key_child}' is of type '${entryChild.getClass().getSimpleName()}', but it should be a Map"
+                            }
+                            throw new GradleException(message)
+                        }
+
+                        if (!(settingsEntry instanceof Map)) {
+                            def message = "In '${plcSystems_fileName}': "
+                            message += "In system '${systemKey}': "
+                            if (!parentNames.isEmpty()) message += "In '${parentNames.join('->')}': "
+                            if (settingsEntry instanceof List && settingsEntry.isEmpty()) {
+                                message += "'${entryKey}' is an empty List. The correct syntax for an empty Map is:\n${entryKey}: [:]"
+                            } else {
+                                message += "'${entryKey}' is of type '${settingsEntry.getClass().getSimpleName()}', but a metadata child entry requires a Map"
+                            }
+                            throw new GradleException(message)
+                        }
+
+                        // settingsEntry instanceof Map == true, entryChild instanceof Map == true
+
+                        traverseSettingsTree(settingsEntry, entryChild, nextItParentNames)
+                    }
                 }
             }
 
-            def systemProperties = [
-                    displayQuantity          : [
-                            type: 'boolean',
-                    ],
-                    displayTransferNavigation: [
-                            type: 'boolean',
-                    ],
-            ]
-
-            for (def SProp : systemProperties) {
-                def SPropName = SProp.key
-                def SPropValue = systemSettings[SPropName]
-                def SPropType = SProp.value['type']
-                def SPropValueFormatter = valueFormatters[SPropType]
-                buildConfigField SPropType, SPropName, SPropValueFormatter(SPropValue)
-            }
+            traverseSettingsTree(systemSettings, plcSystemsMetadata)
         })
     }
 
@@ -182,11 +267,11 @@ dependencies {
 
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.2'
     implementation 'commons-io:commons-io:2.6'
     implementation 'com.github.gcacace:signature-pad:1.2.1'
     implementation 'me.zhanghai.android.materialprogressbar:library:1.6.1'
     testImplementation 'junit:junit:4.13'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
 }

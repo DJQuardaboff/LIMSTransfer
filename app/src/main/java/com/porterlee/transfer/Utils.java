@@ -141,9 +141,6 @@ public class Utils {
     }
 
     public static Item constructItemFromCursor(Cursor cursor) {
-        if (cursor.getCount() <= 0)
-            return null;
-        cursor.moveToFirst();
         return new Item(
                 cursor.getLong(cursor.getColumnIndex(TransferDatabase.Key.ID)),
                 cursor.getLong(cursor.getColumnIndex(TransferDatabase.Key.TRANSFER_ID)),
@@ -154,9 +151,6 @@ public class Utils {
     }
 
     public static Transfer constructTransferFromCursor(Cursor cursor) {
-        if (cursor.getCount() <= 0)
-            return null;
-        cursor.moveToFirst();
         return new Transfer(
                 cursor.getLong(cursor.getColumnIndex(TransferDatabase.Key.ID)),
                 cursor.getLong(cursor.getColumnIndex(TransferDatabase.Key.BATCH_ID)),
@@ -175,9 +169,6 @@ public class Utils {
     }
 
     public static Batch constructBatchFromCursor(Cursor cursor) {
-        if (cursor.getCount() <= 0)
-            return null;
-        cursor.moveToFirst();
         return new Batch(
                 cursor.getLong(cursor.getColumnIndex(TransferDatabase.Key.ID)),
                 cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.START_DATETIME))

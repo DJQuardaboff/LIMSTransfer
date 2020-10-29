@@ -12,6 +12,7 @@ import android.os.Environment;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -156,9 +157,8 @@ public class DataManager {
 
     private Item query_getItem(long id) {
         final Cursor cursor = mTransferDatabase.query_getItem(id);
-        if (cursor.getCount() <= 0)
+        if (!cursor.moveToFirst())
             return null;
-        cursor.moveToFirst();
         Item temp = constructItemFromCursor(cursor);
         cursor.close();
         return temp;
@@ -166,9 +166,8 @@ public class DataManager {
 
     private Transfer query_getTransfer(long id) {
         final Cursor cursor = mTransferDatabase.query_getTransfer(id);
-        if (cursor.getCount() <= 0)
+        if (!cursor.moveToFirst())
             return null;
-        cursor.moveToFirst();
         Transfer temp = constructTransferFromCursor(cursor);
         cursor.close();
         return temp;
@@ -176,9 +175,8 @@ public class DataManager {
 
     private Transfer query_getLastTransfer() {
         final Cursor cursor = mTransferDatabase.query_getLastTransfer();
-        if (cursor.getCount() <= 0)
+        if (!cursor.moveToFirst())
             return null;
-        cursor.moveToFirst();
         Transfer temp = constructTransferFromCursor(cursor);
         cursor.close();
         return temp;
@@ -186,9 +184,8 @@ public class DataManager {
 
     private Transfer query_getLastActiveTransfer() {
         final Cursor cursor = mTransferDatabase.query_getLastActiveTransfer();
-        if (cursor.getCount() <= 0)
+        if (!cursor.moveToFirst())
             return null;
-        cursor.moveToFirst();
         Transfer temp = constructTransferFromCursor(cursor);
         cursor.close();
         return temp;
@@ -198,9 +195,8 @@ public class DataManager {
         if (batchId < 0)
             return null;
         final Cursor cursor = mTransferDatabase.query_getLastTransferWithBatchId(batchId);
-        if (cursor.getCount() <= 0)
+        if (!cursor.moveToFirst())
             return null;
-        cursor.moveToFirst();
         Transfer temp = constructTransferFromCursor(cursor);
         cursor.close();
         return temp;
@@ -210,9 +206,8 @@ public class DataManager {
         if (batchId < 0)
             return null;
         final Cursor cursor = mTransferDatabase.query_getLastActiveTransferWithBatchId(batchId);
-        if (cursor.getCount() <= 0)
+        if (!cursor.moveToFirst())
             return null;
-        cursor.moveToFirst();
         Transfer temp = constructTransferFromCursor(cursor);
         cursor.close();
         return temp;
@@ -220,9 +215,8 @@ public class DataManager {
 
     private Batch query_getBatch(long id) {
         final Cursor cursor = mTransferDatabase.query_getBatch(id);
-        if (cursor.getCount() <= 0)
+        if (!cursor.moveToFirst())
             return null;
-        cursor.moveToFirst();
         Batch temp = constructBatchFromCursor(cursor);
         cursor.close();
         return temp;
@@ -230,9 +224,8 @@ public class DataManager {
 
     private Batch query_getLastBatch() {
         final Cursor cursor = mTransferDatabase.query_getLastBatch();
-        if (cursor.getCount() <= 0)
+        if (!cursor.moveToFirst())
             return null;
-        cursor.moveToFirst();
         Batch temp = constructBatchFromCursor(cursor);
         cursor.close();
         return temp;
@@ -281,7 +274,7 @@ public class DataManager {
         return success;
     }
 */
-    private void setCurrentTransfer(Transfer transfer) {
+    private void setCurrentTransfer(@Nullable Transfer transfer) {
         mCurrentTransfer = transfer;
         if (mOnCurrentTransferChangedListener != null)
             mOnCurrentTransferChangedListener.run();
@@ -291,7 +284,8 @@ public class DataManager {
         long transferId = getCurrentTransferId();
         if (transferId >= 0) {
             if (mTransferDatabase.query_getPreviousTransferCount(transferId) > 0) {
-                setCurrentTransfer(constructTransferFromCursor(mTransferDatabase.query_getPreviousTransfer(transferId)));
+                Cursor cursor = mTransferDatabase.query_getPreviousTransfer(transferId);
+                setCurrentTransfer(cursor.moveToFirst() ? constructTransferFromCursor(cursor) : null);
             } else {
                 // no previous transfer
             }
@@ -304,7 +298,8 @@ public class DataManager {
         long transferId = getCurrentTransferId();
         if (transferId >= 0) {
             if (mTransferDatabase.query_getNextTransferCount(transferId) > 0) {
-                setCurrentTransfer(constructTransferFromCursor(mTransferDatabase.query_getNextTransfer(transferId)));
+                Cursor cursor = mTransferDatabase.query_getNextTransfer(transferId);
+                setCurrentTransfer(cursor.moveToFirst() ? constructTransferFromCursor(cursor) : null);
             } else {
                 setCurrentTransfer(null); // possible to start a new transfer now
             }
@@ -637,21 +632,12 @@ public class DataManager {
         return transfers;
     }
 
-    public void saveCurrentBatch(final Activity activity, final Utils.OnProgressUpdateListener onProgressUpdateListener, final Utils.DetailedOnFinishListener onFinishListener) {
+    public void saveBatch(final long batchId, final Activity activity, final Utils.OnProgressUpdateListener onProgressUpdateListener, final Utils.DetailedOnFinishListener onFinishListener) {
         setIsSaving(true);
         final Utils.DetailedOnFinishListener temp = new Utils.DetailedOnFinishListener() {
             @Override
             public void onFinish(boolean success, String message) {
                 setIsSaving(false);
-                if (success) {
-                    success = query_updateCurrentTransferSetFinalized();
-                    if (success) {
-                        setCurrentTransfer(query_getLastActiveTransfer());
-                    } else {
-                        message = "Error finalizing: " + message;
-                    }
-                }
-
                 onFinishListener.onFinish(success, message);
                 listenerReferences.remove(this);
                 listenerReferences.remove(onFinishListener);
@@ -661,7 +647,7 @@ public class DataManager {
         listenerReferences.add(temp);
         listenerReferences.add(onFinishListener);
         listenerReferences.add(onProgressUpdateListener);
-        asyncSaveBatchToFile(activity, mTransferDatabase, getCurrentBatchId(), onProgressUpdateListener, temp);
+        asyncSaveBatchToFile(activity, mTransferDatabase, batchId, onProgressUpdateListener, temp);
     }
 
     public static void asyncSaveBatchToFile(Activity activity, TransferDatabase transferDatabase, final long batchId, Utils.OnProgressUpdateListener onProgressUpdateListener, Utils.DetailedOnFinishListener onFinishListener) {

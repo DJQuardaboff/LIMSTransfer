@@ -248,9 +248,12 @@ public class TransferActivity extends AppCompatActivity {
                             }
                         }
 
+                        final long batchId = mDataManager.getCurrentBatchId();
+
                         if (!mDataManager.query_updateCurrentTransferSetFinalized())
                             throw new RuntimeException("could not update transfer");
-                        mDataManager.saveCurrentBatch(TransferActivity.this, new Utils.OnProgressUpdateListener() {
+
+                        mDataManager.saveBatch(batchId, TransferActivity.this, new Utils.OnProgressUpdateListener() {
                             @Override
                             public void onProgressUpdate(float progress) {
                                 final MaterialProgressBar progressBar = findViewById(R.id.progress_bar);

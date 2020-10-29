@@ -679,11 +679,13 @@ public class DataManager {
                 PrintStream printStream = null;
                 Cursor transferCursor = null;
                 Cursor itemCursor = null;
-
-                if (transferDatabase_weak.get() != null) {
-                    transferCursor = transferDatabase_weak.get().query_getFinalTransfersWithBatchId(batchId);
-                } else {
-                    return;
+                {
+                    TransferDatabase tmp_transferDatabase = transferDatabase_weak.get();
+                    if (tmp_transferDatabase != null) {
+                        transferCursor = tmp_transferDatabase.query_getFinalTransfersWithBatchId(batchId);
+                    } else {
+                        return;
+                    }
                 }
                 transferCursor.moveToFirst();
                 int transferIdIndex = transferCursor.getColumnIndex(TransferDatabase.Key.ID);
@@ -697,11 +699,13 @@ public class DataManager {
                     printStream.flush();
 
                     while (!transferCursor.isAfterLast()) {
-
-                        if (transferDatabase_weak.get() != null) {
-                            itemCursor = transferDatabase_weak.get().query_getItemsWithTransferId(transferCursor.getLong(transferIdIndex));
-                        } else {
-                            return;
+                        {
+                            TransferDatabase tmp_transferDatabase = transferDatabase_weak.get();
+                            if (tmp_transferDatabase != null) {
+                                itemCursor = tmp_transferDatabase.query_getItemsWithTransferId(transferCursor.getLong(transferIdIndex));
+                            } else {
+                                return;
+                            }
                         }
                         itemCursor.moveToFirst();
                         int itemBarcodeIndex = itemCursor.getColumnIndex(TransferDatabase.Key.BARCODE);
@@ -718,8 +722,11 @@ public class DataManager {
                         while (!itemCursor.isAfterLast()) {
                             final float tempProgress = ((float) itemIndex) / totalItemCount;
                             if (tempProgress * 100 > updateNum) {
-                                if (onProgressUpdateListener_weak.get() != null)
-                                    onProgressUpdateListener_weak.get().onProgressUpdate(tempProgress);
+                                {
+                                    Utils.OnProgressUpdateListener tmp_onProgressUpdateListener = onProgressUpdateListener_weak.get();
+                                    if (tmp_onProgressUpdateListener != null)
+                                        tmp_onProgressUpdateListener.onProgressUpdate(tempProgress);
+                                }
                                 updateNum++;
                             }
 
@@ -742,8 +749,11 @@ public class DataManager {
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
-                    if (onFinishListener_weak.get() != null)
-                        onFinishListener_weak.get().onFinish(false, e.getMessage());
+                    {
+                        Utils.DetailedOnFinishListener tmp_onProgressUpdateListener = onFinishListener_weak.get();
+                        if (tmp_onProgressUpdateListener != null)
+                            tmp_onProgressUpdateListener.onFinish(false, e.getMessage());
+                    }
                     return;
                 } finally {
                     if (printStream != null)

@@ -436,7 +436,7 @@ public final class TransferDatabase extends SQLiteOpenHelper {
         public static final String TRANSFERS_FINALIZED_CANCELED_INDEX = "transfer_finalized_index";
     }
 
-    public class ItemTable {
+    public static class ItemTable {
         public static final String NAME = "items";
         public static final String SQL_CREATE_TABLE = "CREATE TABLE IF NOT EXISTS items ( " +
                 "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -448,7 +448,7 @@ public final class TransferDatabase extends SQLiteOpenHelper {
         public static final String SQL_CREATE_INDEX_BARCODE = "CREATE INDEX IF NOT EXISTS items_barcode_index ON items ( barcode )";
     }
 
-    public class TransferTable {
+    public static class TransferTable {
         public static final String NAME = "transfers";
         public static final String SQL_CREATE_TABLE = "CREATE TABLE IF NOT EXISTS transfers ( " +
                 "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -469,7 +469,7 @@ public final class TransferDatabase extends SQLiteOpenHelper {
         public static final String SQL_CREATE_INDEX_BATCH_ID = "CREATE INDEX IF NOT EXISTS transfers_batch_id_index ON transfers ( batch_id )";
     }
 
-    public class BatchTable {
+    public static class BatchTable {
         public static final String NAME = "batches";
         public static final String SQL_CREATE_TABLE = "CREATE TABLE IF NOT EXISTS batches ( " +
                 "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +

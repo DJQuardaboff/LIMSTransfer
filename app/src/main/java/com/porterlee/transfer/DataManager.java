@@ -720,14 +720,15 @@ public class DataManager {
                         printStream.flush();
 
                         while (!itemCursor.isAfterLast()) {
-                            final float tempProgress = ((float) itemIndex) / totalItemCount;
-                            if (tempProgress * 100 > updateNum) {
-                                {
-                                    Utils.OnProgressUpdateListener tmp_onProgressUpdateListener = onProgressUpdateListener_weak.get();
-                                    if (tmp_onProgressUpdateListener != null)
+                            {
+                                Utils.OnProgressUpdateListener tmp_onProgressUpdateListener = onProgressUpdateListener_weak.get();
+                                if (tmp_onProgressUpdateListener != null) {
+                                    final float tempProgress = ((float) itemIndex) / totalItemCount;
+                                    if (tempProgress * 100 > updateNum) {
                                         tmp_onProgressUpdateListener.onProgressUpdate(tempProgress);
+                                        updateNum++;
+                                    }
                                 }
-                                updateNum++;
                             }
 
                             if (BuildConfig.ui_enableQuantityEdit) {

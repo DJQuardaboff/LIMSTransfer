@@ -688,6 +688,8 @@ public class DataManager {
                         {
                             TransferDatabase tmp_transferDatabase = transferDatabase_weak.get();
                             if (tmp_transferDatabase != null) {
+                                if (itemCursor != null)
+                                    itemCursor.close();
                                 itemCursor = tmp_transferDatabase.query_getItemsWithTransferId(transferCursor.getLong(transferIdIndex));
                             } else {
                                 return;
@@ -725,12 +727,6 @@ public class DataManager {
 
                             itemCursor.moveToNext();
                             itemIndex++;
-                        }
-
-                        if (transferDatabase_weak.get() != null) {
-                            itemCursor = transferDatabase_weak.get().query_getItemsWithTransferId(transferCursor.getLong(transferIdIndex));
-                        } else {
-                            return;
                         }
                         transferCursor.moveToNext();
                     }

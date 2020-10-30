@@ -39,6 +39,10 @@ public class ScannerUtils {
     private boolean mFirstTimeScannerSetup;
     private Stack<Boolean> mEnabledStateStack = new Stack<>();
 
+    {
+        mEnabledStateStack.push(true);
+    }
+
     public void setActivity(Activity activity) {
         if (mCurrentActivity != null && mCurrentActivity.get() == activity) {
             return;

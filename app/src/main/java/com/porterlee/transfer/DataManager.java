@@ -692,9 +692,9 @@ public class DataManager {
                 } catch (IOException e) {
                     e.printStackTrace();
                     {
-                        Utils.DetailedOnFinishListener tmp_onProgressUpdateListener = onFinishListener_weak.get();
-                        if (tmp_onProgressUpdateListener != null)
-                            tmp_onProgressUpdateListener.onFinish(false, e.getMessage());
+                        Utils.DetailedOnFinishListener tmp_onFinishListener = onFinishListener_weak.get();
+                        if (tmp_onFinishListener != null)
+                            tmp_onFinishListener.onFinish(false, e.getMessage());
                     }
                     return;
                 } finally {
@@ -709,8 +709,11 @@ public class DataManager {
                 if (context_weak.get() != null)
                     Utils.refreshExternalFile(context_weak.get(), OUTPUT_FILE);
 
-                if (onFinishListener_weak.get() != null)
-                    onFinishListener_weak.get().onFinish(true, "Saved");
+                {
+                    Utils.DetailedOnFinishListener tmp_onFinishListener = onFinishListener_weak.get();
+                    if (tmp_onFinishListener != null)
+                        tmp_onFinishListener.onFinish(true, "Saved");
+                }
             }
         });
     }

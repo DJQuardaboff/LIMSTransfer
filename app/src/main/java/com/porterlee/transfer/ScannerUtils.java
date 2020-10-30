@@ -17,6 +17,7 @@ import androidx.annotation.Nullable;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.util.Stack;
 
 public class ScannerUtils {
     private static final String TAG = ScannerUtils.class.getCanonicalName();
@@ -36,6 +37,7 @@ public class ScannerUtils {
     private OnBarcodeScannedListener mOnBarcodeScannedListener;
     private WeakReference<Activity> mCurrentActivity;
     private boolean mFirstTimeScannerSetup;
+    private Stack<Boolean> mEnabledStateStack = new Stack<>();
 
     public void setActivity(Activity activity) {
         if (mCurrentActivity != null && mCurrentActivity.get() == activity) {
@@ -97,6 +99,17 @@ public class ScannerUtils {
                 Log.e(TAG, "scan_fail.wav could not be initialized");
             }
         }
+    }
+
+    public void pushEnabledState(boolean enabled) {
+        mEnabledStateStack.push(enabled);
+        Scanner.getInstance().setIsEnabled(mEnabledStateStack.peek());
+    }
+
+    public boolean popEnabledState() {
+        boolean tmp = mEnabledStateStack.pop();
+        Scanner.getInstance().setIsEnabled(mEnabledStateStack.peek());
+        return tmp;
     }
 
     @Nullable

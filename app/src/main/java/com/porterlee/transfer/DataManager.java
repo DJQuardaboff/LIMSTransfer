@@ -50,8 +50,6 @@ public class DataManager {
     private Transfer mCurrentTransfer;
     private Runnable mOnCurrentBatchChangedListener;
     private Runnable mOnCurrentTransferChangedListener;
-    private boolean mIsShowingDialog;
-    private boolean mIsShowingModalDialog;
     private boolean mIsSaving;
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private ArrayList<Object> listenerReferences = new ArrayList<>();
@@ -83,37 +81,6 @@ public class DataManager {
 
     public Version getCurrentVersion() {
         return mCurrentVersion;
-    }
-
-    public void showScannerDialog(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener, ScannerUtils.OnBarcodeScannedListener onBarcodeScannedListener) {
-        showDialog0(dialog, onDismissListener, onBarcodeScannedListener, false);
-    }
-
-    public void showModalScannerDialog(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener) {
-        showDialog0(dialog, onDismissListener, null, true);
-    }
-
-    private void showDialog0(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener, final ScannerUtils.OnBarcodeScannedListener onBarcodeScannedListener, final boolean modal) {
-        if (dialog == null || mIsShowingDialog) {
-            if (onDismissListener != null)
-                onDismissListener.onDismiss(null);
-            return;
-        }
-        final ScannerUtils.OnBarcodeScannedListener temp = getScannerUtils().getOnBarcodeScannedListener();
-        setIsShowingDialog(true);
-        setIsShowingModalDialog(modal);
-        if (!modal) getScannerUtils().setOnBarcodeScannedListener(onBarcodeScannedListener);
-        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
-            @Override
-            public void onDismiss(DialogInterface dialog) {
-                if (!modal) getScannerUtils().setOnBarcodeScannedListener(temp);
-                setIsShowingDialog(false);
-                setIsShowingModalDialog(false);
-                if (onDismissListener != null)
-                    onDismissListener.onDismiss(dialog);
-            }
-        });
-        dialog.show();
     }
 
     public boolean isSaving() {
@@ -342,33 +309,6 @@ public class DataManager {
         return mCurrentTransfer != null ? mCurrentTransfer.batch_id : -1;
     }
 
-    public boolean isShowingDialog() {
-        return mIsShowingDialog;
-    }
-
-    private void setIsShowingDialog(boolean showingDialog) {
-        this.mIsShowingDialog = showingDialog;
-        updateScannerIsDisabled();
-    }
-
-    public boolean isShowingModalDialog() {
-        return mIsShowingDialog;
-    }
-
-    private void setIsShowingModalDialog(boolean showingModalDialog) {
-        this.mIsShowingModalDialog = showingModalDialog;
-        updateScannerIsDisabled();
-    }
-
-    private void setIsSaving(boolean isSaving) {
-        this.mIsSaving = isSaving;
-        updateScannerIsDisabled();
-    }
-
-    private void updateScannerIsDisabled() {
-        getScanner().setIsEnabled(!mIsShowingModalDialog && !mIsSaving);
-    }
-
     public boolean deleteDatabase(Context context) {
         return mTransferDatabase != null && mTransferDatabase.delete(context);
     }
@@ -592,11 +532,13 @@ public class DataManager {
     }
 
     public void saveBatch(final long batchId, final Activity activity, final Utils.OnProgressUpdateListener onProgressUpdateListener, final Utils.DetailedOnFinishListener onFinishListener) {
-        setIsSaving(true);
+        mIsSaving = true;
+        getScannerUtils().pushEnabledState(false);
         final Utils.DetailedOnFinishListener temp = new Utils.DetailedOnFinishListener() {
             @Override
             public void onFinish(boolean success, String message) {
-                setIsSaving(false);
+                getScannerUtils().popEnabledState();
+                mIsSaving = false;
                 onFinishListener.onFinish(success, message);
                 listenerReferences.remove(this);
                 listenerReferences.remove(onFinishListener);

@@ -1,5 +1,6 @@
 package com.porterlee.transfer;
 
+import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
@@ -125,8 +126,37 @@ public class TransferActivity extends AppCompatActivity {
         }
     };
 
+    public void showScannerDialog(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener, ScannerUtils.OnBarcodeScannedListener onBarcodeScannedListener) {
+        showDialog0(dialog, onDismissListener, onBarcodeScannedListener, false);
+    }
+
+    public void showModalScannerDialog(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener) {
+        showDialog0(dialog, onDismissListener, null, true);
+    }
+
+    private void showDialog0(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener, final ScannerUtils.OnBarcodeScannedListener onBarcodeScannedListener, final boolean modal) {
+        if (dialog == null) {
+            if (onDismissListener != null)
+                onDismissListener.onDismiss(null);
+            return;
+        }
+        final ScannerUtils.OnBarcodeScannedListener temp = getScannerUtils().getOnBarcodeScannedListener();
+        if (modal) getScannerUtils().pushEnabledState(false);
+        if (!modal) getScannerUtils().setOnBarcodeScannedListener(onBarcodeScannedListener);
+        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                if (!modal) getScannerUtils().setOnBarcodeScannedListener(temp);
+                if (modal) getScannerUtils().popEnabledState();
+                if (onDismissListener != null)
+                    onDismissListener.onDismiss(dialog);
+            }
+        });
+        dialog.show();
+    }
+
     public void openDialog_duplicateItemResolution(@NonNull final PlcBarcode barcode) {
-        mDataManager.showModalScannerDialog(new AlertDialog.Builder(TransferActivity.this)
+        showModalScannerDialog(new AlertDialog.Builder(TransferActivity.this)
                 .setCancelable(false)
                 .setTitle("Duplicate item")
                 .setMessage("An item with the same barcode was already scanned, would you still like to add it to the list?")
@@ -227,11 +257,11 @@ public class TransferActivity extends AppCompatActivity {
                     }
                 });
 
-        mDataManager.showModalScannerDialog(tempAlertDialog, null);
+        showModalScannerDialog(tempAlertDialog, null);
     }*/
 
     public void openDialog_saveTransfer(final Utils.OnFinishListener onFinishListener) {
-        mDataManager.showModalScannerDialog(new AlertDialog.Builder(this)
+        showModalScannerDialog(new AlertDialog.Builder(this)
                 .setTitle(R.string.text_save_transfer_title)
                 .setMessage(R.string.text_save_transfer_body)
                 .setPositiveButton(R.string.action_save, new DialogInterface.OnClickListener() {
@@ -355,11 +385,11 @@ public class TransferActivity extends AppCompatActivity {
             }
         });
 
-        mDataManager.showModalScannerDialog(tempAlertDialog, null);
+        showModalScannerDialog(tempAlertDialog, null);
     }
 
     private void openDialog_cancelTransfer() {
-        mDataManager.showModalScannerDialog(new AlertDialog.Builder(this)
+        showModalScannerDialog(new AlertDialog.Builder(this)
                 .setTitle(R.string.text_cancel_transfer_title)
                 .setMessage(R.string.text_cancel_transfer_body)
                 .setNegativeButton(R.string.action_no, null)
@@ -374,20 +404,6 @@ public class TransferActivity extends AppCompatActivity {
                     }
                 }).create(), null);
     }
-/*
-    private void openDialog_resetDatabase() {
-        mDataManager.showModalScannerDialog(new AlertDialog.Builder(this)
-                .setTitle("Reset transfers")
-                .setMessage("Would you like to clear all transfer output and signatures?")
-                .setNegativeButton(R.string.action_no, null)
-                .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        mDataManager.reset(getApplicationContext());
-                    }
-                }).create(), null);
-    }
-*/
 
     private void setDrawableEnabled(final Drawable drawable, boolean enabled) {
         if (drawable != null)
@@ -651,7 +667,7 @@ public class TransferActivity extends AppCompatActivity {
     }
 
     private void databaseLoadingError(final Runnable onDelete, final Runnable onFail) {
-        mDataManager.showModalScannerDialog(new AlertDialog.Builder(TransferActivity.this)
+        showModalScannerDialog(new AlertDialog.Builder(TransferActivity.this)
                 .setCancelable(false)
                 .setTitle("Database Load Error")
                 .setMessage("There was an error loading the last transfer file, Would you like to delete the it?\n" +
@@ -867,7 +883,7 @@ public class TransferActivity extends AppCompatActivity {
                         @Override
                         public boolean onMenuItemClick(MenuItem item) {
                             final PlcBarcode barcode = new PlcBarcode(barcodeStr);
-                            mDataManager.showModalScannerDialog(new AlertDialog.Builder(TransferActivity.this)
+                            showModalScannerDialog(new AlertDialog.Builder(TransferActivity.this)
                                     .setCancelable(false)
                                     .setTitle("Remove " + barcode.getBarcodeType().toString())
                                     .setMessage("Are you sure you want to remove " + barcode.getBarcodeType().toString().toLowerCase() + " \"" + barcode.getBarcode() + "\"")

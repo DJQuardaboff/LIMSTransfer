@@ -14,6 +14,10 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.porterlee.transfer.Utils.Batch;
+import com.porterlee.transfer.Utils.Item;
+import com.porterlee.transfer.Utils.Transfer;
+
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -24,10 +28,6 @@ import java.io.PrintStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Locale;
-
-import com.porterlee.transfer.Utils.Item;
-import com.porterlee.transfer.Utils.Transfer;
-import com.porterlee.transfer.Utils.Batch;
 
 import static com.porterlee.transfer.Utils.constructBatchFromCursor;
 import static com.porterlee.transfer.Utils.constructItemFromCursor;
@@ -56,7 +56,7 @@ public class DataManager {
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private ArrayList<Object> listenerReferences = new ArrayList<>();
 
-    public DataManager (SharedPreferences sharedPreferences) {
+    public DataManager(SharedPreferences sharedPreferences) {
         mSharedPreferences = sharedPreferences;
         mLastVersion = preferences_getVersion();
     }
@@ -232,25 +232,25 @@ public class DataManager {
     }
 
     private long query_getLastBatchID() {
-        if (mTransferDatabase.query_getBatchCount() <= 0)  {
+        if (mTransferDatabase.query_getBatchCount() <= 0) {
             return mTransferDatabase.query_getLastBatchId();
         } else {
-            return  -1;
+            return -1;
         }
     }
 
     public Transfer getCurrentTransfer() {
         return mCurrentTransfer;
     }
-/*
-    public boolean query_updateCurrentTransferSetBatchId(long batchId) {
+
+    /*public boolean query_updateCurrentTransferSetBatchId(long batchId) {
         final boolean success = mTransferDatabase.query_updateTransferSetBatchId(getCurrentTransferId(), batchId) > 0;
         if (success) {
             setCurrentTransfer(query_getLastActiveTransfer());
         }
         return success;
-    }
-*/
+    }*/
+
     public boolean query_updateCurrentTransferSetCanceled() {
         final boolean success = mTransferDatabase.query_updateTransferSetCanceled(getCurrentTransferId()) > 0;
         if (success) {
@@ -266,14 +266,14 @@ public class DataManager {
         }
         return success;
     }
-/*
-    public boolean query_updateTransfersSetCanceledIfNotFinalized() {
+
+    /*public boolean query_updateTransfersSetCanceledIfNotFinalized() {
         final boolean success = mTransferDatabase.query_updateTransfersSetCanceledIfNotFinalized() > 0;
         if (success)
             setCurrentTransfer(query_getLastTransfer());
         return success;
-    }
-*/
+    }*/
+
     private void setCurrentTransfer(@Nullable Transfer transfer) {
         mCurrentTransfer = transfer;
         if (mOnCurrentTransferChangedListener != null)
@@ -334,47 +334,6 @@ public class DataManager {
         return mTransferDatabase.query_getActiveTransferCount() > 0;
     }
 
-    public void switchToNullTransfer() {
-        setCurrentTransfer(null);
-    }
-/*
-    public void reset(Context context) {
-        //mTransferDatabase.getDatabase().delete(TransferDatabase.TransferTable.NAME, null, null);
-        //mTransferDatabase.getDatabase().delete(TransferDatabase.ItemTable.NAME, null, null);
-        query_updateTransfersSetCanceledIfNotFinalized();
-        Iterator<File> fileIterator =  FileUtils.iterateFiles(EXTERNAL_PATH, new IOFileFilter() {
-            @Override
-            public boolean accept(File file) {
-                return true;
-            }
-
-            @Override
-            public boolean accept(File dir, String name) {
-                return false;
-            }
-        }, new IOFileFilter() {
-            @Override
-            public boolean accept(File file) {
-                return true;
-            }
-
-            @Override
-            public boolean accept(File dir, String name) {
-                return false;
-            }
-        });
-
-        while (fileIterator.hasNext()) {
-            try {
-                final File file = fileIterator.next();
-                FileUtils.forceDelete(file);
-                Utils.refreshExternalFile(context, file);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-*/
     public long getCurrentTransferId() {
         return mCurrentTransfer != null ? mCurrentTransfer.id : -1;
     }

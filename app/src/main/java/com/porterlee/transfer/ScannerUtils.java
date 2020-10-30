@@ -30,14 +30,12 @@ public class ScannerUtils {
         return mInstance != null ? mInstance : (mInstance = new ScannerUtils());
     }
 
-    private long[] mVibrationPattern = { 0L, 150L, 100L, 150L };
+    private long[] mVibrationPattern = {0L, 150L, 100L, 150L};
     private MediaPlayer mScanFailMediaPlayer;
     private MediaPlayer mScanSuccessMediaPlayer;
     private OnBarcodeScannedListener mOnBarcodeScannedListener;
     private WeakReference<Activity> mCurrentActivity;
     private boolean mFirstTimeScannerSetup;
-
-
 
     public void setActivity(Activity activity) {
         if (mCurrentActivity != null && mCurrentActivity.get() == activity) {
@@ -122,7 +120,7 @@ public class ScannerUtils {
     }
 
     public void setVibrationPattern(long[] vibrationPattern) {
-        vibrationPattern = vibrationPattern;
+        mVibrationPattern = vibrationPattern;
     }
 
     public boolean vibrate(@NonNull Context context) {

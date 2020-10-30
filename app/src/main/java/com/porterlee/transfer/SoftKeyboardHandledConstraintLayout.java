@@ -1,9 +1,10 @@
 package com.porterlee.transfer;
 
 import android.content.Context;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
+
+import androidx.constraintlayout.widget.ConstraintLayout;
 
 public class SoftKeyboardHandledConstraintLayout extends ConstraintLayout {
     private boolean isKeyboardShown;

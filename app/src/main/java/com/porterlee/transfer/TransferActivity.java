@@ -8,22 +8,7 @@ import android.database.sqlite.SQLiteCantOpenDatabaseException;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.StringRes;
-import androidx.core.content.res.ResourcesCompat;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
-
-import androidx.appcompat.widget.AppCompatEditText;
-import androidx.appcompat.widget.AppCompatImageButton;
-import androidx.appcompat.widget.AppCompatTextView;
-import androidx.recyclerview.widget.DefaultItemAnimator;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.appcompat.widget.PopupMenu;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -37,12 +22,26 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatEditText;
+import androidx.appcompat.widget.AppCompatImageButton;
+import androidx.appcompat.widget.AppCompatTextView;
+import androidx.appcompat.widget.PopupMenu;
+import androidx.core.content.res.ResourcesCompat;
+import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.github.gcacace.signaturepad.views.SignaturePad;
 
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
-import static com.porterlee.transfer.PlcBarcode.BarcodeType.Item;
 import static com.porterlee.transfer.PlcBarcode.BarcodeType.Container;
+import static com.porterlee.transfer.PlcBarcode.BarcodeType.Item;
 import static com.porterlee.transfer.PlcBarcode.BarcodeType.Location;
 
 public class TransferActivity extends AppCompatActivity {
@@ -187,8 +186,8 @@ public class TransferActivity extends AppCompatActivity {
             }
         });
     }
-    /*
-    public void openDialog_setup() {
+
+    /*public void openDialog_setup() {
         AlertDialog tempAlertDialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.text_setup_title)
                 .setView(R.layout.fragment_setup)
@@ -229,8 +228,8 @@ public class TransferActivity extends AppCompatActivity {
                 });
 
         mDataManager.showModalScannerDialog(tempAlertDialog, null);
-    }
-    */
+    }*/
+
     public void openDialog_saveTransfer(final Utils.OnFinishListener onFinishListener) {
         mDataManager.showModalScannerDialog(new AlertDialog.Builder(this)
                 .setTitle(R.string.text_save_transfer_title)
@@ -653,8 +652,7 @@ public class TransferActivity extends AppCompatActivity {
         mDataManager.showModalScannerDialog(new AlertDialog.Builder(TransferActivity.this)
                 .setCancelable(false)
                 .setTitle("Database Load Error")
-                .setMessage(
-                        "There was an error loading the last transfer file, Would you like to delete the it?\n" +
+                .setMessage("There was an error loading the last transfer file, Would you like to delete the it?\n" +
                         "\n" +
                         "Answering no will close the app."
                 ).setNegativeButton(R.string.action_no, new DialogInterface.OnClickListener() {
@@ -683,7 +681,7 @@ public class TransferActivity extends AppCompatActivity {
 
     private void init() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[] { android.Manifest.permission.WRITE_EXTERNAL_STORAGE }, 1);
+            requestPermissions(new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
             return;
         }
 
@@ -904,10 +902,10 @@ public class TransferActivity extends AppCompatActivity {
                 quantityEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
                     @Override
                     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                        if (actionId== EditorInfo.IME_ACTION_DONE) {
+                        if (actionId == EditorInfo.IME_ACTION_DONE) {
                             saveQuantity();
                             quantityEditText.clearFocus();
-                            InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                             imm.hideSoftInputFromWindow(quantityEditText.getWindowToken(), 0);
                             return true;
                         }
@@ -923,7 +921,7 @@ public class TransferActivity extends AppCompatActivity {
                 final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
                 try {
                     String quantityText = quantityEditText.getText().toString();
-                    if(quantityText.length() > 0) {
+                    if (quantityText.length() > 0) {
                         int inputQuantity = Integer.parseInt(quantityText);
                         if (mDataManager.query_updateItemQuantity(id, inputQuantity)) {
                             quantity = inputQuantity;
@@ -934,7 +932,7 @@ public class TransferActivity extends AppCompatActivity {
                     } else {
                         quantityEditText.setText(String.valueOf(quantity));
                     }
-                } catch(NumberFormatException e) {
+                } catch (NumberFormatException e) {
                     quantityEditText.setText(String.valueOf(quantity));
                     toastLong("Quantity incorrectly formatted");
                 }

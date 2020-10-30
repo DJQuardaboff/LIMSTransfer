@@ -78,11 +78,14 @@ public class PlcBarcode {
             } else {
                 this.genericPrefixes = genericPrefixes;
             }
-            if (base32Prefix != null && !base32Prefix.isEmpty()) prefixEncodings.add(new Pair<>(base32Prefix, Encoding.Base32));
-            if (base64Prefix != null && !base64Prefix.isEmpty()) prefixEncodings.add(new Pair<>(base64Prefix, Encoding.Base64));
+            if (base32Prefix != null && !base32Prefix.isEmpty())
+                prefixEncodings.add(new Pair<>(base32Prefix, Encoding.Base32));
+            if (base64Prefix != null && !base64Prefix.isEmpty())
+                prefixEncodings.add(new Pair<>(base64Prefix, Encoding.Base64));
             if (genericPrefixes != null) {
                 for (String prefix : genericPrefixes) {
-                    if (prefix != null && !prefix.isEmpty()) prefixEncodings.add(new Pair<String, Encoding>(prefix, null));
+                    if (prefix != null && !prefix.isEmpty())
+                        prefixEncodings.add(new Pair<String, Encoding>(prefix, null));
                 }
             }
         }
@@ -100,11 +103,14 @@ public class PlcBarcode {
             } else {
                 this.genericPrefixes = genericPrefixes;
             }
-            if (base32Prefix != null && !base32Prefix.isEmpty()) prefixEncodings.add(new Pair<>(base32Prefix, Encoding.Base32));
-            if (base64Prefix != null && !base64Prefix.isEmpty()) prefixEncodings.add(new Pair<>(base64Prefix, Encoding.Base64));
+            if (base32Prefix != null && !base32Prefix.isEmpty())
+                prefixEncodings.add(new Pair<>(base32Prefix, Encoding.Base32));
+            if (base64Prefix != null && !base64Prefix.isEmpty())
+                prefixEncodings.add(new Pair<>(base64Prefix, Encoding.Base64));
             if (genericPrefixes != null) {
                 for (String prefix : genericPrefixes) {
-                    if (prefix != null && !prefix.isEmpty()) prefixEncodings.add(new Pair<String, Encoding>(prefix, null));
+                    if (prefix != null && !prefix.isEmpty())
+                        prefixEncodings.add(new Pair<String, Encoding>(prefix, null));
                 }
             }
         }
@@ -122,11 +128,14 @@ public class PlcBarcode {
             } else {
                 this.genericPrefixes = genericPrefixes;
             }
-            if (base32Prefix != null && !base32Prefix.isEmpty()) prefixEncodings.add(new Pair<>(base32Prefix, Encoding.Base32));
-            if (base64Prefix != null && !base64Prefix.isEmpty()) prefixEncodings.add(new Pair<>(base64Prefix, Encoding.Base64));
+            if (base32Prefix != null && !base32Prefix.isEmpty())
+                prefixEncodings.add(new Pair<>(base32Prefix, Encoding.Base32));
+            if (base64Prefix != null && !base64Prefix.isEmpty())
+                prefixEncodings.add(new Pair<>(base64Prefix, Encoding.Base64));
             if (genericPrefixes != null) {
                 for (String prefix : genericPrefixes) {
-                    if (prefix != null && !prefix.isEmpty()) prefixEncodings.add(new Pair<String, Encoding>(prefix, null));
+                    if (prefix != null && !prefix.isEmpty())
+                        prefixEncodings.add(new Pair<String, Encoding>(prefix, null));
                 }
             }
         }

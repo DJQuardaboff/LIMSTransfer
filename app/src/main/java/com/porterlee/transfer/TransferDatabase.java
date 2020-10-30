@@ -152,16 +152,16 @@ public final class TransferDatabase extends SQLiteOpenHelper {
         mQuery_insertItemWithTransferId.bindLong(3, quantity);
         return mQuery_insertItemWithTransferId.executeInsert();
     }
-    /*
-        private SQLiteStatement mQuery_getItemCountWithBatchId = null;
-        public synchronized long query_getItemCountWithBatchId(long batchId) {
-            // todo: check
-            if (mQuery_getItemCountWithBatchId == null)
-                mQuery_getItemCountWithBatchId = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM items WHERE transfer_id IN ( SELECT _id FROM transfers WHERE batch_id = ? )");
-            mQuery_getItemCountWithBatchId.bindLong(1, batchId);
-            return mQuery_getItemCountWithBatchId.simpleQueryForLong();
-        }
-    */
+
+    /*private SQLiteStatement mQuery_getItemCountWithBatchId = null;
+    public synchronized long query_getItemCountWithBatchId(long batchId) {
+        // todo: check
+        if (mQuery_getItemCountWithBatchId == null)
+            mQuery_getItemCountWithBatchId = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM items WHERE transfer_id IN ( SELECT _id FROM transfers WHERE batch_id = ? )");
+        mQuery_getItemCountWithBatchId.bindLong(1, batchId);
+        return mQuery_getItemCountWithBatchId.simpleQueryForLong();
+    }*/
+
     private SQLiteStatement mQuery_updateItemQuantity = null;
     public synchronized long query_updateItemQuantity(long id, int quantity) {
         if (mQuery_updateItemQuantity == null)
@@ -217,8 +217,8 @@ public final class TransferDatabase extends SQLiteOpenHelper {
         mQuery_insertTransfer.bindString(2, locationBarcode);
         return mQuery_insertTransfer.executeInsert();
     }
-/*
-    private SQLiteStatement mQuery_updateTransferSetBatchId1 = null;
+
+    /*private SQLiteStatement mQuery_updateTransferSetBatchId1 = null;
     public synchronized long query_updateTransferSetBatchId(long id, long batchId) {
         // todo: check
         if (mQuery_updateTransferSetBatchId1 == null)
@@ -226,10 +226,9 @@ public final class TransferDatabase extends SQLiteOpenHelper {
         mQuery_updateTransferSetBatchId1.bindLong(1, batchId);
         mQuery_updateTransferSetBatchId1.bindLong(2, id);
         return mQuery_updateTransferSetBatchId1.executeUpdateDelete();
-    }
-*/
-/*
-    private SQLiteStatement mQuery_updateTransferSetBatchId2 = null;
+    }*/
+
+    /*private SQLiteStatement mQuery_updateTransferSetBatchId2 = null;
     public synchronized long query_updateTransferSetBatchId(long id, String barcode, long batchId) {
         // todo: check
         if (mQuery_updateTransferSetBatchId2 == null)
@@ -238,8 +237,8 @@ public final class TransferDatabase extends SQLiteOpenHelper {
         mQuery_updateTransferSetBatchId2.bindLong(2, id);
         mQuery_updateTransferSetBatchId2.bindString(3, barcode);
         return mQuery_updateTransferSetBatchId2.executeUpdateDelete();
-    }
-*/
+    }*/
+
     private SQLiteStatement mQuery_updateTransferSetBatchId = null;
     public synchronized long query_updateTransfersSetBatchId(ArrayList<Utils.Transfer> transfers, long batchId) {
         // todo: test
@@ -411,7 +410,7 @@ public final class TransferDatabase extends SQLiteOpenHelper {
     public static class Key {
         public static final String ID = "_id";
         public static final String TRANSFER_ID = "transfer_id";
-        public static final String BATCH_ID= "batch_id";
+        public static final String BATCH_ID = "batch_id";
         public static final String COMMENTS = "comments";
         public static final String SIGNED = "signed";
         public static final String FINALIZED = "finalized";

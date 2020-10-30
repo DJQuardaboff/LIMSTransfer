@@ -2,6 +2,7 @@ package com.porterlee.transfer;
 
 import android.database.Cursor;
 import android.database.DataSetObserver;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -114,13 +115,12 @@ public abstract class SelectableCursorRecyclerViewAdapter<VH extends RecyclerVie
                 }
             }
             //
-            notifyDataSetChanged();
         } else {
             mRowIdColumn = -1;
             mDataValid = false;
-            notifyDataSetChanged();
             //There is no notifyDataSetInvalidated() method in RecyclerView.Adapter
         }
+        notifyDataSetChanged();
         return oldCursor;
     }
 

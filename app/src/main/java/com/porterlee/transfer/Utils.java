@@ -43,7 +43,7 @@ public class Utils {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            if (stream != null) 
+            if (stream != null)
                 stream.close();
         }
     }
@@ -54,7 +54,7 @@ public class Utils {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            MediaScannerConnection.scanFile(context, new String[] { file.getAbsolutePath() }, null, null);
+            MediaScannerConnection.scanFile(context, new String[]{file.getAbsolutePath()}, null, null);
         } else {
             context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.fromFile(file)));
         }
@@ -116,7 +116,7 @@ public class Utils {
         return bytesToHex(md.digest());
     }
 
-    public static class Holder <T> {
+    public static class Holder<T> {
         private T object;
 
         public T get() {
@@ -127,7 +127,7 @@ public class Utils {
             this.object = object;
         }
     }
-    
+
     public interface OnProgressUpdateListener {
         void onProgressUpdate(@FloatRange(from = 0.0f, to = 1.0f) float progress);
     }

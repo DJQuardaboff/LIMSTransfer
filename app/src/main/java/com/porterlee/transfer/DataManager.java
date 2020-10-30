@@ -706,8 +706,11 @@ public class DataManager {
                         itemCursor.close();
                 }
 
-                if (context_weak.get() != null)
-                    Utils.refreshExternalFile(context_weak.get(), OUTPUT_FILE);
+                {
+                    Context tmp_context = context_weak.get();
+                    if (tmp_context != null)
+                        Utils.refreshExternalFile(tmp_context, OUTPUT_FILE);
+                }
 
                 {
                     Utils.DetailedOnFinishListener tmp_onFinishListener = onFinishListener_weak.get();

@@ -262,6 +262,7 @@ public class TransferActivity extends AppCompatActivity {
                             @Override
                             public void onFinish(boolean success, String message) {
                                 TransferActivity.this.<MaterialProgressBar>findViewById(R.id.progress_bar).setProgress(0);
+                                invalidateOptionsMenu();
                                 if (success) {
                                     toastShort(message);
                                 } else {
@@ -272,6 +273,7 @@ public class TransferActivity extends AppCompatActivity {
                                     onFinishListener.onFinish(success);
                             }
                         });
+                        invalidateOptionsMenu();
                     }
                 }).setNegativeButton(R.string.action_cancel, new DialogInterface.OnClickListener() {
                     @Override

@@ -87,7 +87,7 @@ android {
             resValue 'string', 'app_name', "${systemName} Transfer"
 
             for (def i : plcSystems) {
-                buildConfigField 'boolean', "isSystem${i.key.capitalize()}", valueFormatters['boolean'](system.key == i.key)
+                buildConfigField 'boolean', "FLAVOR_system_is${i.key.capitalize()}", valueFormatters['boolean'](system.key == i.key)
             }
 
             def traverseSettingsTree

@@ -588,22 +588,27 @@ public class TransferActivity extends AppCompatActivity {
     public boolean onPrepareOptionsMenu(Menu menu) {
         final MenuItem itemSave = menu.findItem(R.id.menu_save);
         final MenuItem itemSign = menu.findItem(R.id.menu_sign);
+        final MenuItem itemComments = menu.findItem(R.id.menu_comments);
         final MenuItem itemCancel = menu.findItem(R.id.menu_cancel);
         if (mDataManager != null) {
             final boolean saveEnabled = mDataManager.getCurrentTransfer() != null;
             final boolean signEnabled = mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().signed && !mDataManager.getCurrentTransfer().finalized && !mDataManager.getCurrentTransfer().canceled;
+            final boolean commentsEnabled = mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().canceled;
             final boolean cancelEnabled = mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().canceled;
 
             itemSave.setVisible(true);
             itemSign.setVisible(true);
+            if (BuildConfig.ui_enableCommentsEdit) itemComments.setVisible(true);
             itemCancel.setVisible(true);
 
             setIconEnabled(itemSave, saveEnabled);
             setIconEnabled(itemSign, signEnabled);
+            if (BuildConfig.ui_enableCommentsEdit) setIconEnabled(itemComments, commentsEnabled);
             setIconEnabled(itemCancel, cancelEnabled);
         } else {
             itemSave.setVisible(false);
             itemSign.setVisible(false);
+            if (BuildConfig.ui_enableCommentsEdit) itemComments.setVisible(false);
             itemCancel.setVisible(false);
         }
         return super.onPrepareOptionsMenu(menu);

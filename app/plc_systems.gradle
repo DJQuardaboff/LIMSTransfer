@@ -26,6 +26,7 @@ ext.plcSystems = [
                 ui         : [
                         enableQuantityEdit      : false,
                         enableTransferNavigation: false,
+                        enableCommentsEdit      : false,
                 ],
         ],
 
@@ -56,6 +57,7 @@ ext.plcSystems = [
                 ui         : [
                         enableQuantityEdit      : false,
                         enableTransferNavigation: false,
+                        enableCommentsEdit      : false,
                 ],
         ],
 
@@ -86,6 +88,7 @@ ext.plcSystems = [
                 ui         : [
                         enableQuantityEdit      : false,
                         enableTransferNavigation: true,
+                        enableCommentsEdit      : false,
                 ],
         ],
 
@@ -93,14 +96,14 @@ ext.plcSystems = [
                 name       : 'QM',
 
                 barcodeType: [
-                        item     : [
+                        item    : [
                                 hasLabCode     : false,
                                 base32Prefix   : null,
                                 base64Prefix   : null,
                                 genericPrefixes: ['Q'],
                         ],
 
-                        location : [
+                        location: [
                                 hasCustodyOf   : false,
                                 genericPrefixes: ['L1'],
                         ]
@@ -109,6 +112,7 @@ ext.plcSystems = [
                 ui         : [
                         enableQuantityEdit      : true,
                         enableTransferNavigation: false,
+                        enableCommentsEdit      : false,
                 ],
         ],
 ]
@@ -122,8 +126,8 @@ ext.plcSystemsMetadata = [
                 child: [
                         item     : [
                                 required: false,
-                                default:[:],
-                                child: [
+                                default : [:],
+                                child   : [
                                         hasLabCode     : [
                                                 required: false,
                                                 default : false,
@@ -152,8 +156,8 @@ ext.plcSystemsMetadata = [
 
                         container: [
                                 required: false,
-                                default:[:],
-                                child: [
+                                default : [:],
+                                child   : [
                                         hasLabCode     : [
                                                 required: false,
                                                 default : false,
@@ -182,8 +186,8 @@ ext.plcSystemsMetadata = [
 
                         location : [
                                 required: false,
-                                default:[:],
-                                child: [
+                                default : [:],
+                                child   : [
                                         hasCustodyOf   : [
                                                 required: false,
                                                 default : false,
@@ -220,6 +224,11 @@ ext.plcSystemsMetadata = [
                         ],
 
                         enableTransferNavigation: [
+                                required: true,
+                                type    : boolean,
+                        ],
+
+                        enableCommentsEdit      : [
                                 required: true,
                                 type    : boolean,
                         ],

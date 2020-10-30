@@ -16,6 +16,12 @@
         app:showAsAction="ifRoom"/>
 
     <item
+        android:id="@+id/menu_comments"
+        android:title="@string/action_comments"
+        android:visible="false"
+        app:showAsAction="never"/>
+
+    <item
         android:id="@+id/menu_cancel"
         android:title="@string/action_cancel"
         app:showAsAction="never"/>

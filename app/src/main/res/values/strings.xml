@@ -13,6 +13,7 @@
     <string name="action_sign">Sign</string>
     <string name="action_clear">Clear</string>
     <string name="action_save">Save</string>
+    <string name="action_saving_ellipsis">Saving…</string>
     <string name="action_comments">Comments</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_finalize">Finalize</string>

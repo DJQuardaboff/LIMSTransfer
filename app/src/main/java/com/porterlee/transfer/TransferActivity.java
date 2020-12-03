@@ -267,7 +267,7 @@ public class TransferActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.action_save, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        toastShort("Saving...");
+                        toastShort(R.string.action_saving_ellipsis);
                         final RecyclerView itemRecyclerView = findViewById(R.id.item_recycler_view);
                         for (int i = 0, childCount = itemRecyclerView.getChildCount(); i < childCount; i++) {
                             final View v = itemRecyclerView.getChildAt(i);
@@ -321,7 +321,7 @@ public class TransferActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.action_save, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        toastShort("Saving...");
+                        toastShort(R.string.action_saving_ellipsis);
                         mDataManager.signCurrentTransfer(
                                 TransferActivity.this,
                                 ((AlertDialog) dialog).<SignaturePad>findViewById(R.id.signature_pad).getSignatureBitmap(),

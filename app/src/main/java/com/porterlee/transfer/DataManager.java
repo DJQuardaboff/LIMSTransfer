@@ -18,6 +18,10 @@ import com.porterlee.transfer.Utils.Batch;
 import com.porterlee.transfer.Utils.Item;
 import com.porterlee.transfer.Utils.Transfer;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -646,6 +650,166 @@ public class DataManager {
                         transferCursor.close();
                     if (itemCursor != null)
                         itemCursor.close();
+                }
+
+                {
+                    Context tmp_context = context_weak.get();
+                    if (tmp_context != null)
+                        Utils.refreshExternalFile(tmp_context, OUTPUT_FILE);
+                }
+
+                {
+                    Utils.DetailedOnFinishListener tmp_onFinishListener = onFinishListener_weak.get();
+                    if (tmp_onFinishListener != null)
+                        tmp_onFinishListener.onFinish(true, "Saved");
+                }
+            }
+        });
+    }
+
+    public static void asyncSaveBatchToFileJSON(Activity activity, TransferDatabase transferDatabase, final long batchId, Utils.OnProgressUpdateListener onProgressUpdateListener, Utils.DetailedOnFinishListener onFinishListener) {
+        final WeakReference<Context> context_weak = new WeakReference<>(activity.getApplicationContext());
+        activity = null;
+        final WeakReference<TransferDatabase> transferDatabase_weak = new WeakReference<>(transferDatabase);
+        transferDatabase = null;
+        final WeakReference<Utils.OnProgressUpdateListener> onProgressUpdateListener_weak = new WeakReference<>(onProgressUpdateListener);
+        onProgressUpdateListener = null;
+        final WeakReference<Utils.DetailedOnFinishListener> onFinishListener_weak = new WeakReference<>(onFinishListener);
+        onFinishListener = null;
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                final long batchItemCount;
+                Cursor transferCursor;
+                Cursor itemCursor = null;
+                {
+                    TransferDatabase tmp_transferDatabase = transferDatabase_weak.get();
+                    if (tmp_transferDatabase != null) {
+                        batchItemCount = tmp_transferDatabase.query_getItemCountFromFinalTransfersWithBatchId(batchId);
+                        transferCursor = tmp_transferDatabase.query_getFinalTransfersWithBatchId(batchId);
+                    } else {
+                        return;
+                    }
+                }
+
+                final int transferIdIndex = transferCursor.getColumnIndexOrThrow(TransferDatabase.Key.ID);
+                final int transferLocationBarcodeIndex = transferCursor.getColumnIndexOrThrow(TransferDatabase.Key.LOCATION_BARCODE);
+                final int transferSignedIndex = transferCursor.getColumnIndexOrThrow(TransferDatabase.Key.SIGNED);
+                final int transferStartDateTimeIndex = transferCursor.getColumnIndexOrThrow(TransferDatabase.Key.START_DATETIME);
+                final int transferSignDateTimeIndex = transferCursor.getColumnIndexOrThrow(TransferDatabase.Key.SIGN_DATETIME);
+                final int transferCommentsIndex = transferCursor.getColumnIndexOrThrow(TransferDatabase.Key.COMMENTS);
+
+                transferCursor.moveToFirst();
+
+                PrintStream printStream = null;
+                try {
+                    JSONObject outputObject = new JSONObject();
+                    outputObject.put("applicationId", BuildConfig.APPLICATION_ID);
+                    {
+                        JSONObject flavorObject = new JSONObject();
+                        flavorObject.put("system", BuildConfig.FLAVOR_system);
+                        flavorObject.put("scannerSdk", BuildConfig.FLAVOR_scannerSdk);
+                        outputObject.put("flavor", flavorObject);
+                    }
+                    outputObject.put("buildType", BuildConfig.BUILD_TYPE);
+                    outputObject.put("versionName", BuildConfig.VERSION_NAME);
+                    outputObject.put("versionCode", BuildConfig.VERSION_CODE);
+
+                    JSONObject batchObject = new JSONObject();
+                    {
+                        batchObject.put("id", batchId);
+                        JSONArray transferArray = new JSONArray();
+
+                        while (!transferCursor.isAfterLast()) {
+                            JSONObject transferObject = new JSONObject();
+                            transferObject.put("id", transferCursor.getLong(transferIdIndex));
+                            transferObject.put("location_barcode", transferCursor.getString(transferLocationBarcodeIndex));
+                            boolean signed = transferCursor.getLong(transferSignedIndex) != 0;
+                            transferObject.put("signed", signed);
+                            transferObject.put("start_datetime", transferCursor.getString(transferStartDateTimeIndex));
+                            if (signed)
+                                transferObject.put("sign_datetime", transferCursor.getString(transferSignDateTimeIndex));
+                            String transferCommentsStr = transferCursor.getString(transferCommentsIndex);
+                            transferObject.put("comments", transferCommentsStr != null ? new JSONArray(transferCommentsStr) : new JSONArray());
+
+                            {
+                                TransferDatabase tmp_transferDatabase = transferDatabase_weak.get();
+                                if (tmp_transferDatabase != null) {
+                                    if (itemCursor != null) itemCursor.close();
+                                    itemCursor = tmp_transferDatabase.query_getItemsWithTransferId(transferCursor.getLong(transferIdIndex));
+                                } else {
+                                    return;
+                                }
+                            }
+
+                            //final int itemIdIndex = itemCursor.getColumnIndexOrThrow(TransferDatabase.Key.ID);
+                            final int itemBarcodeIndex = itemCursor.getColumnIndexOrThrow(TransferDatabase.Key.BARCODE);
+                            final int itemQuantityIndex = itemCursor.getColumnIndexOrThrow(TransferDatabase.Key.QUANTITY);
+                            final int itemScanDateTimeIndex = itemCursor.getColumnIndexOrThrow(TransferDatabase.Key.SCAN_DATETIME);
+
+                            itemCursor.moveToFirst();
+
+                            {
+                                JSONArray itemArray = new JSONArray();
+
+                                final int maxUpdateCount = 100;
+                                int updateCount = 0;
+
+                                while (!itemCursor.isAfterLast()) {
+                                    JSONObject itemObject = new JSONObject();
+
+                                    {
+                                        Utils.OnProgressUpdateListener tmp_onProgressUpdateListener = onProgressUpdateListener_weak.get();
+                                        if (tmp_onProgressUpdateListener != null) {
+                                            final float tempProgress = ((float) itemCursor.getPosition()) / batchItemCount;
+                                            if ((tempProgress * maxUpdateCount) > updateCount) {
+                                                tmp_onProgressUpdateListener.onProgressUpdate(tempProgress);
+                                                updateCount++;
+                                            }
+                                        }
+                                    }
+
+                                    //itemObject.put("id", itemCursor.getLong(itemIdIndex));
+                                    itemObject.put("barcode", itemCursor.getString(itemBarcodeIndex));
+                                    itemObject.put("quantity", itemCursor.getLong(itemQuantityIndex));
+                                    itemObject.put("scan_datetime", itemCursor.getString(itemScanDateTimeIndex));
+
+                                    itemArray.put(itemObject);
+
+                                    itemCursor.moveToNext();
+                                }
+                                transferObject.put("items", itemArray);
+                            }
+                            transferArray.put(transferObject);
+
+                            transferCursor.moveToNext();
+                        }
+
+                        batchObject.put("transfers", transferArray);
+                    }
+                    outputObject.put("batch", batchObject);
+
+                    {
+                        OUTPUT_FILE.setWritable(true, true);
+                        printStream = new PrintStream(new BufferedOutputStream(new FileOutputStream(OUTPUT_FILE)));
+                        printStream.print(outputObject);
+                        printStream.flush();
+                    }
+                } catch (JSONException | IOException e) {
+                    e.printStackTrace();
+                    {
+                        Utils.DetailedOnFinishListener tmp_onFinishListener = onFinishListener_weak.get();
+                        if (tmp_onFinishListener != null)
+                            tmp_onFinishListener.onFinish(false, e.getMessage());
+                    }
+                    return;
+                } finally {
+                    if (transferCursor != null)
+                        transferCursor.close();
+                    if (itemCursor != null)
+                        itemCursor.close();
+                    if (printStream != null)
+                        printStream.close();
                 }
 
                 {

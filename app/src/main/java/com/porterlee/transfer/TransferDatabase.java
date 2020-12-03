@@ -150,14 +150,14 @@ public final class TransferDatabase extends SQLiteOpenHelper {
         return mQuery_insertItemWithTransferId.executeInsert();
     }
 
-    /*private SQLiteStatement mQuery_getItemCountWithBatchId = null;
-    public synchronized long query_getItemCountWithBatchId(long batchId) {
-        // todo: check
-        if (mQuery_getItemCountWithBatchId == null)
-            mQuery_getItemCountWithBatchId = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM items WHERE transfer_id IN ( SELECT _id FROM transfers WHERE batch_id = ? )");
-        mQuery_getItemCountWithBatchId.bindLong(1, batchId);
-        return mQuery_getItemCountWithBatchId.simpleQueryForLong();
-    }*/
+    private SQLiteStatement mQuery_getItemCountFromFinalTransfersWithBatchId = null;
+    public synchronized long query_getItemCountFromFinalTransfersWithBatchId(long batchId) {
+        // todo: test
+        if (mQuery_getItemCountFromFinalTransfersWithBatchId == null)
+            mQuery_getItemCountFromFinalTransfersWithBatchId = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM items WHERE transfer_id IN ( SELECT _id FROM transfers WHERE finalized = 1 AND canceled = 0 AND batch_id = ? )");
+        mQuery_getItemCountFromFinalTransfersWithBatchId.bindLong(1, batchId);
+        return mQuery_getItemCountFromFinalTransfersWithBatchId.simpleQueryForLong();
+    }
 
     private SQLiteStatement mQuery_updateItemQuantity = null;
     public synchronized long query_updateItemQuantity(long id, int quantity) {

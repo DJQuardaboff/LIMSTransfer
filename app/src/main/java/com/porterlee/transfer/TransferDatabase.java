@@ -20,9 +20,6 @@ public final class TransferDatabase extends SQLiteOpenHelper {
     public static final String DATABASE_NAME = "plc_transfer.db";
 
     private final Context mContext;
-    public ItemTable items = new ItemTable();
-    public TransferTable transfers = new TransferTable();
-    public BatchTable batches = new BatchTable();
 
     public TransferDatabase(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);

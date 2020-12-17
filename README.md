@@ -22,21 +22,22 @@ In a terminal, run `gradlew publishRelease`
 The files will be in ./app/build/release/
 
 note: The following commands are also available:
+
 - `gradlew publishAll`
+
 - `gradlew publish<build_type>`
   - e.g. `gradlew publishDebug`
+
 - `gradlew publish<system><scanner_sdk><variant>`
-  - e.g.  `gradlew publishLimsZebraRelease`
+  - e.g. `gradlew publishLimsZebraRelease`
+
+note: `gradlew` is referencing the file `gradlew` or `gradlew.bat` (for windows) in the project's root folder
 
 ## Selecting a build variant
 
 Android Studio hides this feature a bit.
-It can be accessed in two different ways:
 
-1. View -> Tool Windows -> Build Variants
-
-2. 1. In the project tool window (usually open on the left), select the folder titled "app"
-   2. Build -> Select Build Variant
+  - View -> Tool Windows -> Build Variants
 
 ## Updating gradle
 

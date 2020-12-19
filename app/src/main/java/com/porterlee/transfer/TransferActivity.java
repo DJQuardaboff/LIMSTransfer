@@ -31,6 +31,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatEditText;
 import androidx.appcompat.widget.AppCompatImageButton;
 import androidx.appcompat.widget.AppCompatTextView;
+import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.DefaultItemAnimator;
@@ -442,11 +443,16 @@ public class TransferActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_transfer);
 
-        if (BuildConfig.ui_enableTransferNavigation) {
-            this.<AppCompatImageButton>findViewById(R.id.button_left).setVisibility(View.VISIBLE);
-            this.<AppCompatImageButton>findViewById(R.id.button_right).setVisibility(View.VISIBLE);
+        {
+            final int navigationButtonVisibility = BuildConfig.ui_enableTransferNavigation ? View.VISIBLE : View.GONE;
+            this.<AppCompatImageButton>findViewById(R.id.button_left).setVisibility(navigationButtonVisibility);
+            this.<AppCompatImageButton>findViewById(R.id.button_right).setVisibility(navigationButtonVisibility);
         }
 
+        {
+            final int shortcutBarVisibility = BuildConfig.ui_enableTransferNavigation ? View.VISIBLE : View.GONE;
+            this.<LinearLayoutCompat>findViewById(R.id.transfer_toolbar).setVisibility(shortcutBarVisibility);
+        }
         mItemRecyclerAdapter = new SelectableCursorRecyclerViewAdapter<TransferItemViewHolder>(mDataManager.query_getItems(), TransferDatabase.Key.ID) {
             @Override
             public void onBindViewHolder(TransferItemViewHolder viewHolder, Cursor cursor) {
@@ -906,31 +912,36 @@ public class TransferActivity extends AppCompatActivity {
                     popup.show();
                 }
             });
-            if (BuildConfig.ui_enableQuantityEdit) {
+
+            {
                 final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
-                quantityEditText.setVisibility(View.VISIBLE);
-                quantityEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                    @Override
-                    public void onFocusChange(View v, boolean hasFocus) {
-                        if (!hasFocus) {
-                            saveQuantity();
+                final int quantityEditVisibility = BuildConfig.ui_enableQuantityEdit ? View.VISIBLE : View.GONE;
+                quantityEditText.setVisibility(quantityEditVisibility);
+
+                if (BuildConfig.ui_enableQuantityEdit) {
+                    quantityEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                        @Override
+                        public void onFocusChange(View v, boolean hasFocus) {
+                            if (!hasFocus) {
+                                saveQuantity();
+                            }
                         }
-                    }
-                });
-                quantityEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-                    @Override
-                    public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                        if (actionId == EditorInfo.IME_ACTION_DONE) {
-                            saveQuantity();
-                            quantityEditText.clearFocus();
-                            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                            imm.hideSoftInputFromWindow(quantityEditText.getWindowToken(), 0);
-                            return true;
+                    });
+                    quantityEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                        @Override
+                        public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                                saveQuantity();
+                                quantityEditText.clearFocus();
+                                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                                imm.hideSoftInputFromWindow(quantityEditText.getWindowToken(), 0);
+                                return true;
+                            }
+                            return false;
                         }
-                        return false;
-                    }
-                });
-                expandedMenuButton.setFocusable(false);
+                    });
+                    expandedMenuButton.setFocusable(false);
+                }
             }
         }
 

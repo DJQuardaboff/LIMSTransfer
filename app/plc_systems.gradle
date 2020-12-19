@@ -27,6 +27,7 @@ ext.plcSystems = [
                         enableQuantityEdit      : false,
                         enableTransferNavigation: false,
                         enableCommentsEdit      : false,
+                        enableShortcutBar       : false,
                 ],
         ],
 
@@ -58,6 +59,7 @@ ext.plcSystems = [
                         enableQuantityEdit      : false,
                         enableTransferNavigation: false,
                         enableCommentsEdit      : false,
+                        enableShortcutBar       : false,
                 ],
         ],
 
@@ -89,6 +91,7 @@ ext.plcSystems = [
                         enableQuantityEdit      : false,
                         enableTransferNavigation: true,
                         enableCommentsEdit      : false,
+                        enableShortcutBar       : false,
                 ],
         ],
 
@@ -113,6 +116,7 @@ ext.plcSystems = [
                         enableQuantityEdit      : true,
                         enableTransferNavigation: false,
                         enableCommentsEdit      : false,
+                        enableShortcutBar       : false,
                 ],
         ],
 ]
@@ -229,6 +233,11 @@ ext.plcSystemsMetadata = [
                         ],
 
                         enableCommentsEdit      : [
+                                required: true,
+                                type    : boolean,
+                        ],
+
+                        enableShortcutBar       : [
                                 required: true,
                                 type    : boolean,
                         ],

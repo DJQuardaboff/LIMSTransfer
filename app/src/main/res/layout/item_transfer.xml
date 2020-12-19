@@ -15,25 +15,23 @@
         android:layout_marginStart="8dp"
         android:singleLine="true"
         android:ellipsize="middle"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/edit_quantity"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintEnd_toStartOf="@+id/edit_quantity"/>
 
     <androidx.appcompat.widget.AppCompatEditText
         android:id="@+id/edit_quantity"
         style="@style/TextAppearance.AppCompat.Small"
-        android:layout_width="59dp"
+        android:layout_width="60dp"
         android:layout_height="match_parent"
         android:inputType="number"
         android:hint="@string/text_quantity_hint"
-        android:visibility="gone"
         android:singleLine="true"
         android:imeOptions="actionDone"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/button_menu"
-        app:layout_constraintStart_toEndOf="@+id/text_barcode"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintEnd_toStartOf="@+id/button_menu"/>
 
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/button_menu"
@@ -41,9 +39,8 @@
         android:layout_height="0dp"
         android:background="?android:attr/actionBarItemBackground"
         android:src="@drawable/ic_more_options"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/edit_quantity"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

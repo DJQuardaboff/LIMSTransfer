@@ -16,4 +16,17 @@
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
     </style>
+
+    <style name="PLC.Text.Small.Dim" parent="@style/TextAppearance.AppCompat.Small">
+        <item name="android:textColor">?android:attr/textColorSecondaryInverse</item>
+    </style>
+
+    <style name="PLC.Text.Medium" parent="@style/Base.TextAppearance.AppCompat.Medium">
+        <item name="android:textColor">?android:attr/textColorPrimaryInverse</item>
+    </style>
+
+    <style name="PLC.Button.Toolbar" parent="@style/Widget.AppCompat.Button.Borderless">
+        <item name="android:textColor">?android:attr/textColorPrimaryInverse</item>
+        <item name="android:textSize">@dimen/abc_text_size_large_material</item>
+    </style>
 </resources>

@@ -364,6 +364,29 @@ public class TransferActivity extends AppCompatActivity {
                 .create(), null);
     }
 
+    public void openDialog_editComments(final Utils.OnFinishListener onFinishListener) {
+        final AppCompatEditText editTextComments = new AppCompatEditText(this);
+        editTextComments.setText(mDataManager.getCurrentTransfer().comments);
+        showModalScannerDialog(new AlertDialog.Builder(this)
+                .setTitle(R.string.text_edit_comments_title)
+                .setView(editTextComments)
+                .setNegativeButton(R.string.action_cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (onFinishListener != null)
+                            onFinishListener.onFinish(false);
+                    }
+                }).setPositiveButton(R.string.action_save, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        final boolean success = mDataManager.query_updateTransferSetComments(editTextComments.getText().toString());
+                        if (onFinishListener != null)
+                            onFinishListener.onFinish(success);
+                    }
+                }).setCancelable(false)
+                .create(), null);
+    }
+
     private void openDialog_cancelTransfer(final Utils.OnFinishListener onFinishListener) {
         showModalScannerDialog(new AlertDialog.Builder(this)
                 .setTitle(R.string.text_cancel_transfer_title)
@@ -416,7 +439,7 @@ public class TransferActivity extends AppCompatActivity {
         mDataManager.switchToNextTransfer();
     }
 
-    public void onClick_ButtonSave(View v) {
+    public void actionSave() {
         if (mDataManager.query_hasActiveTransfer()) {
             toastShort("All transfers must be finalized or canceled");
         } else if (mDataManager.query_getFinalTransferCount() < 1) {
@@ -428,7 +451,7 @@ public class TransferActivity extends AppCompatActivity {
         }
     }
 
-    public void onClick_ButtonSign(View v) {
+    public void actionSign() {
         if (mDataManager.getCurrentTransfer() == null) {
             toastShort("Start a transfer first");
         } else if (mDataManager.getCurrentTransfer().signed) {
@@ -446,7 +469,33 @@ public class TransferActivity extends AppCompatActivity {
         }
     }
 
-    public void onClick_ButtonCancel(View v) {
+    public void actionFinalize() {
+        if (mDataManager.getCurrentTransfer() == null) {
+            toastShort("Start a transfer first");
+        } else if (mDataManager.getCurrentTransfer().canceled) {
+            toastShort("Already canceled");
+        } else if (mDataManager.getCurrentTransfer().finalized) {
+            toastShort("Already finalized");
+        } else if (mDataManager.query_getItemCount() <= 0) {
+            toastShort("Scan items first");
+        } else if (mDataManager.isSaving()) {
+            toastShort("Cannot finalize while saving");
+        } else {
+            openDialog_finalizeTransfer(null);
+        }
+    }
+
+    public void actionComments() {
+        if (mDataManager.getCurrentTransfer() == null) {
+            toastShort("Start a transfer first");
+        } else if (mDataManager.isSaving()) {
+            toastShort("Cannot edit comments while saving");
+        } else {
+            openDialog_editComments(null);
+        }
+    }
+
+    public void actionCancel() {
         if (mDataManager.getCurrentTransfer() == null) {
             toastShort("Start a transfer first");
         } else if (mDataManager.getCurrentTransfer().canceled) {
@@ -456,6 +505,22 @@ public class TransferActivity extends AppCompatActivity {
         } else {
             openDialog_cancelTransfer(null);
         }
+    }
+
+    public void onClick_ButtonSave(View v) {
+        actionSave();
+    }
+
+    public void onClick_ButtonSign(View v) {
+        actionSign();
+    }
+
+    public void onClick_ButtonFinalize(View v) {
+        actionFinalize();
+    }
+
+    public void onClick_ButtonCancel(View v) {
+        actionCancel();
     }
 
     @Override
@@ -563,28 +628,19 @@ public class TransferActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_save:
-                onClick_ButtonSave(null);
+                actionSave();
                 return true;
             case R.id.menu_sign:
-                onClick_ButtonSign(null);
+                actionSign();
                 return true;
             case R.id.menu_finalize:
-                if (mDataManager.getCurrentTransfer() == null) {
-                    toastShort("Start a transfer first");
-                } else if (mDataManager.getCurrentTransfer().canceled) {
-                    toastShort("Already canceled");
-                } else if (mDataManager.getCurrentTransfer().finalized) {
-                    toastShort("Already finalized");
-                } else if (mDataManager.query_getItemCount() <= 0) {
-                    toastShort("Scan items first");
-                } else if (mDataManager.isSaving()) {
-                    toastShort("Cannot finalize while saving");
-                } else {
-                    openDialog_finalizeTransfer(null);
-                }
+                actionFinalize();
+                return true;
+            case R.id.menu_comments:
+                actionComments();
                 return true;
             case R.id.menu_cancel:
-                onClick_ButtonCancel(null);
+                actionCancel();
                 return true;
         }
         return super.onOptionsItemSelected(item);

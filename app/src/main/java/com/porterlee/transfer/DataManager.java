@@ -214,6 +214,11 @@ public class DataManager {
         return mTransferDatabase.query_getFinalTransferCountWithBatchId(getCurrentBatchId());
     }
 
+
+    public boolean query_updateTransferSetComments(String comments) {
+        return mTransferDatabase.query_updateTransferSetComments(getCurrentTransferId(), comments) > 0;
+    }
+
     public Batch getCurrentBatch() {
         return mCurrentBatch;
     }

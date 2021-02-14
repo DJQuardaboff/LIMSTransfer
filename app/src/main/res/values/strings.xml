@@ -25,6 +25,7 @@
     <string name="text_save_batch_title">Save batch?</string>
     <string name="text_finalize_transfer_title">Finalize transfer?</string>
     <string name="text_finalize_transfer_body">This action cannot be undone</string>
+    <string name="text_edit_comments_title">Comments</string>
     <string name="text_cancel_transfer_title">Cancel transfer?</string>
     <string name="text_cancel_transfer_body">This action cannot be undone</string>
     <string name="text_quantity_hint">Quantity</string>

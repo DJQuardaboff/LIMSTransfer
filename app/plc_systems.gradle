@@ -90,7 +90,7 @@ ext.plcSystems = [
                 ui         : [
                         enableQuantityEdit      : false,
                         enableTransferNavigation: true,
-                        enableCommentsEdit      : false,
+                        enableCommentsEdit      : true,
                         enableShortcutBar       : true,
                 ],
         ],

@@ -306,6 +306,15 @@ public final class TransferDatabase extends SQLiteOpenHelper {
         return mQuery_updateTransferSetFinalized.executeUpdateDelete();
     }
 
+    private SQLiteStatement mQuery_updateTransferSetComments = null;
+    public synchronized long query_updateTransferSetComments(long id, String comments) {
+        if (mQuery_updateTransferSetComments == null)
+            mQuery_updateTransferSetComments = getWritableDatabase().compileStatement("UPDATE transfers SET comments = ? WHERE _id = ?");
+        mQuery_updateTransferSetComments.bindString(1, comments);
+        mQuery_updateTransferSetComments.bindLong(2, id);
+        return mQuery_updateTransferSetComments.executeUpdateDelete();
+    }
+
     private SQLiteStatement mQuery_updateTransferSetCanceled = null;
     public synchronized long query_updateTransferSetCanceled(long id) {
         // todo: test

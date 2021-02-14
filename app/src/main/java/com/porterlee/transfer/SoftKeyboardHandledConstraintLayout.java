@@ -28,7 +28,8 @@ public class SoftKeyboardHandledConstraintLayout extends ConstraintLayout {
             // Keyboard is hidden <<< RIGHT
             if (isKeyboardShown) {
                 isKeyboardShown = false;
-                listener.onSoftKeyboardHide();
+                if (listener != null)
+                    listener.onSoftKeyboardHide();
             }
         }
         return super.dispatchKeyEventPreIme(event);
@@ -42,7 +43,8 @@ public class SoftKeyboardHandledConstraintLayout extends ConstraintLayout {
             // Keyboard is shown
             if (!isKeyboardShown) {
                 isKeyboardShown = true;
-                listener.onSoftKeyboardShow();
+                if (listener != null)
+                    listener.onSoftKeyboardShow();
             }
         } else {
             // Keyboard is hidden <<< this doesn't work sometimes, so don't use it

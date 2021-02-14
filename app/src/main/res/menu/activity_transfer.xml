@@ -16,6 +16,12 @@
         app:showAsAction="ifRoom"/>
 
     <item
+        android:id="@+id/menu_finalize"
+        android:title="@string/action_finalize"
+        android:icon="@drawable/ic_finalize"
+        app:showAsAction="ifRoom"/>
+
+    <item
         android:id="@+id/menu_comments"
         android:title="@string/action_comments"
         android:visible="false"

@@ -1,9 +1,7 @@
 package com.porterlee.transfer;
 
 import android.app.Activity;
-import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -51,6 +49,7 @@ public class DataManager {
     private SharedPreferences mSharedPreferences;
     private Version mLastVersion;
     private Version mCurrentVersion = new Version(BuildConfig.VERSION_CODE);
+    private Batch mCurrentBatch;
     private Transfer mCurrentTransfer;
     private Runnable mOnCurrentBatchChangedListener;
     private Runnable mOnCurrentTransferChangedListener;
@@ -93,7 +92,8 @@ public class DataManager {
 
     public void init(Context context) {
         mTransferDatabase = new TransferDatabase(context);
-        setCurrentTransfer(query_getLastActiveTransfer());
+        setCurrentBatch(query_getLastBatch());
+        setCurrentTransfer(query_getLastActiveTransferWithBatchId(getCurrentBatchId()));
 
         if (!EXTERNAL_PATH.mkdirs() && !EXTERNAL_PATH.exists())
             Log.w(TAG, "External directory does not exist and could not be created, this may cause a problem");
@@ -210,22 +210,22 @@ public class DataManager {
         }
     }
 
+    public long query_getFinalTransferCount() {
+        return mTransferDatabase.query_getFinalTransferCountWithBatchId(getCurrentBatchId());
+    }
+
+    public Batch getCurrentBatch() {
+        return mCurrentBatch;
+    }
+
     public Transfer getCurrentTransfer() {
         return mCurrentTransfer;
     }
 
-    /*public boolean query_updateCurrentTransferSetBatchId(long batchId) {
-        final boolean success = mTransferDatabase.query_updateTransferSetBatchId(getCurrentTransferId(), batchId) > 0;
-        if (success) {
-            setCurrentTransfer(query_getLastActiveTransfer());
-        }
-        return success;
-    }*/
-
     public boolean query_updateCurrentTransferSetCanceled() {
         final boolean success = mTransferDatabase.query_updateTransferSetCanceled(getCurrentTransferId()) > 0;
         if (success) {
-            setCurrentTransfer(query_getLastActiveTransfer());
+            setCurrentTransfer(query_getLastActiveTransferWithBatchId(getCurrentBatchId()));
         }
         return success;
     }
@@ -233,43 +233,48 @@ public class DataManager {
     public boolean query_updateCurrentTransferSetFinalized() {
         final boolean success = mTransferDatabase.query_updateTransferSetFinalized(getCurrentTransferId()) > 0;
         if (success) {
-            setCurrentTransfer(query_getLastActiveTransfer());
+            setCurrentTransfer(query_getLastActiveTransferWithBatchId(getCurrentBatchId()));
         }
         return success;
     }
 
-    /*public boolean query_updateTransfersSetCanceledIfNotFinalized() {
-        final boolean success = mTransferDatabase.query_updateTransfersSetCanceledIfNotFinalized() > 0;
-        if (success)
-            setCurrentTransfer(query_getLastTransfer());
-        return success;
-    }*/
-
     private void setCurrentTransfer(@Nullable Transfer transfer) {
+        if (transfer != null)
+            setCurrentBatch(query_getBatch(transfer.batch_id));
         mCurrentTransfer = transfer;
         if (mOnCurrentTransferChangedListener != null)
             mOnCurrentTransferChangedListener.run();
     }
 
+    private void setCurrentBatch(@Nullable Batch batch) {
+        mCurrentBatch = batch;
+        if (getCurrentTransfer() != null && getCurrentTransfer().batch_id != getCurrentBatchId())
+            setCurrentTransfer(query_getLastActiveTransferWithBatchId(getCurrentBatchId()));
+        if (mOnCurrentBatchChangedListener != null)
+            mOnCurrentBatchChangedListener.run();
+    }
+
     public void switchToPreviousTransfer() {
-        long transferId = getCurrentTransferId();
+        final long batchId = getCurrentBatchId();
+        final long transferId = getCurrentTransferId();
         if (transferId >= 0) {
-            if (mTransferDatabase.query_getPreviousTransferCount(transferId) > 0) {
-                Cursor cursor = mTransferDatabase.query_getPreviousTransfer(transferId);
+            if (mTransferDatabase.query_getPreviousTransferCountWithBatchId(batchId, transferId) > 0) {
+                Cursor cursor = mTransferDatabase.query_getPreviousTransferWithBatchId(batchId, transferId);
                 setCurrentTransfer(cursor.moveToFirst() ? constructTransferFromCursor(cursor) : null);
             } else {
                 // no previous transfer
             }
         } else {
-            setCurrentTransfer(query_getLastTransfer());
+            setCurrentTransfer(query_getLastTransferWithBatchId(getCurrentBatchId()));
         }
     }
 
     public void switchToNextTransfer() {
-        long transferId = getCurrentTransferId();
+        final long batchId = getCurrentBatchId();
+        final long transferId = getCurrentTransferId();
         if (transferId >= 0) {
-            if (mTransferDatabase.query_getNextTransferCount(transferId) > 0) {
-                Cursor cursor = mTransferDatabase.query_getNextTransfer(transferId);
+            if (mTransferDatabase.query_getNextTransferCountWithBatchId(batchId, transferId) > 0) {
+                Cursor cursor = mTransferDatabase.query_getNextTransferWithBatchId(batchId, transferId);
                 setCurrentTransfer(cursor.moveToFirst() ? constructTransferFromCursor(cursor) : null);
             } else {
                 setCurrentTransfer(null); // possible to start a new transfer now
@@ -278,21 +283,24 @@ public class DataManager {
     }
 
     public boolean query_hasPreviousTransfer() {
-        long transferId = getCurrentTransferId();
+        final long batchId = getCurrentBatchId();
+        final long transferId = getCurrentTransferId();
+        Log.d("taaaag", "batchId=" + batchId + ", transferId=" + transferId);
         if (transferId >= 0) {
-            if (mTransferDatabase.query_getPreviousTransferCount(transferId) > 0) {
+            if (mTransferDatabase.query_getPreviousTransferCountWithBatchId(batchId, transferId) > 0) {
                 return true;
             } else {
                 return false; // no previous transfer
             }
         }
-        return true;
+        return mTransferDatabase.query_getTransferCountWithBatchId(batchId) > 0;
     }
 
     public boolean query_hasNextTransfer() {
-        long transferId = getCurrentTransferId();
+        final long batchId = getCurrentBatchId();
+        final long transferId = getCurrentTransferId();
         if (transferId >= 0) {
-            if (mTransferDatabase.query_getNextTransferCount(transferId) > 0) {
+            if (mTransferDatabase.query_getNextTransferCountWithBatchId(batchId, transferId) > 0) {
                 return true;
             } else {
                 return true; // next transfer is null
@@ -302,7 +310,13 @@ public class DataManager {
     }
 
     public boolean query_hasActiveTransfer() {
-        return mTransferDatabase.query_getActiveTransferCount() > 0;
+        final long batchId = getCurrentBatchId();
+        return batchId >= 0 && mTransferDatabase.query_getActiveTransferCountWithBatchId(batchId) > 0;
+    }
+
+    public boolean query_isCurrentTransferActive() {
+        final long transferId = getCurrentTransferId();
+        return transferId >= 0 && mTransferDatabase.query_getActiveTransferCountWithTransferId(transferId) > 0;
     }
 
     public long getCurrentTransferId() {
@@ -310,7 +324,7 @@ public class DataManager {
     }
 
     public long getCurrentBatchId() {
-        return mCurrentTransfer != null ? mCurrentTransfer.batch_id : -1;
+        return mCurrentBatch != null ? mCurrentBatch.id : -1;
     }
 
     public boolean deleteDatabase(Context context) {
@@ -328,11 +342,6 @@ public class DataManager {
     public Cursor query_getItems() {
         long transferId = getCurrentTransferId();
         return transferId < 0 ? null : mTransferDatabase.query_getItemsWithTransferId(transferId);
-    }
-
-    public Cursor query_getLastItemWithBarcode(String barcode) {
-        long transferId = getCurrentTransferId();
-        return transferId < 0 ? null : mTransferDatabase.query_getLastItemWithBarcode(barcode);
     }
 
     public boolean query_currentTransferHasItemWithBarcode(String itemBarcode) {
@@ -357,17 +366,6 @@ public class DataManager {
     public long query_deleteItem(long itemId) {
         return mTransferDatabase.query_deleteItem(itemId);
     }
-    /*
-    public long deleteCurrentTransfer() {
-        if (getTransferId() < 0)
-            return -1;
-        final long temp = mTransferDatabase.delete_from_transferTable_where_id_equals(getTransferId()) + mTransferDatabase.delete_from_itemTable_where_transferId_equals(getTransferId());
-        mCurrentTransfer = getLastUnfinishedTransfer();
-        if (onCurrentTransferChangedListener != null)
-            onCurrentTransferChangedListener.run();
-        return temp;
-    }
-    */
 
     /**
      * Inserts a row into the {@link TransferDatabase} and sets the current transfer to a
@@ -378,8 +376,12 @@ public class DataManager {
     public long startNewTransfer(@NonNull String locationBarcode) {
         query_insertBatchIfNotExist();
 
-        setCurrentTransfer(query_getTransfer(mTransferDatabase.query_insertTransfer(mTransferDatabase.query_getLastBatchId(), locationBarcode)));
-        return getCurrentTransferId();
+        long transferId = mTransferDatabase.query_insertTransfer(mTransferDatabase.query_getLastBatchId(), locationBarcode);
+        if (transferId < 0)
+            throw new RuntimeException("could not create new transfer");
+        setCurrentTransfer(query_getTransfer(transferId));
+
+        return transferId;
     }
 
     public void signCurrentTransfer(final Context context, Bitmap bitmap, final Utils.DetailedOnFinishListener onFinishListener) {
@@ -461,16 +463,20 @@ public class DataManager {
         }
     }
 
-    public void query_insertBatchIfNotExist() {
+    public long query_insertBatchIfNotExist() {
         if (mTransferDatabase.query_getBatchCount() > 0)
-            return;
+            return -1;
 
-        query_insertBatch();
+        return query_insertBatch();
     }
 
-    public void query_insertBatch() {
-        if (mTransferDatabase.query_insertBatch() < 0)
+    public long query_insertBatch() {
+        long batchId = mTransferDatabase.query_insertBatch();
+
+        if (batchId < 0)
             throw new RuntimeException("could not create new batch");
+
+        return batchId;
     }
 
     public void updateOldInProgressTransfersBatchIds() {

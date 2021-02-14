@@ -176,33 +176,53 @@ public final class TransferDatabase extends SQLiteOpenHelper {
         return mQuery_deleteItem.executeUpdateDelete();
     }
 
-    private SQLiteStatement mQuery_getTransferCount = null;
-    public synchronized long query_getTransferCount() {
-        if (mQuery_getTransferCount == null)
-            mQuery_getTransferCount = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM transfers");
-        return mQuery_getTransferCount.simpleQueryForLong();
+    private SQLiteStatement mQuery_getTransferCountWithBatchId = null;
+    public synchronized long query_getTransferCountWithBatchId(long batchId) {
+        if (mQuery_getTransferCountWithBatchId == null)
+            mQuery_getTransferCountWithBatchId = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM transfers WHERE batch_id = ?");
+        mQuery_getTransferCountWithBatchId.bindLong(1, batchId);
+        return mQuery_getTransferCountWithBatchId.simpleQueryForLong();
     }
 
-    private SQLiteStatement mQuery_getActiveTransferCount = null;
-    public synchronized long query_getActiveTransferCount() {
-        if (mQuery_getActiveTransferCount == null)
-            mQuery_getActiveTransferCount = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM transfers WHERE finalized = 0 AND canceled = 0");
-        return mQuery_getActiveTransferCount.simpleQueryForLong();
+    private SQLiteStatement mQuery_getActiveTransferCountWithBatchId = null;
+    public synchronized long query_getActiveTransferCountWithBatchId(long batchId) {
+        if (mQuery_getActiveTransferCountWithBatchId == null)
+            mQuery_getActiveTransferCountWithBatchId = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM transfers WHERE finalized = 0 AND canceled = 0 AND batch_id = ?");
+        mQuery_getActiveTransferCountWithBatchId.bindLong(1, batchId);
+        return mQuery_getActiveTransferCountWithBatchId.simpleQueryForLong();
+    }
+
+    private SQLiteStatement mQuery_getActiveTransferCountWithTransferId = null;
+    public synchronized long query_getActiveTransferCountWithTransferId(long transferId) {
+        if (mQuery_getActiveTransferCountWithTransferId == null)
+            mQuery_getActiveTransferCountWithTransferId = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM transfers WHERE finalized = 0 AND canceled = 0 AND _id = ?");
+        mQuery_getActiveTransferCountWithTransferId.bindLong(1, transferId);
+        return mQuery_getActiveTransferCountWithTransferId.simpleQueryForLong();
+    }
+
+    private SQLiteStatement mQuery_getFinalTransferCountWithBatchId = null;
+    public synchronized long query_getFinalTransferCountWithBatchId(long batchId) {
+        if (mQuery_getFinalTransferCountWithBatchId == null)
+            mQuery_getFinalTransferCountWithBatchId = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM transfers WHERE finalized = 1 AND canceled = 0 AND batch_id = ?");
+        mQuery_getFinalTransferCountWithBatchId.bindLong(1, batchId);
+        return mQuery_getFinalTransferCountWithBatchId.simpleQueryForLong();
     }
 
     private SQLiteStatement mQuery_getPreviousTransferCount = null;
-    public synchronized long query_getPreviousTransferCount(long id) {
+    public synchronized long query_getPreviousTransferCountWithBatchId(long batchId, long transferId) {
         if (mQuery_getPreviousTransferCount == null)
-            mQuery_getPreviousTransferCount = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM transfers WHERE _id < ?");
-        mQuery_getPreviousTransferCount.bindLong(1, id);
+            mQuery_getPreviousTransferCount = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM transfers WHERE batch_id = ? AND _id < ?");
+        mQuery_getPreviousTransferCount.bindLong(1, batchId);
+        mQuery_getPreviousTransferCount.bindLong(2, transferId);
         return mQuery_getPreviousTransferCount.simpleQueryForLong();
     }
 
     private SQLiteStatement mQuery_getNextTransferCount = null;
-    public synchronized long query_getNextTransferCount(long id) {
+    public synchronized long query_getNextTransferCountWithBatchId(long batchId, long transferId) {
         if (mQuery_getNextTransferCount == null)
-            mQuery_getNextTransferCount = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM transfers WHERE _id > ?");
-        mQuery_getNextTransferCount.bindLong(1, id);
+            mQuery_getNextTransferCount = getReadableDatabase().compileStatement("SELECT COUNT(*) FROM transfers WHERE batch_id = ? AND _id > ?");
+        mQuery_getNextTransferCount.bindLong(1, batchId);
+        mQuery_getNextTransferCount.bindLong(2, transferId);
         return mQuery_getNextTransferCount.simpleQueryForLong();
     }
 
@@ -269,47 +289,30 @@ public final class TransferDatabase extends SQLiteOpenHelper {
         return mQuery_updateTransferSetBatchId.executeUpdateDelete();
     }
 
-    private SQLiteStatement mQuery_updateTransferSigned = null;
+    private SQLiteStatement mQuery_updateTransferSetSigned = null;
     public synchronized long query_updateTransferSetSigned(long id) {
         // todo: test
-        if (mQuery_updateTransferSigned == null)
-            mQuery_updateTransferSigned = getWritableDatabase().compileStatement("UPDATE transfers SET signed = 1, sign_datetime = datetime('now', 'localtime') WHERE finalized == 0 AND canceled == 0 AND _id = ?");
-        mQuery_updateTransferSigned.bindLong(1, id);
-        return mQuery_updateTransferSigned.executeUpdateDelete();
+        if (mQuery_updateTransferSetSigned == null)
+            mQuery_updateTransferSetSigned = getWritableDatabase().compileStatement("UPDATE transfers SET signed = 1, sign_datetime = datetime('now', 'localtime') WHERE finalized == 0 AND canceled == 0 AND _id = ?");
+        mQuery_updateTransferSetSigned.bindLong(1, id);
+        return mQuery_updateTransferSetSigned.executeUpdateDelete();
     }
 
-    private SQLiteStatement mQuery_updateTransferFinalized = null;
+    private SQLiteStatement mQuery_updateTransferSetFinalized = null;
     public synchronized long query_updateTransferSetFinalized(long id) {
-        if (mQuery_updateTransferFinalized == null)
-            mQuery_updateTransferFinalized = getWritableDatabase().compileStatement("UPDATE transfers SET finalized = 1, finalize_datetime = datetime('now', 'localtime') WHERE canceled == 0 AND _id = ?");
-        mQuery_updateTransferFinalized.bindLong(1, id);
-        return mQuery_updateTransferFinalized.executeUpdateDelete();
+        if (mQuery_updateTransferSetFinalized == null)
+            mQuery_updateTransferSetFinalized = getWritableDatabase().compileStatement("UPDATE transfers SET finalized = 1, finalize_datetime = datetime('now', 'localtime') WHERE canceled == 0 AND _id = ?");
+        mQuery_updateTransferSetFinalized.bindLong(1, id);
+        return mQuery_updateTransferSetFinalized.executeUpdateDelete();
     }
 
-    private SQLiteStatement mQuery_updateTransferCanceled = null;
+    private SQLiteStatement mQuery_updateTransferSetCanceled = null;
     public synchronized long query_updateTransferSetCanceled(long id) {
         // todo: test
-        if (mQuery_updateTransferCanceled == null)
-            mQuery_updateTransferCanceled = getWritableDatabase().compileStatement("UPDATE transfers SET canceled = 1, cancel_datetime = datetime('now', 'localtime') WHERE _id = ?");
-        mQuery_updateTransferCanceled.bindLong(1, id);
-        return mQuery_updateTransferCanceled.executeUpdateDelete();
-    }
-
-    private SQLiteStatement mQuery_updateTransfersSetCanceledIfNotFinalized = null;
-    public synchronized long query_updateTransfersSetCanceledIfNotFinalized() {
-        // todo: test
-        if (mQuery_updateTransfersSetCanceledIfNotFinalized == null)
-            mQuery_updateTransfersSetCanceledIfNotFinalized = getWritableDatabase().compileStatement("UPDATE transfers SET canceled = 1 WHERE finalized = 0");
-        return mQuery_updateTransfersSetCanceledIfNotFinalized.executeUpdateDelete();
-    }
-
-    private SQLiteStatement mQuery_updateTransferSetCanceledWithBatchId = null;
-    public synchronized long query_updateTransferSetCanceledWithBatchId(long batchId) {
-        // todo: test
-        if (mQuery_updateTransferSetCanceledWithBatchId == null)
-            mQuery_updateTransferSetCanceledWithBatchId = getWritableDatabase().compileStatement("UPDATE transfers SET canceled = 1 WHERE batch_id = ?");
-        mQuery_updateTransferSetCanceledWithBatchId.bindLong(1, batchId);
-        return mQuery_updateTransferSetCanceledWithBatchId.executeUpdateDelete();
+        if (mQuery_updateTransferSetCanceled == null)
+            mQuery_updateTransferSetCanceled = getWritableDatabase().compileStatement("UPDATE transfers SET canceled = 1, cancel_datetime = datetime('now', 'localtime') WHERE _id = ?");
+        mQuery_updateTransferSetCanceled.bindLong(1, id);
+        return mQuery_updateTransferSetCanceled.executeUpdateDelete();
     }
 
     private SQLiteStatement mQuery_getBatchCount = null;
@@ -356,12 +359,12 @@ public final class TransferDatabase extends SQLiteOpenHelper {
         return getReadableDatabase().rawQuery("SELECT * FROM transfers ORDER BY _id DESC LIMIT 1", null);
     }
 
-    public Cursor query_getPreviousTransfer(long id) {
-        return getReadableDatabase().rawQuery("SELECT * FROM transfers WHERE _id < ? ORDER BY _id DESC LIMIT 1", new String[]{String.valueOf(id)});
+    public Cursor query_getPreviousTransferWithBatchId(long batchId, long transferId) {
+        return getReadableDatabase().rawQuery("SELECT * FROM transfers WHERE batch_id = ? AND _id < ? ORDER BY _id DESC LIMIT 1", new String[]{String.valueOf(batchId), String.valueOf(transferId)});
     }
 
-    public Cursor query_getNextTransfer(long id) {
-        return getReadableDatabase().rawQuery("SELECT * FROM transfers WHERE _id > ? ORDER BY _id ASC LIMIT 1", new String[]{String.valueOf(id)});
+    public Cursor query_getNextTransferWithBatchId(long batchId, long transferId) {
+        return getReadableDatabase().rawQuery("SELECT * FROM transfers WHERE batch_id = ? AND _id > ? ORDER BY _id ASC LIMIT 1", new String[]{String.valueOf(batchId), String.valueOf(transferId)});
     }
 
     public Cursor query_getLastActiveTransfer() {
@@ -381,15 +384,11 @@ public final class TransferDatabase extends SQLiteOpenHelper {
     }
 
     public Cursor query_getBatch(long id) {
-        return getReadableDatabase().rawQuery("SELECT * FROM transfers WHERE _id = ? ORDER BY _id DESC LIMIT 1", new String[]{String.valueOf(id)});
+        return getReadableDatabase().rawQuery("SELECT * FROM batches WHERE _id = ? ORDER BY _id DESC LIMIT 1", new String[]{String.valueOf(id)});
     }
 
     public Cursor query_getLastBatch() {
-        return getReadableDatabase().rawQuery("SELECT * FROM transfers WHERE finalized = 0 AND canceled = 0 ORDER BY _id DESC LIMIT 1", null);
-    }
-
-    public Cursor query_getLastActiveBatch() {
-        return getReadableDatabase().rawQuery("SELECT * FROM transfers WHERE saved = 0 AND canceled = 0 ORDER BY _id DESC LIMIT 1", null);
+        return getReadableDatabase().rawQuery("SELECT * FROM batches ORDER BY _id DESC LIMIT 1", null);
     }
 
     public static class UpgradeException extends SQLiteException {

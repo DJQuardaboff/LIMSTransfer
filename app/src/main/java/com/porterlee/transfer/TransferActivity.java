@@ -186,11 +186,9 @@ public class TransferActivity extends AppCompatActivity {
             if (listener != null)
                 listener.onFinish(false);
 
-            boolean isItem = barcode.isOfType(Item);
-            boolean isContainer = barcode.isOfType(Container);
-            String barcodeTypeName = isItem ? "item" : (isContainer ? "container" : "barcode");
-            Log.w(TAG, String.format("Error adding %s \"%s\" to database", barcodeTypeName, barcode));
-            toastLong("Error adding " + barcodeTypeName);
+            final String barcodeTypeStr = barcode.getBarcodeType().toString().toLowerCase();
+            Log.w(TAG, String.format("Error adding %s \"%s\" to database", barcodeTypeStr, barcode));
+            toastLong("Error adding " + barcodeTypeStr);
         }
         highlightItemWithBarcode(barcode.getBarcode());
     }
@@ -218,53 +216,9 @@ public class TransferActivity extends AppCompatActivity {
         });
     }
 
-    /*public void openDialog_setup() {
-        AlertDialog tempAlertDialog = new AlertDialog.Builder(this)
-                .setTitle(R.string.text_setup_title)
-                .setView(R.layout.fragment_setup)
-                .setPositiveButton(R.string.action_save, null)
-                .setNegativeButton(R.string.action_cancel, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        toastShort("Setup canceled");
-                    }
-                }).setCancelable(false)
-                .create();
-
-        tempAlertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
-                    @Override
-                    public void onShow(DialogInterface dialog) {
-                        final AlertDialog alertDialog = (AlertDialog) dialog;
-                        final Button buttonSave = alertDialog.getButton(DialogInterface.BUTTON_POSITIVE);
-                        final AppCompatCheckBox checkBoxRequiresStartupLogin = alertDialog.findViewById(R.id.switch_requires_startup_login);
-                        final AppCompatCheckBox checkBoxRequiresAnalystLogin = alertDialog.findViewById(R.id.switch_requires_analyst_login);
-                        final AppCompatCheckBox checkBoxRequiresSignature = alertDialog.findViewById(R.id.switch_requires_signature);
-                        checkBoxRequiresStartupLogin.setChecked(mDataManager.requiresStartupLogin());
-                        checkBoxRequiresStartupLogin.jumpDrawablesToCurrentState();
-                        checkBoxRequiresAnalystLogin.setChecked(mDataManager.requiresAnalystLogin());
-                        checkBoxRequiresAnalystLogin.jumpDrawablesToCurrentState();
-                        checkBoxRequiresSignature.setChecked(mDataManager.requiresSignature());
-                        checkBoxRequiresSignature.jumpDrawablesToCurrentState();
-
-                        buttonSave.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                mDataManager.setRequiresStartupLogin(checkBoxRequiresStartupLogin.isChecked());
-                                mDataManager.setRequiresAnalystLogin(checkBoxRequiresAnalystLogin.isChecked());
-                                mDataManager.setRequiresSignature(checkBoxRequiresSignature.isChecked());
-                                alertDialog.dismiss();
-                            }
-                        });
-                    }
-                });
-
-        showModalScannerDialog(tempAlertDialog, null);
-    }*/
-
-    public void openDialog_saveTransfer(final Utils.OnFinishListener onFinishListener) {
+    public void openDialog_saveBatch(final Utils.OnFinishListener onFinishListener) {
         showModalScannerDialog(new AlertDialog.Builder(this)
-                .setTitle(R.string.text_save_transfer_title)
-                .setMessage(R.string.text_save_transfer_body)
+                .setTitle(R.string.text_save_batch_title)
                 .setPositiveButton(R.string.action_save, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -278,12 +232,7 @@ public class TransferActivity extends AppCompatActivity {
                             }
                         }
 
-                        final long batchId = mDataManager.getCurrentBatchId();
-
-                        if (!mDataManager.query_updateCurrentTransferSetFinalized())
-                            throw new RuntimeException("could not update transfer");
-
-                        mDataManager.saveBatch(batchId, TransferActivity.this, new Utils.OnProgressUpdateListener() {
+                        mDataManager.saveBatch(mDataManager.getCurrentBatchId(), TransferActivity.this, new Utils.OnProgressUpdateListener() {
                             @Override
                             public void onProgressUpdate(float progress) {
                                 final MaterialProgressBar progressBar = findViewById(R.id.progress_bar);
@@ -293,7 +242,7 @@ public class TransferActivity extends AppCompatActivity {
                             @Override
                             public void onFinish(boolean success, String message) {
                                 TransferActivity.this.<MaterialProgressBar>findViewById(R.id.progress_bar).setProgress(0);
-                                invalidateOptionsMenu();
+                                //invalidateOptionsMenu();
                                 if (success) {
                                     toastShort(message);
                                 } else {
@@ -304,7 +253,7 @@ public class TransferActivity extends AppCompatActivity {
                                     onFinishListener.onFinish(success);
                             }
                         });
-                        invalidateOptionsMenu();
+                        //invalidateOptionsMenu();
                     }
                 }).setNegativeButton(R.string.action_cancel, new DialogInterface.OnClickListener() {
                     @Override
@@ -389,19 +338,54 @@ public class TransferActivity extends AppCompatActivity {
         showModalScannerDialog(tempAlertDialog, null);
     }
 
-    private void openDialog_cancelTransfer() {
+    public void openDialog_finalizeTransfer(final Utils.OnFinishListener onFinishListener) {
+        showModalScannerDialog(new AlertDialog.Builder(this)
+                .setTitle(R.string.text_finalize_transfer_title)
+                .setMessage(R.string.text_finalize_transfer_body)
+                .setNegativeButton(R.string.action_cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (onFinishListener != null)
+                            onFinishListener.onFinish(false);
+                    }
+                }).setPositiveButton(R.string.action_finalize, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        final boolean success = mDataManager.getCurrentTransfer() != null && mDataManager.query_updateCurrentTransferSetFinalized();
+                        if (success) {
+                            toastShort("Transfer finalized");
+                        } else {
+                            toastShort("Database error: Could not finalize transfer");
+                        }
+                        if (onFinishListener != null)
+                            onFinishListener.onFinish(success);
+                    }
+                }).setCancelable(false)
+                .create(), null);
+    }
+
+    private void openDialog_cancelTransfer(final Utils.OnFinishListener onFinishListener) {
         showModalScannerDialog(new AlertDialog.Builder(this)
                 .setTitle(R.string.text_cancel_transfer_title)
                 .setMessage(R.string.text_cancel_transfer_body)
-                .setNegativeButton(R.string.action_no, null)
+                .setNegativeButton(R.string.action_no, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (onFinishListener != null)
+                            onFinishListener.onFinish(false);
+                    }
+                })
                 .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        if (mDataManager.query_updateCurrentTransferSetCanceled()) {
+                        final boolean success = mDataManager.getCurrentTransfer() != null && mDataManager.query_updateCurrentTransferSetCanceled();
+                        if (success) {
                             toastShort("Transfer canceled");
                         } else {
-                            toastLong("There was an error canceling");
+                            toastShort("Database error: Could not cancel transfer");
                         }
+                        if (onFinishListener != null)
+                            onFinishListener.onFinish(success);
                     }
                 }).create(), null);
     }
@@ -417,10 +401,18 @@ public class TransferActivity extends AppCompatActivity {
     }
 
     public void switchToPreviousTransfer(View v) {
+        if (mDataManager.query_isCurrentTransferActive()) {
+            toastShort("Finalize or cancel this transfer first");
+            return;
+        }
         mDataManager.switchToPreviousTransfer();
     }
 
     public void switchToNextTransfer(View v) {
+        if (mDataManager.query_isCurrentTransferActive()) {
+            toastShort("Finalize or cancel this transfer first");
+            return;
+        }
         mDataManager.switchToNextTransfer();
     }
 
@@ -450,7 +442,7 @@ public class TransferActivity extends AppCompatActivity {
         }
 
         {
-            final int shortcutBarVisibility = BuildConfig.ui_enableTransferNavigation ? View.VISIBLE : View.GONE;
+            final int shortcutBarVisibility = BuildConfig.ui_enableShortcutBar ? View.VISIBLE : View.GONE;
             this.<LinearLayoutCompat>findViewById(R.id.transfer_toolbar).setVisibility(shortcutBarVisibility);
         }
         mItemRecyclerAdapter = new SelectableCursorRecyclerViewAdapter<TransferItemViewHolder>(mDataManager.query_getItems(), TransferDatabase.Key.ID) {
@@ -487,20 +479,13 @@ public class TransferActivity extends AppCompatActivity {
                                 isCanceled
                         );
 
-                        boolean hasActiveTransfer = mDataManager.query_hasActiveTransfer();
-                        {
-                            final AppCompatImageButton buttonLeft = findViewById(R.id.button_left);
-                            setImageButtonEnabled(buttonLeft, !hasActiveTransfer && mDataManager.query_hasPreviousTransfer());
-                        }
-                        {
-                            final AppCompatImageButton buttonRight = findViewById(R.id.button_right);
-                            setImageButtonEnabled(buttonRight, !hasActiveTransfer && mDataManager.query_hasNextTransfer());
-                        }
+                        setImageButtonEnabled(TransferActivity.this.<AppCompatImageButton>findViewById(R.id.button_left), mDataManager.query_hasPreviousTransfer());
+                        setImageButtonEnabled(TransferActivity.this.<AppCompatImageButton>findViewById(R.id.button_right), mDataManager.query_hasNextTransfer());
 
                         refreshItemRecyclerAdapter();
                         mItemRecyclerAdapter.setIsCanceled(isCanceled);
 
-                        invalidateOptionsMenu();
+                        //invalidateOptionsMenu();
                     }
                 });
             }
@@ -535,18 +520,14 @@ public class TransferActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_save:
-                if (mDataManager.getCurrentTransfer() == null) {
+                if (mDataManager.query_hasActiveTransfer()) {
+                    toastShort("All transfers must be finalized or canceled");
+                } else if (mDataManager.query_getFinalTransferCount() < 1) {
                     toastShort("Start a transfer first");
-                } else if (mDataManager.getCurrentTransfer().finalized) {
-                    toastShort("Already finalized");
-                } else if (mDataManager.getCurrentTransfer().canceled) {
-                    toastShort("Already canceled");
-                } else if (mDataManager.query_getItemCount() <= 0) {
-                    toastShort("Scan items first");
                 } else if (mDataManager.isSaving()) {
-                    toastShort("Cannot finalize while saving");
+                    toastShort("Save already in progress");
                 } else {
-                    openDialog_saveTransfer(null);
+                    openDialog_saveBatch(null);
                 }
                 return true;
             case R.id.menu_sign:
@@ -554,16 +535,31 @@ public class TransferActivity extends AppCompatActivity {
                     toastShort("Start a transfer first");
                 } else if (mDataManager.getCurrentTransfer().signed) {
                     toastShort("Already signed");
-                } else if (mDataManager.getCurrentTransfer().finalized) {
-                    toastShort("Already finalized");
                 } else if (mDataManager.getCurrentTransfer().canceled) {
                     toastShort("Already canceled");
+                } else if (mDataManager.getCurrentTransfer().finalized) {
+                    toastShort("Already finalized");
+                } else if (mDataManager.query_getItemCount() <= 0) {
+                    toastShort("Scan items first");
+                } else if (mDataManager.isSaving()) {
+                    toastShort("Cannot sign while saving");
+                } else {
+                    openDialog_signTransfer(null);
+                }
+                return true;
+            case R.id.menu_finalize:
+                if (mDataManager.getCurrentTransfer() == null) {
+                    toastShort("Start a transfer first");
+                } else if (mDataManager.getCurrentTransfer().canceled) {
+                    toastShort("Already canceled");
+                } else if (mDataManager.getCurrentTransfer().finalized) {
+                    toastShort("Already finalized");
                 } else if (mDataManager.query_getItemCount() <= 0) {
                     toastShort("Scan items first");
                 } else if (mDataManager.isSaving()) {
                     toastShort("Cannot finalize while saving");
                 } else {
-                    openDialog_signTransfer(null);
+                    openDialog_finalizeTransfer(null);
                 }
                 return true;
             case R.id.menu_cancel:
@@ -574,30 +570,9 @@ public class TransferActivity extends AppCompatActivity {
                 } else if (mDataManager.isSaving()) {
                     toastShort("Cannot cancel while saving");
                 } else {
-                    openDialog_cancelTransfer();
-                }
-                return true;/*
-            case R.id.menu_reset:
-                if (mDataManager.isSaving()) {
-                    toastShort("Cannot reset while saving");
-                } else {
-                    openDialog_resetDatabase();
+                    openDialog_cancelTransfer(null);
                 }
                 return true;
-            case R.id.menu_open_setup_dialog:
-                if (mDataManager.isSaving()) {
-                    toastShort("Cannot load analysts while saving");
-                } else {
-                    openDialog_setup();
-                }
-                return true;*/
-            /*case R.id.menu_continuous_mode:
-                if (mDataManager.getScanner() != null && mDataManager.getScanner().setScanMode(item.isChecked() ? AbstractScanner.ONE_SHOT_MODE : AbstractScanner.CONTINUOUS_MODE)) {
-                    item.setChecked(!item.isChecked());
-                } else {
-                    toastShort("An error occurred while changing scanning mode");
-                }
-                return true;*/
         }
         return super.onOptionsItemSelected(item);
     }
@@ -611,29 +586,19 @@ public class TransferActivity extends AppCompatActivity {
     public boolean onPrepareOptionsMenu(Menu menu) {
         final MenuItem itemSave = menu.findItem(R.id.menu_save);
         final MenuItem itemSign = menu.findItem(R.id.menu_sign);
+        final MenuItem itemFinalize = menu.findItem(R.id.menu_finalize);
         final MenuItem itemComments = menu.findItem(R.id.menu_comments);
         final MenuItem itemCancel = menu.findItem(R.id.menu_cancel);
-        if (mDataManager != null) {
-            final boolean saveEnabled = mDataManager.getCurrentTransfer() != null;
-            final boolean signEnabled = mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().signed && !mDataManager.getCurrentTransfer().finalized && !mDataManager.getCurrentTransfer().canceled;
-            final boolean commentsEnabled = mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().canceled;
-            final boolean cancelEnabled = mDataManager.getCurrentTransfer() != null && !mDataManager.getCurrentTransfer().canceled;
 
-            itemSave.setVisible(true);
-            itemSign.setVisible(true);
-            if (BuildConfig.ui_enableCommentsEdit) itemComments.setVisible(true);
-            itemCancel.setVisible(true);
+        itemComments.setVisible(BuildConfig.ui_enableCommentsEdit);
 
-            setIconEnabled(itemSave, saveEnabled);
-            setIconEnabled(itemSign, signEnabled);
-            if (BuildConfig.ui_enableCommentsEdit) setIconEnabled(itemComments, commentsEnabled);
-            setIconEnabled(itemCancel, cancelEnabled);
-        } else {
-            itemSave.setVisible(false);
-            itemSign.setVisible(false);
-            if (BuildConfig.ui_enableCommentsEdit) itemComments.setVisible(false);
-            itemCancel.setVisible(false);
-        }
+        final boolean enabled = mDataManager != null;
+        setIconEnabled(itemSave, enabled);
+        setIconEnabled(itemSign, enabled);
+        setIconEnabled(itemFinalize, enabled);
+        if (BuildConfig.ui_enableCommentsEdit) setIconEnabled(itemComments, enabled);
+        setIconEnabled(itemCancel, enabled);
+
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -790,15 +755,6 @@ public class TransferActivity extends AppCompatActivity {
         });
     }
 
-    private void setInfoViewAttributes(View v, boolean isLocationNull) {
-        v.setVisibility(!isLocationNull ? View.VISIBLE : View.INVISIBLE);
-        v.setEnabled(!isLocationNull);
-    }
-
-    private void setInfoViewAttributes(int id, boolean isLocationNull) {
-        setInfoViewAttributes(findViewById(id), isLocationNull);
-    }
-
     static final int[] INFO_TEXT_VIEW_IDS = {
             R.id.text_current_location_label,
             R.id.text_current_location_label_separator,
@@ -814,7 +770,7 @@ public class TransferActivity extends AppCompatActivity {
     };
 
     private void updateInfo(@Nullable PlcBarcode barcode, int itemCount, long transferId, boolean isCanceled) {
-        final boolean isLocationNull = barcode == null || !barcode.isOfType(Location) && !barcode.isOfType(Container);
+        final boolean isLocationNull = (barcode == null || (!barcode.isOfType(Location) && !barcode.isOfType(Container)));
 
         {
             final AppCompatTextView textScanBarcodeHint = findViewById(R.id.text_scan_barcode_hint);
@@ -822,7 +778,7 @@ public class TransferActivity extends AppCompatActivity {
         }
 
         for (int id : INFO_TEXT_VIEW_IDS) {
-            setInfoViewAttributes(id, isLocationNull);
+            findViewById(id).setEnabled(!isCanceled);
         }
 
         if (!isLocationNull) {

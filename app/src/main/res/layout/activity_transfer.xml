@@ -106,7 +106,7 @@
         android:layout_marginEnd="0dp"
         android:text="@string/text_transfer_id_label"
         app:layout_constraintBaseline_toBaselineOf="@id/text_item_count_label"
-        app:layout_constraintStart_toEndOf="@id/button_left"/>
+        app:layout_constraintStart_toEndOf="@id/button_previous"/>
 
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/text_transfer_id_label_separator"
@@ -142,22 +142,22 @@
         app:layout_constraintEnd_toEndOf="@+id/info_background"/>
 
     <androidx.appcompat.widget.AppCompatImageButton
-        android:id="@+id/button_left"
+        android:id="@+id/button_previous"
         android:layout_width="wrap_content"
         android:layout_height="0dp"
         android:background="?android:attr/actionBarItemBackground"
-        android:onClick="switchToPreviousTransfer"
+        android:onClick="onClick_ButtonPrevious"
         android:src="@drawable/ic_chevron_left"
         app:layout_constraintTop_toTopOf="@+id/info_background"
         app:layout_constraintBottom_toBottomOf="@+id/info_background"
         app:layout_constraintStart_toStartOf="parent"/>
 
     <androidx.appcompat.widget.AppCompatImageButton
-        android:id="@+id/button_right"
+        android:id="@+id/button_next"
         android:layout_width="wrap_content"
         android:layout_height="0dp"
         android:background="?android:attr/actionBarItemBackground"
-        android:onClick="switchToNextTransfer"
+        android:onClick="onClick_ButtonNext"
         android:src="@drawable/ic_chevron_right"
         app:layout_constraintTop_toTopOf="@+id/info_background"
         app:layout_constraintBottom_toBottomOf="@+id/info_background"
@@ -198,6 +198,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:onClick="onClick_ButtonSave"
             android:text="@string/action_save"
             android:textAllCaps="false"/>
 
@@ -214,6 +215,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:onClick="onClick_ButtonSign"
             android:text="@string/action_sign"
             android:textAllCaps="false"/>
 
@@ -230,6 +232,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:onClick="onClick_ButtonCancel"
             android:text="@string/action_cancel"
             android:textAllCaps="false"/>
 

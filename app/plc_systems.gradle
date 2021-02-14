@@ -91,7 +91,7 @@ ext.plcSystems = [
                         enableQuantityEdit      : false,
                         enableTransferNavigation: true,
                         enableCommentsEdit      : false,
-                        enableShortcutBar       : false,
+                        enableShortcutBar       : true,
                 ],
         ],
 

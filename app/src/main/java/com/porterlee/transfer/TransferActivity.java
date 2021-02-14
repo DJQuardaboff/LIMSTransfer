@@ -400,7 +400,7 @@ public class TransferActivity extends AppCompatActivity {
         setDrawableEnabled(imageButton.getDrawable(), enabled);
     }
 
-    public void switchToPreviousTransfer(View v) {
+    public void onClick_ButtonPrevious(View v) {
         if (mDataManager.query_isCurrentTransferActive()) {
             toastShort("Finalize or cancel this transfer first");
             return;
@@ -408,12 +408,54 @@ public class TransferActivity extends AppCompatActivity {
         mDataManager.switchToPreviousTransfer();
     }
 
-    public void switchToNextTransfer(View v) {
+    public void onClick_ButtonNext(View v) {
         if (mDataManager.query_isCurrentTransferActive()) {
             toastShort("Finalize or cancel this transfer first");
             return;
         }
         mDataManager.switchToNextTransfer();
+    }
+
+    public void onClick_ButtonSave(View v) {
+        if (mDataManager.query_hasActiveTransfer()) {
+            toastShort("All transfers must be finalized or canceled");
+        } else if (mDataManager.query_getFinalTransferCount() < 1) {
+            toastShort("Start a transfer first");
+        } else if (mDataManager.isSaving()) {
+            toastShort("Save already in progress");
+        } else {
+            openDialog_saveBatch(null);
+        }
+    }
+
+    public void onClick_ButtonSign(View v) {
+        if (mDataManager.getCurrentTransfer() == null) {
+            toastShort("Start a transfer first");
+        } else if (mDataManager.getCurrentTransfer().signed) {
+            toastShort("Already signed");
+        } else if (mDataManager.getCurrentTransfer().canceled) {
+            toastShort("Already canceled");
+        } else if (mDataManager.getCurrentTransfer().finalized) {
+            toastShort("Already finalized");
+        } else if (mDataManager.query_getItemCount() <= 0) {
+            toastShort("Scan items first");
+        } else if (mDataManager.isSaving()) {
+            toastShort("Cannot sign while saving");
+        } else {
+            openDialog_signTransfer(null);
+        }
+    }
+
+    public void onClick_ButtonCancel(View v) {
+        if (mDataManager.getCurrentTransfer() == null) {
+            toastShort("Start a transfer first");
+        } else if (mDataManager.getCurrentTransfer().canceled) {
+            toastShort("Already canceled");
+        } else if (mDataManager.isSaving()) {
+            toastShort("Cannot cancel while saving");
+        } else {
+            openDialog_cancelTransfer(null);
+        }
     }
 
     @Override
@@ -437,14 +479,15 @@ public class TransferActivity extends AppCompatActivity {
 
         {
             final int navigationButtonVisibility = BuildConfig.ui_enableTransferNavigation ? View.VISIBLE : View.GONE;
-            this.<AppCompatImageButton>findViewById(R.id.button_left).setVisibility(navigationButtonVisibility);
-            this.<AppCompatImageButton>findViewById(R.id.button_right).setVisibility(navigationButtonVisibility);
+            this.<AppCompatImageButton>findViewById(R.id.button_previous).setVisibility(navigationButtonVisibility);
+            this.<AppCompatImageButton>findViewById(R.id.button_next).setVisibility(navigationButtonVisibility);
         }
 
         {
             final int shortcutBarVisibility = BuildConfig.ui_enableShortcutBar ? View.VISIBLE : View.GONE;
             this.<LinearLayoutCompat>findViewById(R.id.transfer_toolbar).setVisibility(shortcutBarVisibility);
         }
+
         mItemRecyclerAdapter = new SelectableCursorRecyclerViewAdapter<TransferItemViewHolder>(mDataManager.query_getItems(), TransferDatabase.Key.ID) {
             @Override
             public void onBindViewHolder(TransferItemViewHolder viewHolder, Cursor cursor) {
@@ -479,8 +522,8 @@ public class TransferActivity extends AppCompatActivity {
                                 isCanceled
                         );
 
-                        setImageButtonEnabled(TransferActivity.this.<AppCompatImageButton>findViewById(R.id.button_left), mDataManager.query_hasPreviousTransfer());
-                        setImageButtonEnabled(TransferActivity.this.<AppCompatImageButton>findViewById(R.id.button_right), mDataManager.query_hasNextTransfer());
+                        setImageButtonEnabled(TransferActivity.this.<AppCompatImageButton>findViewById(R.id.button_previous), mDataManager.query_hasPreviousTransfer());
+                        setImageButtonEnabled(TransferActivity.this.<AppCompatImageButton>findViewById(R.id.button_next), mDataManager.query_hasNextTransfer());
 
                         refreshItemRecyclerAdapter();
                         mItemRecyclerAdapter.setIsCanceled(isCanceled);
@@ -520,32 +563,10 @@ public class TransferActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_save:
-                if (mDataManager.query_hasActiveTransfer()) {
-                    toastShort("All transfers must be finalized or canceled");
-                } else if (mDataManager.query_getFinalTransferCount() < 1) {
-                    toastShort("Start a transfer first");
-                } else if (mDataManager.isSaving()) {
-                    toastShort("Save already in progress");
-                } else {
-                    openDialog_saveBatch(null);
-                }
+                onClick_ButtonSave(null);
                 return true;
             case R.id.menu_sign:
-                if (mDataManager.getCurrentTransfer() == null) {
-                    toastShort("Start a transfer first");
-                } else if (mDataManager.getCurrentTransfer().signed) {
-                    toastShort("Already signed");
-                } else if (mDataManager.getCurrentTransfer().canceled) {
-                    toastShort("Already canceled");
-                } else if (mDataManager.getCurrentTransfer().finalized) {
-                    toastShort("Already finalized");
-                } else if (mDataManager.query_getItemCount() <= 0) {
-                    toastShort("Scan items first");
-                } else if (mDataManager.isSaving()) {
-                    toastShort("Cannot sign while saving");
-                } else {
-                    openDialog_signTransfer(null);
-                }
+                onClick_ButtonSign(null);
                 return true;
             case R.id.menu_finalize:
                 if (mDataManager.getCurrentTransfer() == null) {
@@ -563,15 +584,7 @@ public class TransferActivity extends AppCompatActivity {
                 }
                 return true;
             case R.id.menu_cancel:
-                if (mDataManager.getCurrentTransfer() == null) {
-                    toastShort("Start a transfer first");
-                } else if (mDataManager.getCurrentTransfer().canceled) {
-                    toastShort("Already canceled");
-                } else if (mDataManager.isSaving()) {
-                    toastShort("Cannot cancel while saving");
-                } else {
-                    openDialog_cancelTransfer(null);
-                }
+                onClick_ButtonCancel(null);
                 return true;
         }
         return super.onOptionsItemSelected(item);

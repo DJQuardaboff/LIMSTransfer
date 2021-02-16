@@ -739,9 +739,8 @@ public class DataManager {
                             transferObject.put("signed", signed);
                             transferObject.put("start_datetime", transferCursor.getString(transferStartDateTimeIndex));
                             if (signed)
-                                transferObject.put("sign_datetime", transferCursor.getString(transferSignDateTimeIndex));
-                            String transferCommentsStr = transferCursor.getString(transferCommentsIndex);
-                            transferObject.put("comments", transferCommentsStr != null ? new JSONArray(transferCommentsStr) : new JSONArray());
+                                transferObject.put("sign_datetime", transferCursor.isNull(transferSignDateTimeIndex) ? null : transferCursor.getString(transferSignDateTimeIndex));
+                            transferObject.put("comments", transferCursor.isNull(transferSignDateTimeIndex) ? null : transferCursor.getString(transferCommentsIndex));
 
                             {
                                 TransferDatabase tmp_transferDatabase = transferDatabase_weak.get();

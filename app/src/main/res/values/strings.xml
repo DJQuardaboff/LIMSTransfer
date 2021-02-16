@@ -1,15 +1,8 @@
 <resources>
     <string name="text_item_count_label">Items</string>
     <string name="text_transfer_id_label">ID</string>
-    <string name="text_analyst_login_title">Analyst login</string>
-    <string name="text_analyst_id_hint">User ID</string>
-    <string name="text_analyst_password_hint">Password</string>
-    <string name="text_setup_title">Setup</string>
     <string name="text_sign_here">Sign here</string>
     <string name="action_remove">Remove</string>
-    <string name="action_continuous_mode">Continuous mode</string>
-    <string name="action_reset">Reset</string>
-    <string name="action_load_analysts">Load analysts</string>
     <string name="action_sign">Sign</string>
     <string name="action_clear">Clear</string>
     <string name="action_save">Save</string>
@@ -20,14 +13,19 @@
     <string name="action_delete">Delete</string>
     <string name="action_yes">Yes</string>
     <string name="action_no">No</string>
-    <string name="action_login">login</string>
+    <string name="action_append">Append</string>
+    <string name="action_new_transfer">New Transfer</string>
     <string name="text_scan_barcode">Scan a barcode</string>
+    <string name="text_duplicate_item_resolution_title">Duplicate item</string>
+    <string name="text_duplicate_item_resolution_message">An item with the same barcode was already scanned, would you still like to append it?</string>
     <string name="text_save_batch_title">Save batch?</string>
     <string name="text_finalize_transfer_title">Finalize transfer?</string>
-    <string name="text_finalize_transfer_body">This action cannot be undone</string>
+    <string name="text_finalize_transfer_message">This action cannot be undone</string>
     <string name="text_edit_comments_title">Comments</string>
     <string name="text_cancel_transfer_title">Cancel transfer?</string>
-    <string name="text_cancel_transfer_body">This action cannot be undone</string>
+    <string name="text_cancel_transfer_message">This action cannot be undone</string>
     <string name="text_quantity_hint">Quantity</string>
     <string name="text_separator">:</string>
+    <string name="text_ambiguous_scan_title">Ambiguous scan</string>
+    <string name="text_ambiguous_scan_message">Would you like to append it to the current transfer?\nOr start a new transfer?\nTo start a new transfer, this one must be finalized.</string>
 </resources>

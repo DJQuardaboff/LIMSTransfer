@@ -105,27 +105,42 @@ public class TransferActivity extends AppCompatActivity {
             // currentTransfer is non-null and active
 
             if (barcode.isOfType(Container)) {
-                // ask if the user would like to start a new transfer or add this to the current one
+                getScannerUtils().onScanComplete(false);
+                openDialog_ambiguousContainerScan(barcode);
+                return;
             }
 
             if (barcode.isOfType(Location)) {
                 getScannerUtils().onScanComplete(false);
                 toastShort("Finalize or cancel this transfer first");
+                return;
             } else if (barcode.isOfType(Item) || barcode.isOfType(Container)) {
-                if (mDataManager.query_currentTransferHasItemWithBarcode(barcode.getBarcode())) {
-                    getScannerUtils().onScanComplete(false);
-                    openDialog_duplicateItemResolution(barcode);
-                } else {
-                    insertItem(barcode, new Utils.OnFinishListener() {
-                        @Override
-                        public void onFinish(boolean success) {
-                            getScannerUtils().onScanComplete(success);
-                        }
-                    });
-                }
+                actionAddItem(barcode, new Utils.OnFinishListener() {
+                    @Override
+                    public void onFinish(boolean success) {
+                        getScannerUtils().onScanComplete(success);
+                    }
+                });
+                return;
             }
         }
     };
+
+    public void actionAddItem(@NonNull final PlcBarcode barcode, final Utils.OnFinishListener onFinishListener) {
+        if (mDataManager.query_currentTransferHasItemWithBarcode(barcode.getBarcode())) {
+            if (onFinishListener != null)
+                onFinishListener.onFinish(false);
+            openDialog_duplicateItemResolution(barcode);
+        } else {
+            insertItem(barcode, new Utils.OnFinishListener() {
+                @Override
+                public void onFinish(boolean success) {
+                    if (onFinishListener != null)
+                        onFinishListener.onFinish(success);
+                }
+            });
+        }
+    }
 
     public void showScannerDialog(Dialog dialog, final DialogInterface.OnDismissListener onDismissListener, ScannerUtils.OnBarcodeScannedListener onBarcodeScannedListener) {
         showDialog0(dialog, onDismissListener, onBarcodeScannedListener, false);
@@ -157,34 +172,57 @@ public class TransferActivity extends AppCompatActivity {
     }
 
     public void openDialog_duplicateItemResolution(@NonNull final PlcBarcode barcode) {
-        showModalScannerDialog(new AlertDialog.Builder(TransferActivity.this)
-                .setCancelable(false)
-                .setTitle("Duplicate item")
-                .setMessage("An item with the same barcode was already scanned, would you still like to add it to the list?")
-                .setNegativeButton(R.string.action_no, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-                        highlightItemWithBarcode(barcode.getBarcode());
-                    }
-                }).setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
+        showModalScannerDialog(new AlertDialog.Builder(this)
+                .setTitle(R.string.text_duplicate_item_resolution_title)
+                .setMessage(R.string.text_duplicate_item_resolution_message)
+                .setPositiveButton(R.string.action_append, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         insertItem(barcode, null);
                     }
-                }).create(), null);
+                }).setNegativeButton(R.string.action_cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        highlightItemWithBarcode(barcode.getBarcode());
+                    }
+                }).setCancelable(false)
+                .create(), null);
     }
 
-    private void insertItem(@NonNull PlcBarcode barcode, Utils.OnFinishListener listener) {
+    public void openDialog_ambiguousContainerScan(@NonNull final PlcBarcode barcode) {
+        showModalScannerDialog(new AlertDialog.Builder(this)
+                .setTitle(R.string.text_ambiguous_scan_title)
+                .setMessage(R.string.text_ambiguous_scan_message)
+                .setPositiveButton(R.string.action_new_transfer, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        openDialog_finalizeTransfer(new Utils.OnFinishListener() {
+                            @Override
+                            public void onFinish(boolean success) {
+                                if (success)
+                                    mDataManager.startNewTransfer(barcode.getBarcode());
+                            }
+                        });
+                    }
+                }).setNeutralButton(R.string.action_append, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        actionAddItem(barcode, null);
+                    }
+                }).setNegativeButton(R.string.action_cancel, null).setCancelable(false)
+                .create(), null);
+    }
+
+    private void insertItem(@NonNull PlcBarcode barcode, Utils.OnFinishListener onFinishListener) {
         if (mDataManager.query_insertItem(barcode.getBarcode()) > 0) {
-            if (listener != null)
-                listener.onFinish(true);
+            if (onFinishListener != null)
+                onFinishListener.onFinish(true);
 
             refreshItemCount();
             refreshItemRecyclerAdapter();
         } else {
-            if (listener != null)
-                listener.onFinish(false);
+            if (onFinishListener != null)
+                onFinishListener.onFinish(false);
 
             final String barcodeTypeStr = barcode.getBarcodeType().toString().toLowerCase();
             Log.w(TAG, String.format("Error adding %s \"%s\" to database", barcodeTypeStr, barcode));
@@ -341,7 +379,7 @@ public class TransferActivity extends AppCompatActivity {
     public void openDialog_finalizeTransfer(final Utils.OnFinishListener onFinishListener) {
         showModalScannerDialog(new AlertDialog.Builder(this)
                 .setTitle(R.string.text_finalize_transfer_title)
-                .setMessage(R.string.text_finalize_transfer_body)
+                .setMessage(R.string.text_finalize_transfer_message)
                 .setNegativeButton(R.string.action_cancel, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -390,7 +428,7 @@ public class TransferActivity extends AppCompatActivity {
     private void openDialog_cancelTransfer(final Utils.OnFinishListener onFinishListener) {
         showModalScannerDialog(new AlertDialog.Builder(this)
                 .setTitle(R.string.text_cancel_transfer_title)
-                .setMessage(R.string.text_cancel_transfer_body)
+                .setMessage(R.string.text_cancel_transfer_message)
                 .setNegativeButton(R.string.action_no, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {

@@ -259,7 +259,7 @@ public class TransferActivity extends AppCompatActivity {
     public void openDialog_saveBatch(final Utils.OnFinishListener onFinishListener) {
         showModalScannerDialog(new AlertDialog.Builder(this)
                 .setTitle(R.string.text_save_batch_title)
-                // todo: .setMessage(R.string.text_save_batch_title)
+                .setMessage(R.string.text_save_batch_message)
                 .setPositiveButton(R.string.action_save, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -507,9 +507,7 @@ public class TransferActivity extends AppCompatActivity {
     }
 
     public void actionSave() {
-        if (mDataManager.query_hasActiveTransfer()) {
-            toastShort("All transfers must be finalized or canceled");
-        } else if (mDataManager.query_getFinalTransferCount() < 1) {
+        if (mDataManager.query_getFinalTransferCount() < 1) {
             toastShort("Start a transfer first");
         } else if (mDataManager.isSaving()) {
             toastShort("Save already in progress");

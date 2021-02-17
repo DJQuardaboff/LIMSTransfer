@@ -19,12 +19,12 @@
     <string name="text_duplicate_item_resolution_title">Duplicate item</string>
     <string name="text_duplicate_item_resolution_message">An item with the same barcode was already scanned, would you still like to append it?</string>
     <string name="text_save_batch_title">Save batch?</string>
-    <string name="text_save_batch_message">Only finalized transfers will be saved</string>
+    <string name="text_save_batch_message">Only finalized transfers will be saved.</string>
     <string name="text_finalize_transfer_title">Finalize transfer?</string>
-    <string name="text_finalize_transfer_message">This action cannot be undone</string>
+    <string name="text_finalize_transfer_message">This action cannot be undone.</string>
     <string name="text_edit_comments_title">Comments</string>
     <string name="text_cancel_transfer_title">Cancel transfer?</string>
-    <string name="text_cancel_transfer_message">This action cannot be undone</string>
+    <string name="text_cancel_transfer_message">This action cannot be undone.</string>
     <string name="text_quantity_hint">Quantity</string>
     <string name="text_separator">:</string>
     <string name="text_ambiguous_scan_title">Ambiguous scan</string>

@@ -389,13 +389,13 @@ public class DataManager {
         return transferId;
     }
 
-    public void signCurrentTransfer(final Context context, Bitmap bitmap, final Utils.DetailedOnFinishListener onFinishListener) {
+    public void signCurrentTransfer(final Context context, @Nullable final String name, Bitmap bitmap, final Utils.DetailedOnFinishListener onFinishListener) {
         final Transfer transfer = getCurrentTransfer();
         final Utils.DetailedOnFinishListener temp = new Utils.DetailedOnFinishListener() {
             @Override
             public void onFinish(boolean success, String message) {
                 if (success) {
-                    success = mTransferDatabase.query_updateTransferSetSigned(transfer.id) > 0;
+                    success = mTransferDatabase.query_updateTransferSetSigned(transfer.id, name) > 0;
                     if (success)
                         setCurrentTransfer(query_getTransfer(transfer.id));
                     else
@@ -525,8 +525,8 @@ public class DataManager {
                             null,
                             null,
                             null,
+                            null,
                             null
-
                     ));
                 }
             }
@@ -709,6 +709,7 @@ public class DataManager {
                 final int transferStartDateTimeIndex = transferCursor.getColumnIndexOrThrow(TransferDatabase.Key.START_DATETIME);
                 final int transferSignDateTimeIndex = transferCursor.getColumnIndexOrThrow(TransferDatabase.Key.SIGN_DATETIME);
                 final int transferCommentsIndex = transferCursor.getColumnIndexOrThrow(TransferDatabase.Key.COMMENTS);
+                final int transferSigneeNameIndex = transferCursor.getColumnIndexOrThrow(TransferDatabase.Key.SIGNEE_NAME);
 
                 transferCursor.moveToFirst();
 
@@ -735,12 +736,15 @@ public class DataManager {
                             JSONObject transferObject = new JSONObject();
                             transferObject.put("id", transferCursor.getLong(transferIdIndex));
                             transferObject.put("location_barcode", transferCursor.getString(transferLocationBarcodeIndex));
+                            transferObject.put("start_datetime", transferCursor.getString(transferStartDateTimeIndex));
+                            transferObject.put("comments", transferCursor.isNull(transferCommentsIndex) ? null : transferCursor.getString(transferCommentsIndex));
+
                             boolean signed = transferCursor.getLong(transferSignedIndex) != 0;
                             transferObject.put("signed", signed);
-                            transferObject.put("start_datetime", transferCursor.getString(transferStartDateTimeIndex));
-                            if (signed)
+                            if (signed) {
                                 transferObject.put("sign_datetime", transferCursor.isNull(transferSignDateTimeIndex) ? null : transferCursor.getString(transferSignDateTimeIndex));
-                            transferObject.put("comments", transferCursor.isNull(transferSignDateTimeIndex) ? null : transferCursor.getString(transferCommentsIndex));
+                                transferObject.put("signee_name", transferCursor.isNull(transferSigneeNameIndex) ? null : transferCursor.getString(transferSigneeNameIndex));
+                            }
 
                             {
                                 TransferDatabase tmp_transferDatabase = transferDatabase_weak.get();

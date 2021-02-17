@@ -10,6 +10,8 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -257,6 +259,7 @@ public class TransferActivity extends AppCompatActivity {
     public void openDialog_saveBatch(final Utils.OnFinishListener onFinishListener) {
         showModalScannerDialog(new AlertDialog.Builder(this)
                 .setTitle(R.string.text_save_batch_title)
+                // todo: .setMessage(R.string.text_save_batch_title)
                 .setPositiveButton(R.string.action_save, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -305,6 +308,7 @@ public class TransferActivity extends AppCompatActivity {
 
     private void openDialog_signTransfer(final Utils.OnFinishListener onFinishListener) {
         AlertDialog tempAlertDialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.text_sign_transfer_title)
                 .setView(R.layout.fragment_sign)
                 .setPositiveButton(R.string.action_save, new DialogInterface.OnClickListener() {
                     @Override
@@ -312,6 +316,7 @@ public class TransferActivity extends AppCompatActivity {
                         toastShort(R.string.action_saving_ellipsis);
                         mDataManager.signCurrentTransfer(
                                 TransferActivity.this,
+                                BuildConfig.ui_enableSigneeName ? ((AlertDialog) dialog).<AppCompatEditText>findViewById(R.id.edit_text_name).getText().toString() : null,
                                 ((AlertDialog) dialog).<SignaturePad>findViewById(R.id.signature_pad).getSignatureBitmap(),
                                 new Utils.DetailedOnFinishListener() {
                                     @Override
@@ -338,12 +343,38 @@ public class TransferActivity extends AppCompatActivity {
                 .create();
 
         tempAlertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            AlertDialog alertDialog;
+            AppCompatEditText editTextName;
+            SignaturePad signaturePad;
+            Button buttonClear;
+            Button buttonSave;
+
+            private void invalidateButtonState() {
+                buttonClear.setEnabled(!signaturePad.isEmpty());
+                buttonSave.setEnabled(!signaturePad.isEmpty() && editTextName.getText().length() > 0);
+            }
+
             @Override
             public void onShow(final DialogInterface dialog) {
-                final AlertDialog alertDialog = (AlertDialog) dialog;
-                final SignaturePad signaturePad = alertDialog.findViewById(R.id.signature_pad);
-                final Button buttonClear = alertDialog.getButton(DialogInterface.BUTTON_NEUTRAL);
-                final Button buttonSave = alertDialog.getButton(DialogInterface.BUTTON_POSITIVE);
+                alertDialog = (AlertDialog) dialog;
+                editTextName = alertDialog.findViewById(R.id.edit_text_name);
+                signaturePad = alertDialog.findViewById(R.id.signature_pad);
+                buttonClear = alertDialog.getButton(DialogInterface.BUTTON_NEUTRAL);
+                buttonSave = alertDialog.getButton(DialogInterface.BUTTON_POSITIVE);
+                editTextName.setVisibility(BuildConfig.ui_enableSigneeName ? View.VISIBLE : View.GONE);
+
+                editTextName.addTextChangedListener(new TextWatcher() {
+                    @Override
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+                    @Override
+                    public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+                    @Override
+                    public void afterTextChanged(Editable s) {
+                        invalidateButtonState();
+                    }
+                });
 
                 buttonClear.setEnabled(false);
                 buttonSave.setEnabled(false);
@@ -353,21 +384,19 @@ public class TransferActivity extends AppCompatActivity {
                         signaturePad.clear();
                     }
                 });
+
                 signaturePad.setOnSignedListener(new SignaturePad.OnSignedListener() {
                     @Override
-                    public void onStartSigning() {
-                    }
+                    public void onStartSigning() {}
 
                     @Override
                     public void onSigned() {
-                        buttonClear.setEnabled(true);
-                        buttonSave.setEnabled(true);
+                        invalidateButtonState();
                     }
 
                     @Override
                     public void onClear() {
-                        buttonClear.setEnabled(false);
-                        buttonSave.setEnabled(false);
+                        invalidateButtonState();
                     }
                 });
             }

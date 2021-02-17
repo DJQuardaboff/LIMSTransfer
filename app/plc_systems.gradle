@@ -28,6 +28,7 @@ ext.plcSystems = [
                         enableTransferNavigation: false,
                         enableCommentsEdit      : false,
                         enableShortcutBar       : false,
+                        enableSigneeName        : false,
                 ],
         ],
 
@@ -60,6 +61,7 @@ ext.plcSystems = [
                         enableTransferNavigation: false,
                         enableCommentsEdit      : false,
                         enableShortcutBar       : false,
+                        enableSigneeName        : false,
                 ],
         ],
 
@@ -92,6 +94,7 @@ ext.plcSystems = [
                         enableTransferNavigation: true,
                         enableCommentsEdit      : true,
                         enableShortcutBar       : true,
+                        enableSigneeName        : true,
                 ],
         ],
 
@@ -117,6 +120,7 @@ ext.plcSystems = [
                         enableTransferNavigation: false,
                         enableCommentsEdit      : false,
                         enableShortcutBar       : false,
+                        enableSigneeName        : false,
                 ],
         ],
 ]
@@ -238,6 +242,11 @@ ext.plcSystemsMetadata = [
                         ],
 
                         enableShortcutBar       : [
+                                required: true,
+                                type    : boolean,
+                        ],
+
+                        enableSigneeName        : [
                                 required: true,
                                 type    : boolean,
                         ],

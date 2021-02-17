@@ -16,7 +16,7 @@ import java.util.ArrayList;
 public final class TransferDatabase extends SQLiteOpenHelper {
     public static final String TAG = TransferDatabase.class.getCanonicalName();
     public static final String OLD_DATABASE_NAME = "lims_transfer";
-    public static final int DATABASE_VERSION = 1;
+    public static final int DATABASE_VERSION = 2;
     public static final String DATABASE_NAME = "plc_transfer.db";
 
     private final Context mContext;
@@ -97,6 +97,8 @@ public final class TransferDatabase extends SQLiteOpenHelper {
             throw new UpgradeException("database version (" + oldVersion + ") is greater than target version (" + newVersion + ")!");
         switch (oldVersion) {
             case 0:
+            case 1:
+                db.execSQL("ALTER TABLE transfers ADD COLUMN signee_name TEXT DEFAULT NULL");
                 break;
             default:
                 throw new UpgradeException("unknown database version: " + oldVersion);
@@ -290,11 +292,12 @@ public final class TransferDatabase extends SQLiteOpenHelper {
     }
 
     private SQLiteStatement mQuery_updateTransferSetSigned = null;
-    public synchronized long query_updateTransferSetSigned(long id) {
+    public synchronized long query_updateTransferSetSigned(long id, String name) {
         // todo: test
         if (mQuery_updateTransferSetSigned == null)
-            mQuery_updateTransferSetSigned = getWritableDatabase().compileStatement("UPDATE transfers SET signed = 1, sign_datetime = datetime('now', 'localtime') WHERE finalized == 0 AND canceled == 0 AND _id = ?");
-        mQuery_updateTransferSetSigned.bindLong(1, id);
+            mQuery_updateTransferSetSigned = getWritableDatabase().compileStatement("UPDATE transfers SET signed = 1, sign_datetime = datetime('now', 'localtime'), signee_name = ? WHERE finalized == 0 AND canceled == 0 AND _id = ?");
+        mQuery_updateTransferSetSigned.bindString(1, name);
+        mQuery_updateTransferSetSigned.bindLong(2, id);
         return mQuery_updateTransferSetSigned.executeUpdateDelete();
     }
 
@@ -430,6 +433,7 @@ public final class TransferDatabase extends SQLiteOpenHelper {
         public static final String FINALIZE_DATETIME = "finalize_datetime";
         public static final String CANCEL_DATETIME = "cancel_datetime";
         public static final String SAVE_DATETIME = "save_datetime";
+        public static final String SIGNEE_NAME = "signee_name";
     }
 
     public static class Index {
@@ -467,7 +471,8 @@ public final class TransferDatabase extends SQLiteOpenHelper {
                 "finalize_datetime DATETIME DEFAULT NULL, " +
                 "cancel_datetime DATETIME DEFAULT NULL, " +
                 "save_datetime DATETIME DEFAULT NULL, " +
-                "comments TEXT DEFAULT NULL )";
+                "comments TEXT DEFAULT NULL, " +
+                "signee_name TEXT DEFAULT NULL )";
         public static final String SQL_CREATE_INDEX_FINALIZED_CANCELED = "CREATE INDEX IF NOT EXISTS transfer_finalized_index ON transfers ( finalized, canceled )";
         public static final String SQL_CREATE_INDEX_LOCATION_BARCODE = "CREATE INDEX IF NOT EXISTS transfers_location_barcode_index ON transfers ( location_barcode )";
         public static final String SQL_CREATE_INDEX_BATCH_ID = "CREATE INDEX IF NOT EXISTS transfers_batch_id_index ON transfers ( batch_id )";

@@ -164,7 +164,8 @@ public class Utils {
                 cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.FINALIZE_DATETIME)),
                 cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.CANCEL_DATETIME)),
                 cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.SAVE_DATETIME)),
-                cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.COMMENTS))
+                cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.COMMENTS)),
+                cursor.getString(cursor.getColumnIndex(TransferDatabase.Key.SIGNEE_NAME))
         );
     }
 
@@ -211,6 +212,7 @@ public class Utils {
         public final String cancel_datetime;
         public final String save_datetime;
         public final String comments;
+        public final String signee_name;
 
         public Transfer(
                 long id,
@@ -225,7 +227,8 @@ public class Utils {
                 String finalize_datetime,
                 String cancel_datetime,
                 String save_datetime,
-                String comments
+                String comments,
+                String signee_name
         ) {
             this.id = id;
             this.batch_id = batch_id;
@@ -240,6 +243,7 @@ public class Utils {
             this.cancel_datetime = cancel_datetime;
             this.save_datetime = save_datetime;
             this.comments = comments;
+            this.signee_name = signee_name;
         }
 
         public boolean isActive() {

@@ -843,6 +843,7 @@ public class TransferActivity extends AppCompatActivity {
             });
         }
 
+        // todo: this triggers on new installs, find a way to stop that
         if (mDataManager.getLastVersion().compareTo(new Version(2, 0, 0)) < 0) {
             Log.v(TAG, "updating old transfers to new batch id");
             mDataManager.updateOldInProgressTransfersBatchIds();

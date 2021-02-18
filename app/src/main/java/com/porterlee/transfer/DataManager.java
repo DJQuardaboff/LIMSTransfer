@@ -290,7 +290,6 @@ public class DataManager {
     public boolean query_hasPreviousTransfer() {
         final long batchId = getCurrentBatchId();
         final long transferId = getCurrentTransferId();
-        Log.d("taaaag", "batchId=" + batchId + ", transferId=" + transferId);
         if (transferId >= 0) {
             if (mTransferDatabase.query_getPreviousTransferCountWithBatchId(batchId, transferId) > 0) {
                 return true;

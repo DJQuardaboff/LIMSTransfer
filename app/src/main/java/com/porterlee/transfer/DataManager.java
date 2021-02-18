@@ -388,6 +388,15 @@ public class DataManager {
         return transferId;
     }
 
+    public long startNewBatch() {
+        long batchId = query_insertBatch();
+        if (batchId < 0)
+            throw new RuntimeException("could not create new batch");
+        setCurrentBatch(query_getBatch(batchId));
+
+        return batchId;
+    }
+
     public void signCurrentTransfer(final Context context, @Nullable final String name, Bitmap bitmap, final Utils.DetailedOnFinishListener onFinishListener) {
         final Transfer transfer = getCurrentTransfer();
         final Utils.DetailedOnFinishListener temp = new Utils.DetailedOnFinishListener() {

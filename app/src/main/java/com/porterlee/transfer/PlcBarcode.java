@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class PlcBarcode {
     private static final int CUSTODY_OF_LENGTH = 4;
@@ -426,6 +427,105 @@ public class PlcBarcode {
             }
 
             return CHARSET.charAt(base64Int);
+        }
+    }
+
+    private static void appendRandomLabCode(StringBuilder sb, Random rng) {
+        final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        for (int i = 0; i < PlcBarcode.LAB_CODE_LENGTH; ++i) {
+            sb.append(ALPHABET.charAt(rng.nextInt(ALPHABET.length())));
+        }
+    }
+
+    private static void appendRandomEcn(StringBuilder sb, Random rng, PlcBarcode.Encoding encoding) {
+        final int NULL_ENCODING_LENGTH = 6;
+        final String NULL_ENCODING_ALPHABET = "0123456789";
+        switch (encoding) {
+            case Base32:
+                sb.append(Base32.encode(rng.nextLong() & 0xffff));
+                break;
+            case Base64:
+                sb.append(Base64.encode(rng.nextLong() & 0x3fffffff));
+                break;
+            default:
+                sb.append("ECN");
+                for (int i = 0; i < NULL_ENCODING_LENGTH; ++i) {
+                    sb.append(NULL_ENCODING_ALPHABET.charAt(rng.nextInt(NULL_ENCODING_ALPHABET.length())));
+                }
+        }
+    }
+
+    private static String generateRandomItemBarcode(Random rng) {
+        StringBuilder sb = new StringBuilder();
+
+        PlcBarcode.Encoding encoding = null;
+        {
+            int prefixEncodingIndex = rng.nextInt(BarcodeType.Item.prefixEncodings.size());
+            sb.append(BarcodeType.Item.prefixEncodings.get(prefixEncodingIndex).first);
+            encoding = BarcodeType.Item.prefixEncodings.get(prefixEncodingIndex).second;
+        }
+        if (BarcodeType.Item.hasLabCode)
+            appendRandomLabCode(sb, rng);
+        appendRandomEcn(sb, rng, encoding);
+
+        return sb.toString();
+    }
+
+    private static String generateRandomContainerBarcode(Random rng) {
+        StringBuilder sb = new StringBuilder();
+
+        PlcBarcode.Encoding encoding = null;
+        {
+            int prefixEncodingIndex = rng.nextInt(BarcodeType.Container.prefixEncodings.size());
+            sb.append(BarcodeType.Container.prefixEncodings.get(prefixEncodingIndex).first);
+            encoding = BarcodeType.Container.prefixEncodings.get(prefixEncodingIndex).second;
+        }
+        if (BarcodeType.Container.hasLabCode)
+            appendRandomLabCode(sb, rng);
+        appendRandomEcn(sb, rng, encoding);
+
+        return sb.toString();
+    }
+
+    private static void appendRandomCustodyOf(StringBuilder sb, Random rng) {
+        final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        for (int i = 0; i < PlcBarcode.CUSTODY_OF_LENGTH; ++i) {
+            sb.append(ALPHABET.charAt(rng.nextInt(ALPHABET.length())));
+        }
+    }
+
+    private static void appendRandomLocationName(StringBuilder sb, Random rng) {
+        final String ALPHABET = "0123456789";
+        sb.append("NAME");
+        for (int i = 0; i < PlcBarcode.CUSTODY_OF_LENGTH; ++i) {
+            sb.append(ALPHABET.charAt(rng.nextInt(ALPHABET.length())));
+        }
+    }
+
+    private static String generateRandomLocationBarcode(Random rng) {
+        StringBuilder sb = new StringBuilder();
+
+        {
+            int prefixEncodingIndex = rng.nextInt(BarcodeType.Location.prefixEncodings.size());
+            sb.append(BarcodeType.Location.prefixEncodings.get(prefixEncodingIndex).first);
+        }
+        if (BarcodeType.Location.hasCustodyOf)
+            appendRandomCustodyOf(sb, rng);
+        appendRandomLocationName(sb, rng);
+
+        return sb.toString();
+    }
+
+    public static String generateRandomBarcode(Random rng, BarcodeType barcodeType) {
+        switch (barcodeType) {
+            case Item:
+                return generateRandomItemBarcode(rng);
+            case Container:
+                return generateRandomContainerBarcode(rng);
+            case Location:
+                return generateRandomLocationBarcode(rng);
+            default:
+                throw new RuntimeException("Invalid BarcodeType");
         }
     }
 }

@@ -577,12 +577,15 @@ public class DataManager {
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
+                final long batchItemCount;
+                long cumulativeItemCount = 0;
                 PrintStream printStream = null;
                 Cursor transferCursor = null;
                 Cursor itemCursor = null;
                 {
                     TransferDatabase tmp_transferDatabase = transferDatabase_weak.get();
                     if (tmp_transferDatabase != null) {
+                        batchItemCount = tmp_transferDatabase.query_getItemCountFromFinalTransfersWithBatchId(batchId);
                         transferCursor = tmp_transferDatabase.query_getFinalTransfersWithBatchId(batchId);
                     } else {
                         return;
@@ -615,9 +618,8 @@ public class DataManager {
                         int itemQuantityIndex = itemCursor.getColumnIndex(TransferDatabase.Key.QUANTITY);
                         int itemDateTimeIndex = itemCursor.getColumnIndex(TransferDatabase.Key.SCAN_DATETIME);
 
-                        int updateNum = 0;
-                        int itemIndex = 0;
-                        int totalItemCount = itemCursor.getCount();
+                        final int MAX_UPDATE_COUNT = 100;
+                        int updateCount = 0;
 
                         printStream.printf("\"%s\"|\"%d\"|\"%s\"\r\n", transferCursor.getString(transferLocationBarcodeIndex).replace("\"", "\"\""), transferCursor.getLong(transferIdIndex), transferCursor.getString(transferStartDateTimeIndex).replace("-", "/"));
                         printStream.flush();
@@ -626,10 +628,10 @@ public class DataManager {
                             {
                                 Utils.OnProgressUpdateListener tmp_onProgressUpdateListener = onProgressUpdateListener_weak.get();
                                 if (tmp_onProgressUpdateListener != null) {
-                                    final float tempProgress = ((float) itemIndex) / totalItemCount;
-                                    if (tempProgress * 100 > updateNum) {
+                                    final float tempProgress = ((float) (cumulativeItemCount + itemCursor.getPosition())) / batchItemCount;
+                                    if ((tempProgress * MAX_UPDATE_COUNT) > updateCount) {
                                         tmp_onProgressUpdateListener.onProgressUpdate(tempProgress);
-                                        updateNum++;
+                                        updateCount++;
                                     }
                                 }
                             }
@@ -641,8 +643,8 @@ public class DataManager {
                             }
 
                             itemCursor.moveToNext();
-                            itemIndex++;
                         }
+                        cumulativeItemCount += itemCursor.getCount();
                         transferCursor.moveToNext();
                     }
                 } catch (IOException e) {
@@ -690,6 +692,7 @@ public class DataManager {
             @Override
             public void run() {
                 final long batchItemCount;
+                long cumulativeItemCount = 0;
                 Cursor transferCursor;
                 Cursor itemCursor = null;
                 {
@@ -765,7 +768,7 @@ public class DataManager {
                             {
                                 JSONArray itemArray = new JSONArray();
 
-                                final int maxUpdateCount = 100;
+                                final int MAX_UPDATE_COUNT = 100;
                                 int updateCount = 0;
 
                                 while (!itemCursor.isAfterLast()) {
@@ -774,8 +777,8 @@ public class DataManager {
                                     {
                                         Utils.OnProgressUpdateListener tmp_onProgressUpdateListener = onProgressUpdateListener_weak.get();
                                         if (tmp_onProgressUpdateListener != null) {
-                                            final float tempProgress = ((float) itemCursor.getPosition()) / batchItemCount;
-                                            if ((tempProgress * maxUpdateCount) > updateCount) {
+                                            final float tempProgress = ((float) (cumulativeItemCount + itemCursor.getPosition())) / batchItemCount;
+                                            if ((tempProgress * MAX_UPDATE_COUNT) > updateCount) {
                                                 tmp_onProgressUpdateListener.onProgressUpdate(tempProgress);
                                                 updateCount++;
                                             }
@@ -795,6 +798,7 @@ public class DataManager {
                             }
                             transferArray.put(transferObject);
 
+                            cumulativeItemCount += itemCursor.getCount();
                             transferCursor.moveToNext();
                         }
 

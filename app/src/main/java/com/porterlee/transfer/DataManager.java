@@ -496,7 +496,14 @@ public class DataManager {
         query_insertBatchIfNotExist();
 
         if (OUTPUT_FILE.exists()) {
-            mTransferDatabase.query_updateTransfersSetBatchId(getSavedTransfers_old(OUTPUT_FILE), mTransferDatabase.query_getLastBatchId());
+            try {
+                ArrayList<Transfer> oldTransfers = getSavedTransfers_old(OUTPUT_FILE);
+                mTransferDatabase.query_updateTransfersSetBatchId(oldTransfers, mTransferDatabase.query_getLastBatchId());
+            } catch (Exception e) {
+                Log.w(TAG, e.toString());
+                e.printStackTrace();
+                Log.w(TAG, "^ This is probably just because this is the first time the app has been run");
+            }
         }
     }
 

@@ -504,9 +504,8 @@ public class DataManager {
     public ArrayList<Transfer> getSavedTransfers_old(File file) {
         ArrayList<Transfer> transfers = new ArrayList<>();
 
-        BufferedReader reader = null;
-        try {
-            reader = new BufferedReader(new FileReader(file));
+        try (FileReader fileReader = new FileReader(file);
+             BufferedReader reader = new BufferedReader(fileReader)) {
             String header = reader.readLine();
             if (header == null)
                 return new ArrayList<>();
@@ -541,14 +540,6 @@ public class DataManager {
         } catch (IOException e) {
             e.printStackTrace();
             return new ArrayList<>();
-        } finally {
-            try {
-                if (reader != null) {
-                    reader.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
 
         return transfers;
@@ -588,7 +579,7 @@ public class DataManager {
             public void run() {
                 final long batchItemCount;
                 long cumulativeItemCount = 0;
-                PrintStream printStream = null;
+
                 Cursor transferCursor = null;
                 Cursor itemCursor = null;
                 {
@@ -600,14 +591,18 @@ public class DataManager {
                         return;
                     }
                 }
-                transferCursor.moveToFirst();
-                int transferIdIndex = transferCursor.getColumnIndex(TransferDatabase.Key.ID);
-                int transferLocationBarcodeIndex = transferCursor.getColumnIndex(TransferDatabase.Key.LOCATION_BARCODE);
-                int transferStartDateTimeIndex = transferCursor.getColumnIndex(TransferDatabase.Key.START_DATETIME);
 
-                try {
-                    OUTPUT_FILE.setWritable(true, true);
-                    printStream = new PrintStream(new BufferedOutputStream(new FileOutputStream(OUTPUT_FILE)));
+                int transferIdIndex = transferCursor.getColumnIndexOrThrow(TransferDatabase.Key.ID);
+                int transferLocationBarcodeIndex = transferCursor.getColumnIndexOrThrow(TransferDatabase.Key.LOCATION_BARCODE);
+                int transferStartDateTimeIndex = transferCursor.getColumnIndexOrThrow(TransferDatabase.Key.START_DATETIME);
+
+                transferCursor.moveToFirst();
+                OUTPUT_FILE.setWritable(true, true);
+
+                try (FileOutputStream fileOutputStream = new FileOutputStream(OUTPUT_FILE);
+                     // todo: try to guess size
+                     BufferedOutputStream outputStream = new BufferedOutputStream(fileOutputStream);
+                     PrintStream printStream = new PrintStream(outputStream)) {
                     printStream.print(OUTPUT_FILE_HEADER + "\r\n");
                     printStream.flush();
 
@@ -623,15 +618,14 @@ public class DataManager {
                             }
                         }
                         itemCursor.moveToFirst();
-                        int itemBarcodeIndex = itemCursor.getColumnIndex(TransferDatabase.Key.BARCODE);
-                        int itemQuantityIndex = itemCursor.getColumnIndex(TransferDatabase.Key.QUANTITY);
-                        int itemDateTimeIndex = itemCursor.getColumnIndex(TransferDatabase.Key.SCAN_DATETIME);
+                        int itemBarcodeIndex = itemCursor.getColumnIndexOrThrow(TransferDatabase.Key.BARCODE);
+                        int itemQuantityIndex = itemCursor.getColumnIndexOrThrow(TransferDatabase.Key.QUANTITY);
+                        int itemDateTimeIndex = itemCursor.getColumnIndexOrThrow(TransferDatabase.Key.SCAN_DATETIME);
 
                         final int MAX_UPDATE_COUNT = 100;
                         int updateCount = 0;
 
                         printStream.printf("\"%s\"|\"%d\"|\"%s\"\r\n", transferCursor.getString(transferLocationBarcodeIndex).replace("\"", "\"\""), transferCursor.getLong(transferIdIndex), transferCursor.getString(transferStartDateTimeIndex).replace("-", "/"));
-                        printStream.flush();
 
                         while (!itemCursor.isAfterLast()) {
                             {
@@ -653,6 +647,7 @@ public class DataManager {
 
                             itemCursor.moveToNext();
                         }
+
                         cumulativeItemCount += itemCursor.getCount();
                         transferCursor.moveToNext();
                     }
@@ -665,8 +660,6 @@ public class DataManager {
                     }
                     return;
                 } finally {
-                    if (printStream != null)
-                        printStream.close();
                     if (transferCursor != null)
                         transferCursor.close();
                     if (itemCursor != null)
@@ -702,6 +695,7 @@ public class DataManager {
             public void run() {
                 final long batchItemCount;
                 long cumulativeItemCount = 0;
+
                 Cursor transferCursor;
                 Cursor itemCursor = null;
                 {
@@ -724,7 +718,6 @@ public class DataManager {
 
                 transferCursor.moveToFirst();
 
-                PrintStream printStream = null;
                 try {
                     JSONObject outputObject = new JSONObject();
                     outputObject.put("applicationId", BuildConfig.APPLICATION_ID);
@@ -810,16 +803,16 @@ public class DataManager {
                             cumulativeItemCount += itemCursor.getCount();
                             transferCursor.moveToNext();
                         }
-
                         batchObject.put("transfers", transferArray);
                     }
                     outputObject.put("batch", batchObject);
 
-                    {
-                        OUTPUT_FILE.setWritable(true, true);
-                        printStream = new PrintStream(new BufferedOutputStream(new FileOutputStream(OUTPUT_FILE)));
+                    OUTPUT_FILE.setWritable(true, true);
+                    try (FileOutputStream fileOutputStream = new FileOutputStream(OUTPUT_FILE);
+                         // todo: try to guess size
+                         BufferedOutputStream outputStream = new BufferedOutputStream(fileOutputStream);
+                         PrintStream printStream = new PrintStream(outputStream)) {
                         printStream.print(outputObject);
-                        printStream.flush();
                     }
                 } catch (JSONException | IOException e) {
                     e.printStackTrace();
@@ -834,8 +827,6 @@ public class DataManager {
                         transferCursor.close();
                     if (itemCursor != null)
                         itemCursor.close();
-                    if (printStream != null)
-                        printStream.close();
                 }
 
                 {

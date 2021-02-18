@@ -29,6 +29,7 @@ public class Scanner implements EMDKManager.EMDKListener, com.symbol.emdk.barcod
         return mInstance != null ? mInstance : (mInstance = new Scanner());
     }
 
+    private boolean mIsEnabled = true;
     private volatile EMDKManager mEmdkManager = null;
     private volatile AtomicBoolean mEmdkManagerInAsyncInit = new AtomicBoolean(false);
     private final Object mLock = new Object();
@@ -36,10 +37,11 @@ public class Scanner implements EMDKManager.EMDKListener, com.symbol.emdk.barcod
     private com.symbol.emdk.barcode.Scanner mScanner = null;
 
     public boolean getIsEnabled() {
-        return mScanner.isEnabled();
+        return mIsEnabled;
     }
 
     public void setIsEnabled(boolean isEnabled) {
+        mIsEnabled = isEnabled;
         if (isEnabled) {
             enable();
         } else {
@@ -259,7 +261,7 @@ public class Scanner implements EMDKManager.EMDKListener, com.symbol.emdk.barcod
         StatusData.ScannerStates state = statusData.getState();
         switch (state) {
             case IDLE:
-                if (mScanner.isEnabled()) {
+                if (mIsEnabled) {
                     try {
                         if (!mScanner.isReadPending()) {
                             mScanner.read();
@@ -270,7 +272,7 @@ public class Scanner implements EMDKManager.EMDKListener, com.symbol.emdk.barcod
                 }
                 break;
             case WAITING:
-                if (!mScanner.isEnabled()) {
+                if (!mIsEnabled) {
                     try {
                         if (mScanner.isReadPending()) {
                             mScanner.cancelRead();
